@@ -198,8 +198,10 @@ async def update_schedules(api_key, vtubers, status_cache, metadata):
 
 	final_cache = {
 		vid: d for vid, d in status_cache.items()
-		if d.get("status") != "removed" and
-		d.get("start_time_iso") is not None and d.get("start_time_iso") and (start_boundary <= d["start_time_iso"] <= end_boundary)
+		if d.get("status") != "removed" and (
+			d.get("start_time_iso", None) is None or
+			(start_boundary <= d["start_time_iso"] <= end_boundary)
+		)
 	}
 	print(f"Cleanup: {len(status_cache)} -> {len(final_cache)}")
 
