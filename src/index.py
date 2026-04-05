@@ -43,7 +43,17 @@ async def save_status(status_cache, metadata):
 		"videos": status_cache,
 		"metadata": metadata
 	}
-	await KV_CACHE.put(STATUS_KEY, json.dumps(data, ensure_ascii=False))
+	await KV_CACHE.put(STATUS_KEY, json.dumps(data, ensure_ascii=True))
+
+async def save_data_json(schedules):
+	"""公開用JSONを生成する"""
+	global KV_OUTPUT
+	public_data = {
+		"updated_at": datetime.now(timezone.utc).isoformat(),
+		"all_schedules": schedules
+	}
+	await KV_OUTPUT.put(OUTPUT_KEY, json.dumps(public_data, ensure_ascii=True))
+	print(f"Generated {OUTPUT_KEY} ({len(schedules)} streams)")
 
 async def get_video_info_from_rss(channel_id):
 	"""RSSから最新動画情報を取得"""
@@ -179,14 +189,7 @@ async def update_schedules(api_key, vtubers, status_cache, metadata):
 async def generate_data_json(status_cache):
 	"""公開用JSONを生成する"""
 	schedules = sorted(status_cache.values(), key=lambda x: x["start_time_iso"])
-	
-	public_data = {
-		"updated_at": datetime.now(timezone.utc).isoformat(),
-		"all_schedules": schedules
-	}
-	
-	await KV_OUTPUT.put(OUTPUT_KEY, json.dumps(public_data, ensure_ascii=False, indent=4))
-	print(f"Generated {OUTPUT_KEY} ({len(schedules)} streams)")
+	save_data_json(schedules=schedules)
 
 async def on_scheduled(env):
 	global KV_MASTER, KV_CACHE, KV_OUTPUT
