@@ -1,6 +1,5 @@
 from workers import handler
 import json
-import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 
@@ -9,9 +8,9 @@ PAST_DAYS = 1
 FUTURE_DAYS = 7
 
 # KVバインディング
-KV_OUTPUT = None
-KV_CACHE = None
 KV_MASTER = None
+KV_CACHE = None
+KV_OUTPUT = None
 
 # --- 設定定数 ---
 MASTER_DATA_KEY = "master_data"
@@ -46,17 +45,20 @@ def save_status(status_cache, metadata):
 	}
 	KV_CACHE.put(STATUS_KEY, json.dumps(data, ensure_ascii=False))
 
-def get_video_info_from_rss(channel_id):
+async def get_video_info_from_rss(channel_id):
 	"""RSSから最新動画情報を取得"""
 	video_info = []
 	headers = {"User-Agent": "live-stream-db"}
 	try:
 		url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
-		response = requests.get(url, headers=headers, timeout=10)
-		if response.status_code != 200:
+		response = await fetch(url, {"method": "GET", "headers": headers})
+		if response.status != 200:
 			return []
-		root = ET.fromstring(response.content)
+		
+		content = await response.text()
+		root = ET.fromstring(content)
 		ns = {'atom': 'http://www.w3.org/2005/Atom', 'yt': 'http://www.youtube.com/xml/schemas/2015'}
+		
 		for entry in root.findall('atom:entry', ns):
 			vid = entry.find('yt:videoId', ns).text
 			updated = entry.find('atom:updated', ns).text
@@ -65,27 +67,27 @@ def get_video_info_from_rss(channel_id):
 		print(f"RSS Error: {e}")
 	return video_info
 
-def update_schedules(api_key, vtubers, status_cache, metadata):
+async def update_schedules(vtubers, status_cache, metadata):
 	"""ステータス更新メインロジック"""
 	last_update_str = metadata.get("last_update", "1970-01-01T00:00:00+00:00")
 	print(f"Last RSS check: {last_update_str}")
 	
+	# SecretsからAPIキーを取得
+	api_key = env.YOUTUBE_DATA_API_KEY
 	if not api_key:
 		print("[ERROR] YouTube APIキーが設定されていません")
 		return status_cache
-
-	youtube_url = f"https://www.googleapis.com/youtube/v3/videos"
+	
+	youtube_url = "https://www.googleapis.com/youtube/v3/videos"
 	headers = {"Authorization": f"Bearer {api_key}"}
-	youtube = requests.Session()
-	youtube.headers.update(headers)
-
+	
 	# 1. RSSから新着IDを検知
 	new_ids_count = 0
 	for v in vtubers:
 		yt_ids = v.get("YouTubeID", [])
 		if not yt_ids:
 			continue
-		for info in get_video_info_from_rss(yt_ids[0]):
+		for info in await get_video_info_from_rss(yt_ids[0]):
 			vid = info["video_id"]
 			updated_str = info["updated"]
 			updated_date = datetime.fromisoformat(updated_str.replace("Z", "+00:00"))
@@ -117,9 +119,16 @@ def update_schedules(api_key, vtubers, status_cache, metadata):
 				"part": "snippet,liveStreamingDetails",
 				"id": ",".join(chunk)
 			}
-			res = youtube.get(youtube_url, params=params)
+			response = await fetch(youtube_url, {
+				"method": "GET",
+				"headers": headers,
+				"query": params
+			})
+			
+			data = await response.json()
 			found_ids = []
-			for item in res.json().get("items", []):
+			
+			for item in data.get("items", []):
 				vid = item["id"]
 				found_ids.append(vid)
 				live = item.get("liveStreamingDetails")
@@ -176,7 +185,7 @@ def generate_data_json(status_cache):
 
 @handler
 async def on_scheduled(event, env, ctx):
-	global KV_OUTPUT, KV_CACHE, KV_MASTER
+	global KV_MASTER, KV_CACHE, KV_OUTPUT
 	KV_MASTER = env.KV_MASTER
 	KV_CACHE = env.KV_CACHE
 	KV_OUTPUT = env.KV_OUTPUT
@@ -192,8 +201,7 @@ async def on_scheduled(event, env, ctx):
 	cache, metadata = load_status()
 	
 	# 3. データ更新
-	api_key = env.YOUTUBE_DATA_API_KEY
-	updated_cache = update_schedules(api_key, vtubers, cache, metadata)
+	updated_cache = await update_schedules(vtubers, cache, metadata)
 	
 	# 4. キャッシュ保存
 	metadata["last_update"] = start_time.isoformat()
