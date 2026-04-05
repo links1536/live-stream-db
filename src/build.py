@@ -20,6 +20,7 @@ def generate_wrangler_toml():
 	content = f"""name = "live-stream-db"
 main = "src/index.py"
 compatibility_date = "{datetime.now().strftime('%Y-%m-%d')}"
+compatibility_flags = ["python_workers"]
 
 # 15分ごとに実行（調整可能）
 [triggers]
