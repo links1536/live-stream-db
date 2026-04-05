@@ -1,4 +1,4 @@
-from workers import handler
+from workers import WorkerEntrypoint, Response, fetch
 import json
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
@@ -183,8 +183,7 @@ def generate_data_json(status_cache):
 	KV_OUTPUT.put(OUTPUT_KEY, json.dumps(public_data, ensure_ascii=False, indent=4))
 	print(f"Generated {OUTPUT_KEY} ({len(schedules)} streams)")
 
-@handler
-async def on_scheduled(event, env, ctx):
+async def on_scheduled(env):
 	global KV_MASTER, KV_CACHE, KV_OUTPUT
 	KV_MASTER = env.KV_MASTER
 	KV_CACHE = env.KV_CACHE
@@ -211,3 +210,8 @@ async def on_scheduled(event, env, ctx):
 	generate_data_json(updated_cache)
 	
 	print("=== Execution completed ===")
+	
+class Default(WorkerEntrypoint):
+	# runs based on "triggers" in wrangler config
+	async def scheduled(self, controller, env, ctx):
+		await on_scheduled(env)
