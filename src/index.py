@@ -53,6 +53,7 @@ async def get_video_info_from_rss(channel_id):
 		url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
 		response = await fetch(url, headers={"method": "GET", "headers": headers})
 		if response.status != 200:
+			print(f"RSS Error: {channel_id} - {response.status}")
 			return []
 		
 		content = await response.text()
