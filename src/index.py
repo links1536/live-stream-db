@@ -210,7 +210,7 @@ async def update_schedules(api_key, vtubers, status_cache, last_updates):
 
 async def generate_data_json(status_cache):
 	"""公開用JSONを生成する"""
-	schedules = sorted(status_cache.values(), key=lambda x: x["start_time_iso"])
+	schedules = sorted(status_cache.values(), key=lambda x: x.get("start_time_iso", "9999-12-31T23:59:59"))
 	await save_data_json(schedules=schedules)
 
 async def on_scheduled(env):
