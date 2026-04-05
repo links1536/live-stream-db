@@ -1,19 +1,9 @@
-import subprocess
+import os
 from datetime import datetime
 
 def get_secret(secret_name):
 	"""シークレットから値を取得"""
-	try:
-		result = subprocess.run(
-			["wrangler", "secret", "get", secret_name],
-			capture_output=True,
-			text=True,
-			check=True
-		)
-		return result.stdout.strip()
-	except subprocess.CalledProcessError:
-		print(f"Error: Secret '{secret_name}' not found")
-		return None
+	return os.environ.get(secret_name)
 
 def generate_wrangler_toml():
 	"""wrangler.tomlを生成"""
@@ -66,15 +56,6 @@ YOUTUBE_DATA_API_KEY = "{api_key}"
 		f.write(content)
 	
 	print("Generated wrangler.toml successfully")
-	return True
-
-def deploy():
-	"""デプロイ"""
-	result = subprocess.run(["wrangler", "deploy"], capture_output=True, text=True)
-	print(result.stdout)
-	if result.returncode != 0:
-		print("Error:", result.stderr)
-		return False
 	return True
 
 if __name__ == "__main__":
