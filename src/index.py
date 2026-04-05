@@ -50,7 +50,6 @@ async def get_video_info_from_rss(channel_id):
 	video_info = []
 	headers = {"User-Agent": "live-stream-db"}
 	try:
-		print(f"RSS Request: {channel_id}")
 		url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
 		response = await fetch(url, headers={"method": "GET", "headers": headers})
 		if response.status != 200:
@@ -83,28 +82,33 @@ async def update_schedules(api_key, vtubers, status_cache, metadata):
 	
 	# 1. RSSから新着IDを検知
 	new_ids_count = 0
-	for v in vtubers:
-		yt_ids = v.get("YouTubeID", [])
-		if not yt_ids:
+	for vtuber in vtubers:
+		vtuber_name = vtuber.get("Name", "Unknwon Vtuber")
+		channel_ids = vtuber.get("YouTubeID", [])
+		if not channel_ids:
+			print 
 			continue
-		for info in await get_video_info_from_rss(yt_ids[0]):
-			vid = info["video_id"]
-			updated_str = info["updated"]
-			updated_date = datetime.fromisoformat(updated_str.replace("Z", "+00:00"))
-			
-			if updated_date <= datetime.fromisoformat(last_update_str.replace("Z", "+00:00")):
-				continue
+		for channel_id in channel_ids:
+			print(f"RSS Request: {vtuber_name} - {channel_id}")
+			for info in await get_video_info_from_rss(channel_id):
+				vid = info["video_id"]
+				updated_str = info["updated"]
+				updated_date = datetime.fromisoformat(updated_str.replace("Z", "+00:00"))
+				last_update = datetime.fromisoformat(last_update_str.replace("Z", "+00:00"))
+				if updated_date <= last_update:
+					print(f"{vid} - {updated_date} <= {last_update} - Skipping")
+					continue
 
-			if vid not in status_cache:
-				status_cache[vid] = {
-					"streamer_name": v["Name"],
-					"color": v.get("Color", "#ffffff"),
-					"video_id": vid,
-					"status": "upcoming",
-					"tags": v.get("Tags", []),
-					"agency": v.get("Agency") or "Other"
-				}
-				new_ids_count += 1
+				if vid not in status_cache:
+					status_cache[vid] = {
+						"streamer_name": vtuber["Name"],
+						"color": vtuber.get("Color", "#ffffff"),
+						"video_id": vid,
+						"status": "upcoming",
+						"tags": vtuber.get("Tags", []),
+						"agency": vtuber.get("Agency") or "Other"
+					}
+					new_ids_count += 1
 	print(f"New or updated videos: {new_ids_count}")
 
 	# 2. 終了以外をAPIで状態更新
@@ -220,3 +224,4 @@ class Default(WorkerEntrypoint):
 	# テスト用に表示でも
 	async def fetch(self, request):
 		await on_scheduled(self.env)
+		return Response("")
