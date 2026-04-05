@@ -22,6 +22,15 @@ main = "src/index.py"
 compatibility_date = "{datetime.now().strftime('%Y-%m-%d')}"
 compatibility_flags = ["python_workers"]
 
+# ログ設定
+[observability]
+[observability.logs]
+enabled = true
+invocation_logs = true
+
+[observability.traces]
+enabled = false
+
 # 15分ごとに実行（調整可能）
 [triggers]
 crons = ["*/15 * * * *"]
