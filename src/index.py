@@ -33,15 +33,15 @@ async def load_status():
 		return {}, {}
 	parsed = json.loads(data)
 	if isinstance(parsed, dict) and "videos" in parsed:
-		return parsed["videos"], parsed.get("metadata", {})
+		return parsed["videos"], parsed.get("last_updates", {})
 	return parsed, {}
 
-async def save_status(status_cache, metadata):
+async def save_status(status_cache, last_updates):
 	"""KVにキャッシュを保存する"""
 	global KV_CACHE
 	data = {
 		"videos": status_cache,
-		"metadata": metadata
+		"last_updates": last_updates
 	}
 	await KV_CACHE.put(STATUS_KEY, json.dumps(data, ensure_ascii=True))
 
@@ -79,10 +79,10 @@ async def get_video_info_from_rss(channel_id):
 		return None
 	return video_info
 
-async def update_schedules(api_key, vtubers, status_cache, metadata):
+async def update_schedules(api_key, vtubers, status_cache, last_updates):
 	"""ステータス更新メインロジック"""
 	# チャンネルごとの最終チェック日時を保持する辞書を初期化
-	rss_check_times = metadata.get("rss_check_times", {})
+	rss_check_times = last_updates.get("rss_check_times", {})
 	
 	if not api_key:
 		print("[ERROR] YouTube APIキーが設定されていません")
@@ -135,9 +135,10 @@ async def update_schedules(api_key, vtubers, status_cache, metadata):
 			
 			# --- 成功した時のみ、この配信者の最終更新日時を書き換える ---
 			rss_check_times[channel_id] = now_str
+			print(f"Success {vtuber_name} ({channel_id}) - Last Check: {now_str}")
 
 	# 更新された個別チェック日時をメタデータに戻す
-	metadata["rss_check_times"] = rss_check_times
+	last_updates["rss_check_times"] = rss_check_times
 	print(f"New or updated videos: {new_ids_count}")
 
 	# 2. 終了以外をAPIで状態更新
@@ -226,14 +227,14 @@ async def on_scheduled(env):
 	print(f"Loaded {len(vtubers)} vtubers")
 	
 	# 2. キャッシュ読み取り
-	cache, metadata = await load_status()
+	cache, last_updates = await load_status()
 	
 	# 3. データ更新
 	api_key = env.YOUTUBE_DATA_API_KEY
-	updated_cache = await update_schedules(api_key, vtubers, cache, metadata)
+	updated_cache = await update_schedules(api_key, vtubers, cache, last_updates)
 	
 	# 4. キャッシュ保存
-	await save_status(updated_cache, metadata)
+	await save_status(updated_cache, last_updates)
 	
 	# 5. 公開用JSONのみ生成
 	await generate_data_json(updated_cache)
