@@ -17,18 +17,18 @@ MASTER_DATA_KEY = "master_data"
 STATUS_KEY = "status.json"
 OUTPUT_KEY = "lives.json"
 
-def load_master_data():
+async def load_master_data():
 	"""KVからマスターデータを読み込む"""
 	global KV_MASTER
-	data = KV_MASTER.get(MASTER_DATA_KEY)
+	data = await KV_MASTER.get(MASTER_DATA_KEY)
 	if not data:
 		return []
 	return json.loads(data)
 
-def load_status():
+async def load_status():
 	"""KVからキャッシュを読み込む"""
 	global KV_CACHE
-	data = KV_CACHE.get(STATUS_KEY)
+	data = await KV_CACHE.get(STATUS_KEY)
 	if not data:
 		return {}, {}
 	parsed = json.loads(data)
@@ -36,14 +36,14 @@ def load_status():
 		return parsed["videos"], parsed.get("metadata", {})
 	return parsed, {}
 
-def save_status(status_cache, metadata):
+async def save_status(status_cache, metadata):
 	"""KVにキャッシュを保存する"""
 	global KV_CACHE
 	data = {
 		"videos": status_cache,
 		"metadata": metadata
 	}
-	KV_CACHE.put(STATUS_KEY, json.dumps(data, ensure_ascii=False))
+	await KV_CACHE.put(STATUS_KEY, json.dumps(data, ensure_ascii=False))
 
 async def get_video_info_from_rss(channel_id):
 	"""RSSから最新動画情報を取得"""
@@ -67,13 +67,12 @@ async def get_video_info_from_rss(channel_id):
 		print(f"RSS Error: {e}")
 	return video_info
 
-async def update_schedules(vtubers, status_cache, metadata):
+async def update_schedules(api_key, vtubers, status_cache, metadata):
 	"""ステータス更新メインロジック"""
 	last_update_str = metadata.get("last_update", "1970-01-01T00:00:00+00:00")
 	print(f"Last RSS check: {last_update_str}")
 	
 	# SecretsからAPIキーを取得
-	api_key = env.YOUTUBE_DATA_API_KEY
 	if not api_key:
 		print("[ERROR] YouTube APIキーが設定されていません")
 		return status_cache
@@ -171,7 +170,7 @@ async def update_schedules(vtubers, status_cache, metadata):
 
 	return final_cache
 
-def generate_data_json(status_cache):
+async def generate_data_json(status_cache):
 	"""公開用JSONを生成する"""
 	schedules = sorted(status_cache.values(), key=lambda x: x["start_time_iso"])
 	
@@ -180,7 +179,7 @@ def generate_data_json(status_cache):
 		"all_schedules": schedules
 	}
 	
-	KV_OUTPUT.put(OUTPUT_KEY, json.dumps(public_data, ensure_ascii=False, indent=4))
+	await KV_OUTPUT.put(OUTPUT_KEY, json.dumps(public_data, ensure_ascii=False, indent=4))
 	print(f"Generated {OUTPUT_KEY} ({len(schedules)} streams)")
 
 async def on_scheduled(env):
@@ -193,21 +192,22 @@ async def on_scheduled(env):
 	print(f"=== Execution started at {start_time.isoformat()} ===")
 	
 	# 1. マスターデータ読み取り
-	vtubers = load_master_data()
+	vtubers = await load_master_data()
 	print(f"Loaded {len(vtubers)} vtubers")
 	
 	# 2. キャッシュ読み取り
-	cache, metadata = load_status()
+	cache, metadata = await load_status()
 	
 	# 3. データ更新
-	updated_cache = await update_schedules(vtubers, cache, metadata)
+	api_key = env.YOUTUBE_DATA_API_KEY
+	updated_cache = await update_schedules(api_key, vtubers, cache, metadata)
 	
 	# 4. キャッシュ保存
 	metadata["last_update"] = start_time.isoformat()
-	save_status(updated_cache, metadata)
+	await save_status(updated_cache, metadata)
 	
 	# 5. 公開用JSONのみ生成
-	generate_data_json(updated_cache)
+	await generate_data_json(updated_cache)
 	
 	print("=== Execution completed ===")
 	
