@@ -16,12 +16,6 @@ def generate_wrangler_toml():
 		print("Error: All KV IDs must be set as secrets")
 		return False
 	
-	# YouTube APIキー
-	api_key = get_secret("YOUTUBE_DATA_API_KEY")
-	if not api_key:
-		print("Error: YOUTUBE_DATA_API_KEY secret not found")
-		return False
-	
 	# wrangler.tomlの内容
 	content = f"""name = "live-stream-db"
 main = "src/index.py"
@@ -45,10 +39,6 @@ id = "{kv_cache_id}"
 [[kv_namespaces]]
 binding = "KV_OUTPUT"
 id = "{kv_output_id}"
-
-# YouTube APIキー
-[vars]
-YOUTUBE_DATA_API_KEY = "{api_key}"
 """
 	
 	# ファイルに書き込み
