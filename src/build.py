@@ -24,7 +24,7 @@ compatibility_flags = ["python_workers"]
 
 # 15分ごとに実行（調整可能）
 [triggers]
-crons = ["{{*/15 * * * *}}"]
+crons = ["*/15 * * * *"]
 
 # マスター用KV
 [[kv_namespaces]]
