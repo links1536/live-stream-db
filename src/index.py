@@ -150,6 +150,7 @@ async def update_schedules(api_key, vtubers, status_cache, last_updates):
 		chunk = target_ids[i:i+50]
 		try:
 			params = {
+				"key": api_key,
 				"part": "snippet,liveStreamingDetails",
 				"id": ",".join(chunk)
 			}
@@ -157,6 +158,9 @@ async def update_schedules(api_key, vtubers, status_cache, last_updates):
 				"method": "GET",
 				"query": params
 			})
+			if response.status != 200:
+				print(f"API Error: {channel_id} - {response.status}")
+				return None
 			
 			data = await response.json()
 			found_ids = []
