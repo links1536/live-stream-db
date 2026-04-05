@@ -155,7 +155,6 @@ async def update_schedules(api_key, vtubers, status_cache, metadata):
 			}
 			response = await fetch(youtube_url, headers={
 				"method": "GET",
-				"headers": headers,
 				"query": params
 			})
 			
@@ -231,7 +230,6 @@ async def on_scheduled(env):
 	updated_cache = await update_schedules(api_key, vtubers, cache, metadata)
 	
 	# 4. キャッシュ保存
-	metadata["last_update"] = start_time.isoformat()
 	await save_status(updated_cache, metadata)
 	
 	# 5. 公開用JSONのみ生成
