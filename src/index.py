@@ -80,32 +80,44 @@ async def get_video_info_from_rss(channel_id):
 
 async def update_schedules(api_key, vtubers, status_cache, metadata):
 	"""ステータス更新メインロジック"""
-	last_update_str = metadata.get("last_update", "1970-01-01T00:00:00+00:00")
-	print(f"Last RSS check: {last_update_str}")
+	# チャンネルごとの最終チェック日時を保持する辞書を初期化
+	rss_check_times = metadata.get("rss_check_times", {})
 	
-	# SecretsからAPIキーを取得
 	if not api_key:
 		print("[ERROR] YouTube APIキーが設定されていません")
 		return status_cache
 	
 	youtube_url = "https://www.googleapis.com/youtube/v3/videos"
-	headers = {"Authorization": f"Bearer {api_key}"}
 	
 	# 1. RSSから新着IDを検知
 	new_ids_count = 0
+	now_str = datetime.now(timezone.utc).isoformat()
+
 	for vtuber in vtubers:
-		vtuber_name = vtuber.get("Name", "Unknwon Vtuber")
+		vtuber_name = vtuber.get("Name", "Unknown Vtuber")
 		channel_ids = vtuber.get("YouTubeID", [])
-		if not channel_ids:
-			print 
-			continue
+
 		for channel_id in channel_ids:
-			print(f"RSS Request: {vtuber_name} - {channel_id}")
-			for info in await get_video_info_from_rss(channel_id):
+			# この配信者の最終チェック日時を取得（なければ1970年）
+			last_update_str = rss_check_times.get(channel_id, "1970-01-01T00:00:00+00:00")
+			last_update = datetime.fromisoformat(last_update_str.replace("Z", "+00:00"))
+
+			print(f"RSS Request: {vtuber_name} ({channel_id}) - Last Check: {last_update_str}")
+
+			# RSS取得試行
+			rss_videos = await get_video_info_from_rss(channel_id)
+
+			# RSSが空（エラーまたは動画なし）の場合は、このチャンネルの日時更新をスキップ
+			if not rss_videos and rss_videos != []: 
+				# get_video_info_from_rssが例外等でNoneを返すケースを想定
+				print(f"Skipping update for {vtuber_name} due to RSS error.")
+				continue
+
+			# 取得に成功した場合のみ処理
+			for info in rss_videos:
 				vid = info["video_id"]
 				updated_str = info["updated"]
 				updated_date = datetime.fromisoformat(updated_str.replace("Z", "+00:00"))
-				last_update = datetime.fromisoformat(last_update_str.replace("Z", "+00:00"))
 				if updated_date <= last_update:
 					print(f"{vid} - {updated_date} <= {last_update} - Skipping")
 					continue
@@ -120,6 +132,12 @@ async def update_schedules(api_key, vtubers, status_cache, metadata):
 						"agency": vtuber.get("Agency") or "Other"
 					}
 					new_ids_count += 1
+			
+			# --- 成功した時のみ、この配信者の最終更新日時を書き換える ---
+			rss_check_times[channel_id] = now_str
+
+	# 更新された個別チェック日時をメタデータに戻す
+	metadata["rss_check_times"] = rss_check_times
 	print(f"New or updated videos: {new_ids_count}")
 
 	# 2. 終了以外をAPIで状態更新
