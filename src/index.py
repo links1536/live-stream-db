@@ -116,18 +116,17 @@ async def update_schedules(api_key, vtubers, status_cache, metadata):
 
 			# 取得に成功した場合のみ処理
 			for info in rss_videos:
-				vid = info["video_id"]
+				video_id = info["video_id"]
 				updated_str = info["updated"]
 				updated_date = datetime.fromisoformat(updated_str.replace("Z", "+00:00"))
 				if updated_date <= last_update:
-					print(f"{vid} - {updated_date} <= {last_update} - Skipping")
 					continue
 
-				if vid not in status_cache:
-					status_cache[vid] = {
-						"streamer_name": vtuber["Name"],
+				if video_id not in status_cache:
+					status_cache[video_id] = {
+						"streamer_name": vtuber_name,
 						"color": vtuber.get("Color", "#ffffff"),
-						"video_id": vid,
+						"video_id": video_id,
 						"status": "upcoming",
 						"tags": vtuber.get("Tags", []),
 						"agency": vtuber.get("Agency") or "Other"
@@ -162,31 +161,33 @@ async def update_schedules(api_key, vtubers, status_cache, metadata):
 			found_ids = []
 			
 			for item in data.get("items", []):
-				vid = item["id"]
-				found_ids.append(vid)
+				video_id = item["id"]
+				found_ids.append(video_id)
 				live = item.get("liveStreamingDetails")
 				if not live:
 					continue
 
 				if "actualEndTime" in live:
-					status_cache[vid]["status"] = "archived"
+					status_cache[video_id]["status"] = "archived"
 				elif "actualStartTime" in live:
-					status_cache[vid]["status"] = "live"
+					status_cache[video_id]["status"] = "live"
 				else:
-					status_cache[vid]["status"] = "upcoming"
+					status_cache[video_id]["status"] = "upcoming"
 
-				status_cache[vid]["title"] = item["snippet"]["title"]
-				status_cache[vid]["thumbnail"] = item["snippet"]["thumbnails"]["medium"]["url"]
-				status_cache[vid]["start_time_iso"] = live.get("scheduledStartTime") or live.get("actualStartTime")
+				status_cache[video_id]["title"] = item["snippet"]["title"]
+				status_cache[video_id]["thumbnail"] = item["snippet"]["thumbnails"]["medium"]["url"]
+				status_cache[video_id]["start_time_iso"] = live.get("scheduledStartTime") or live.get("actualStartTime")
 				update_count += 1
 
-			for vid in chunk:
-				if vid not in found_ids:
-					status_cache[vid]["status"] = "removed"
-					print(f"Video marked as removed: {vid}")
+			# 見つからなかったので削除
+			for video_id in chunk:
+				if video_id not in found_ids:
+					status_cache[video_id]["status"] = "removed"
+					print(f"Video marked as removed: {video_id}")
 
 		except Exception as e:
 			print(f"API Error: {e}")
+			break
 
 	print(f"Successfully updated {update_count} video details.")
 
@@ -198,7 +199,7 @@ async def update_schedules(api_key, vtubers, status_cache, metadata):
 	final_cache = {
 		vid: d for vid, d in status_cache.items()
 		if d.get("status") != "removed" and
-		d.get("start_time_iso") and (start_boundary <= d["start_time_iso"] <= end_boundary)
+		d.get("start_time_iso") is not None and d.get("start_time_iso") and (start_boundary <= d["start_time_iso"] <= end_boundary)
 	}
 	print(f"Cleanup: {len(status_cache)} -> {len(final_cache)}")
 
@@ -207,7 +208,7 @@ async def update_schedules(api_key, vtubers, status_cache, metadata):
 async def generate_data_json(status_cache):
 	"""公開用JSONを生成する"""
 	schedules = sorted(status_cache.values(), key=lambda x: x["start_time_iso"])
-	save_data_json(schedules=schedules)
+	await save_data_json(schedules=schedules)
 
 async def on_scheduled(env):
 	global KV_MASTER, KV_CACHE, KV_OUTPUT
