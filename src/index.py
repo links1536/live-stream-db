@@ -51,7 +51,7 @@ async def get_video_info_from_rss(channel_id):
 	headers = {"User-Agent": "live-stream-db"}
 	try:
 		url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
-		response = await fetch(url, {"method": "GET", "headers": headers})
+		response = await fetch(url, headers={"method": "GET", "headers": headers})
 		if response.status != 200:
 			return []
 		
@@ -118,7 +118,7 @@ async def update_schedules(api_key, vtubers, status_cache, metadata):
 				"part": "snippet,liveStreamingDetails",
 				"id": ",".join(chunk)
 			}
-			response = await fetch(youtube_url, {
+			response = await fetch(youtube_url, headers={
 				"method": "GET",
 				"headers": headers,
 				"query": params
