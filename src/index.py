@@ -64,7 +64,7 @@ async def get_video_info_from_rss(channel_id):
 		response = await fetch(url, headers={"method": "GET", "headers": headers})
 		if response.status != 200:
 			print(f"RSS Error: {channel_id} - {response.status}")
-			return []
+			return None
 		
 		content = await response.text()
 		root = ET.fromstring(content)
@@ -76,6 +76,7 @@ async def get_video_info_from_rss(channel_id):
 			video_info.append({"video_id": vid, "updated": updated})
 	except Exception as e:
 		print(f"RSS Error: {e}")
+		return None
 	return video_info
 
 async def update_schedules(api_key, vtubers, status_cache, metadata):
@@ -108,7 +109,7 @@ async def update_schedules(api_key, vtubers, status_cache, metadata):
 			rss_videos = await get_video_info_from_rss(channel_id)
 
 			# RSSが空（エラーまたは動画なし）の場合は、このチャンネルの日時更新をスキップ
-			if not rss_videos and rss_videos != []: 
+			if rss_videos is None or len(rss_videos) == 0:
 				# get_video_info_from_rssが例外等でNoneを返すケースを想定
 				print(f"Skipping update for {vtuber_name} due to RSS error.")
 				continue
