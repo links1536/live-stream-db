@@ -81,7 +81,4 @@ if __name__ == "__main__":
 	if not generate_wrangler_toml():
 		exit(1)
 	
-	if not deploy():
-		exit(1)
-	
 	print("Deployment completed successfully")
