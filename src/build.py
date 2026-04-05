@@ -1,0 +1,87 @@
+import subprocess
+from datetime import datetime
+
+def get_secret(secret_name):
+	"""シークレットから値を取得"""
+	try:
+		result = subprocess.run(
+			["wrangler", "secret", "get", secret_name],
+			capture_output=True,
+			text=True,
+			check=True
+		)
+		return result.stdout.strip()
+	except subprocess.CalledProcessError:
+		print(f"Error: Secret '{secret_name}' not found")
+		return None
+
+def generate_wrangler_toml():
+	"""wrangler.tomlを生成"""
+	# シークレットからKV IDを取得
+	kv_master_id = get_secret("VAR_KV_MASTER_ID")
+	kv_cache_id = get_secret("VAR_KV_CACHE_ID")
+	kv_output_id = get_secret("VAR_KV_OUTPUT_ID")
+	
+	if not all([kv_master_id, kv_cache_id, kv_output_id]):
+		print("Error: All KV IDs must be set as secrets")
+		return False
+	
+	# YouTube APIキー
+	api_key = get_secret("YOUTUBE_DATA_API_KEY")
+	if not api_key:
+		print("Error: YOUTUBE_DATA_API_KEY secret not found")
+		return False
+	
+	# wrangler.tomlの内容
+	content = f"""name = "live-stream-db"
+main = "src/index.py"
+compatibility_date = "{datetime.now().strftime('%Y-%m-%d')}"
+
+# 15分ごとに実行（調整可能）
+[triggers]
+crons = ["{{*/15 * * * *}}"]
+
+# マスター用KV
+[[kv_namespaces]]
+binding = "KV_MASTER"
+id = "{kv_master_id}"
+
+# キャッシュ用KV
+[[kv_namespaces]]
+binding = "KV_CACHE"
+id = "{kv_cache_id}"
+
+# lives.json用KV
+[[kv_namespaces]]
+binding = "KV_OUTPUT"
+id = "{kv_output_id}"
+
+# YouTube APIキー
+[vars]
+YOUTUBE_DATA_API_KEY = "{api_key}"
+"""
+	
+	# ファイルに書き込み
+	with open("wrangler.toml", "w", encoding="utf-8") as f:
+		f.write(content)
+	
+	print("Generated wrangler.toml successfully")
+	return True
+
+def deploy():
+	"""デプロイ"""
+	result = subprocess.run(["wrangler", "deploy"], capture_output=True, text=True)
+	print(result.stdout)
+	if result.returncode != 0:
+		print("Error:", result.stderr)
+		return False
+	return True
+
+if __name__ == "__main__":
+	if not generate_wrangler_toml():
+		exit(1)
+	
+	if not deploy():
+		exit(1)
+	
+	print("Deployment completed successfully")
