@@ -215,3 +215,7 @@ class Default(WorkerEntrypoint):
 	# runs based on "triggers" in wrangler config
 	async def scheduled(self, controller):
 		await on_scheduled(self.env)
+
+	# テスト用に表示でも
+	async def fetch(self, request):
+		await on_scheduled(self.env)
