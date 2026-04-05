@@ -213,5 +213,5 @@ async def on_scheduled(env):
 	
 class Default(WorkerEntrypoint):
 	# runs based on "triggers" in wrangler config
-	async def scheduled(self, controller, env, ctx):
-		await on_scheduled(env)
+	async def scheduled(self, controller):
+		await on_scheduled(self.env)
