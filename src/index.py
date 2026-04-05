@@ -1,4 +1,4 @@
-from workers import WorkerEntrypoint, Response, fetch
+from workers import WorkerEntrypoint, Request, Response, fetch
 import json
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
@@ -51,7 +51,8 @@ async def get_video_info_from_rss(channel_id):
 	headers = {"User-Agent": "live-stream-db"}
 	try:
 		url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
-		response = await fetch(url, {"method": "GET", "headers": headers})
+		request = Request.new(url, {"method": "GET", "headers": headers})
+		response = await fetch(request)
 		if response.status != 200:
 			return []
 		
@@ -118,11 +119,13 @@ async def update_schedules(api_key, vtubers, status_cache, metadata):
 				"part": "snippet,liveStreamingDetails",
 				"id": ",".join(chunk)
 			}
-			response = await fetch(youtube_url, {
+			
+			request = Request.new(youtube_url, {
 				"method": "GET",
 				"headers": headers,
 				"query": params
 			})
+			response = await fetch(request)
 			
 			data = await response.json()
 			found_ids = []
