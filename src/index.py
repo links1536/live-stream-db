@@ -65,12 +65,11 @@ def get_video_info_from_rss(channel_id):
 		print(f"RSS Error: {e}")
 	return video_info
 
-def update_schedules(vtubers, status_cache, metadata):
+def update_schedules(api_key, vtubers, status_cache, metadata):
 	"""ステータス更新メインロジック"""
 	last_update_str = metadata.get("last_update", "1970-01-01T00:00:00+00:00")
 	print(f"Last RSS check: {last_update_str}")
 	
-	api_key = KV.get("YOUTUBE_DATA_API_KEY")
 	if not api_key:
 		print("[ERROR] YouTube APIキーが設定されていません")
 		return status_cache
@@ -193,7 +192,8 @@ async def on_scheduled(event, env, ctx):
 	cache, metadata = load_status()
 	
 	# 3. データ更新
-	updated_cache = update_schedules(vtubers, cache, metadata)
+	api_key = env.YOUTUBE_DATA_API_KEY
+	updated_cache = update_schedules(api_key, vtubers, cache, metadata)
 	
 	# 4. キャッシュ保存
 	metadata["last_update"] = start_time.isoformat()
