@@ -48,7 +48,7 @@ async def save_status(status_cache, metadata):
 async def get_video_info_from_rss(channel_id):
 	"""RSSから最新動画情報を取得"""
 	video_info = []
-	headers = {"User-Agent": "live-stream-db"}
+	headers = {}
 	try:
 		url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
 		response = await fetch(url, headers={"method": "GET", "headers": headers})
