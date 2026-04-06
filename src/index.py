@@ -5,7 +5,6 @@ from datetime import datetime, timedelta, timezone
 
 # --- 設定 ---
 PAST_DAYS = 1
-FUTURE_DAYS = 7
 
 # --- 設定定数 ---
 MASTER_DATA_KEY = "master_data"
@@ -69,7 +68,7 @@ async def get_video_info_from_rss(channel_id):
 		print(f"RSS Error: {e}")
 	return video_info
 
-def is_within_period(video_data, start_limit, end_limit):
+def is_within_period(video_data, start_limit):
 	"""配信データが有効期間内かつ削除フラグが立っていないか判定"""
 	# すでに削除済みのものは除外
 	if video_data.get("status") == "removed":
@@ -83,7 +82,7 @@ def is_within_period(video_data, start_limit, end_limit):
 	# 文字列をdatetimeに変換（Zと+00:00の両方に対応）
 	try:
 		start_time = datetime.fromisoformat(start_time_str.replace("Z", "+00:00"))
-		return start_limit <= start_time and start_time <= end_limit
+		return start_limit <= start_time
 	except ValueError:
 		# パース失敗時は安全のため残す
 		return True
@@ -206,11 +205,10 @@ async def update_schedules(api_key, vtubers, status_cache, last_updates):
 	# 3. 期間外のデータをお掃除
 	now = datetime.now(timezone.utc)
 	start_limit = (now - timedelta(days=PAST_DAYS))
-	end_limit = (now + timedelta(days=FUTURE_DAYS))
 
 	final_cache = {
 		id: video for id, video in status_cache.items()
-		if is_within_period(video, start_limit, end_limit)
+		if is_within_period(video, start_limit)
 	}
 	print(f"Cleanup: {len(status_cache)} -> {len(final_cache)}")
 
