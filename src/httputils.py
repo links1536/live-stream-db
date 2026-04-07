@@ -1,4 +1,4 @@
-from workers import WorkerEntrypoint, Response, fetch
+from workers import Response, fetch # type: ignore
 
 async def get(url, headers = {}):
 	"""RSSから最新動画情報を取得"""

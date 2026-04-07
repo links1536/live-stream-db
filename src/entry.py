@@ -1,8 +1,7 @@
 from updater import Updater
-from api.youtube_rss_fetcher import YouTubeRSSFetcher
 import httputils
 
-class Default(WorkerEntrypoint):
+class Default(WorkerEntrypoint): # type: ignore
 	# runs based on "triggers" in wrangler config
 	async def scheduled(self, controller, env, ctx):
 		if controller.cron == "*/15 * * * *":
