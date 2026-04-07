@@ -9,6 +9,7 @@ class Default(WorkerEntrypoint):
 			updater = Updater(self.env)
 			await updater.update_schedules()
 		if controller.cron == "45 * * * *":
+			updater = Updater(self.env)
 			await updater.fetch_new_schedules()
 
 	# テスト用に表示でも

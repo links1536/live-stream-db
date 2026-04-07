@@ -19,7 +19,7 @@ class Updater:
 
 	def __init__(self, env):
 		self.youtube_repository = YouTubeScheduleRepository(env.KV_CACHE)
-		self.vtuber_repository = VTuberRepository(env.KV_MASTER)
+		self.vtuber_repository = VTuberRepository(env.KV_MASTER, env.KV_CACHE)
 		self.youtube_data_api = YouTubeDataAPI(env.YouTubeDataAPI)
 		self.lives_json_store = env.KV_OUTPUT
 
