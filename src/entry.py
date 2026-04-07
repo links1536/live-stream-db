@@ -1,7 +1,8 @@
+from workers import WorkerEntrypoint # type: ignore
 from updater import Updater
 import httputils
 
-class Default(WorkerEntrypoint): # type: ignore
+class Default(WorkerEntrypoint):
 	# runs based on "triggers" in wrangler config
 	async def scheduled(self, controller, env, ctx):
 		if controller.cron == "*/15 * * * *":
