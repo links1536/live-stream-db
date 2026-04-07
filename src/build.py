@@ -18,7 +18,7 @@ def generate_wrangler_toml():
 	
 	# wrangler.tomlの内容
 	content = f"""name = "live-stream-db"
-main = "src/index.py"
+main = "src/entry.py"
 compatibility_date = "{datetime.now().strftime('%Y-%m-%d')}"
 compatibility_flags = ["python_workers"]
 
