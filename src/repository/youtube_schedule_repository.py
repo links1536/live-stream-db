@@ -15,11 +15,8 @@ class YouTubeScheduleRepository:
 		"""KVからキャッシュを読み込む"""
 		data = await self.cache_store.get(SCHEDULE_KEY)
 		if not data:
-			return {}, {}
-		parsed = json.loads(data)
-		if isinstance(parsed, dict) and "videos" in parsed:
-			return parsed["videos"]
-		return parsed, {}
+			return {}
+		return json.loads(data)
 
 	async def save_schedules_async(self, schedules):
 		"""KVにキャッシュを保存する"""

@@ -61,7 +61,6 @@ class Updater:
 		# キャッシュを読み出し
 		total_schedules = await self.youtube_repository.load_schedules_async()
 
-
 		# データ更新
 		requset_ids = [total_schedules.keys()]
 
