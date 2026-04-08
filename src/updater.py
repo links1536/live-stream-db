@@ -25,9 +25,23 @@ class Updater:
 
 	async def save_data_json(self, schedules):
 		"""公開用JSONを生成する"""
+
+		# 開始時間があるものだけ
+		valid_schedules = [
+			video for video in schedules.values() 
+			if video.get("start_time_iso") is not None
+		]
+		
+		# 開始時間でソートする
+		sorted_schedules = sorted(
+			valid_schedules, 
+			key=lambda x: x["start_time_iso"]
+		)
+
+		# 更新日時（現在）と配信情報を保存
 		public_data = {
 			"updated_at": datetime.now(timezone.utc).isoformat(),
-			"all_schedules": schedules.get("videos", {}).values()
+			"all_schedules": sorted_schedules
 		}
 		await self.lives_json_store.put(OUTPUT_KEY, json.dumps(public_data, ensure_ascii=True))
 		print(f"Generated {OUTPUT_KEY} ({len(schedules)} streams)")
