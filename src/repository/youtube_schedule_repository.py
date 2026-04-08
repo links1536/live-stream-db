@@ -29,7 +29,7 @@ class YouTubeScheduleRepository:
 
 	async def get_single_list_async(self):
 		"""KVからキャッシュを読み込む"""
-		return await self.cache_store.list(f"{YOUTUBE_VIDEO_KEY_PREFIX}/")
+		return await self.cache_store.list(prefix = f"{YOUTUBE_VIDEO_KEY_PREFIX}/")
 	
 	async def delete_single_list_async(self, video_ids: list):
 		"""KVからキャッシュを削除する"""
