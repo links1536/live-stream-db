@@ -80,11 +80,11 @@ class Updater:
 		requset_ids = list(total_schedules.keys())
 
 		# 動画ID単体で記憶しているものを結合する
-		#single_video_ids = await self.youtube_repository.get_single_list_async()
-		#for video_id in single_video_ids:
-		#	if video_id in total_schedules:
-		#		continue
-		#	requset_ids.append(video_id)
+		single_video_ids = await self.youtube_repository.get_single_list_async()
+		for video_id in single_video_ids:
+			if video_id in total_schedules:
+				continue
+			requset_ids.append(video_id)
 
 		# リクエスト
 		response, removed_ids = await self.youtube_data_api.get_video_infos_async(target_ids=requset_ids, vtubers=vtubers)
