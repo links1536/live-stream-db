@@ -24,10 +24,11 @@ class YouTubeDataAPI:
 		vtuber_map = {}
 
 		for vtuber in vtubers:
-			channel_id = vtuber.get("channel_id")
-			if not channel_id:
-				continue
-			vtuber_map[channel_id] = vtuber
+			channel_ids = vtuber.get("YouTubeID")
+			for channel_id in channel_ids:
+				if not channel_id:
+					continue
+				vtuber_map[channel_id] = vtuber
 
 		chunk_size = 50
 
