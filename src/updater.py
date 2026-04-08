@@ -10,8 +10,6 @@ from datetime import datetime, timedelta, timezone
 PAST_DAYS = 1
 
 # --- 設定定数 ---
-MASTER_DATA_KEY = "master_data"
-STATUS_KEY = "status.json"
 OUTPUT_KEY = "lives.json"
 
 class Updater:
@@ -65,11 +63,11 @@ class Updater:
 		requset_ids = list(total_schedules.keys())
 
 		# 動画ID単体で記憶しているものを結合する
-		single_video_ids = await self.youtube_repository.get_single_list_async()
-		for video_id in single_video_ids:
-			if video_id in total_schedules:
-				continue
-			requset_ids.append(video_id)
+		#single_video_ids = await self.youtube_repository.get_single_list_async()
+		#for video_id in single_video_ids:
+		#	if video_id in total_schedules:
+		#		continue
+		#	requset_ids.append(video_id)
 
 		# リクエスト
 		response, removed_ids = await self.youtube_data_api.get_video_infos_async(requset_ids)
@@ -82,11 +80,11 @@ class Updater:
 		}
 
 		# 単体のIDを削除する
-		delete_single_video_ids = []
-		for video_id in single_video_ids:
-			if video_id in response or video_id in removed_ids:
-				delete_single_video_ids.append(video_id)
-		await self.youtube_repository.delete_single_list_async(delete_single_video_ids)
+		#delete_single_video_ids = []
+		#for video_id in single_video_ids:
+		#	if video_id in response or video_id in removed_ids:
+		#		delete_single_video_ids.append(video_id)
+		#await self.youtube_repository.delete_single_list_async(delete_single_video_ids)
 
 		# レスポンスに乗っていたデータを更新
 		# エラーなどで更新されなかったデータは response にも removed_ids にも乗らないので
