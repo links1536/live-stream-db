@@ -21,7 +21,7 @@ class VTuberRepository:
 		"""KVからチャンネルごとの最終更新日時を読み込む"""
 		data = await self.cache_store.get(LAST_UPDATED_KEY)
 		if not data:
-			return []
+			return {}
 		return json.loads(data)
 
 	async def save_channel_last_updated_async(self, last_updated) -> dict:

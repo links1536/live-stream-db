@@ -9,7 +9,7 @@ class YouTubeDataAPI:
 
 	def get_thumbnail(self, thumbnails):
 		maxRes = None
-		for thumbnail in thumbnails:
+		for thumbnail in thumbnails.values():
 			if (thumbnail is not None
 			and maxRes is None or maxRes.get("width", 0) < thumbnail.get("width", 0)):
 				maxRes = thumbnail
@@ -49,6 +49,15 @@ class YouTubeDataAPI:
 					if not live:
 						continue
 
+					snippet = item["snippet"]
+					thumbnails = snippet["thumbnails"]
+
+					videos[video_id] = {
+						"title": snippet["title"],
+						"thumbnail": self.get_thumbnail(thumbnails),
+						"start_time_iso": live.get("scheduledStartTime") or live.get("actualStartTime")
+					}
+
 					# 実開始・終了時間をもとにステータスを決める
 					if "actualEndTime" in live:
 						videos[video_id]["status"] = "archived"
@@ -56,13 +65,6 @@ class YouTubeDataAPI:
 						videos[video_id]["status"] = "live"
 					else:
 						videos[video_id]["status"] = "upcoming"
-
-					snippet = item["snippet"]
-					thumbnails = snippet["thumbnails"]
-
-					videos[video_id]["title"] = snippet["title"]
-					videos[video_id]["thumbnail"] = self.get_thumbnail(thumbnails)
-					videos[video_id]["start_time_iso"] = live.get("scheduledStartTime") or live.get("actualStartTime")
 
 					# 見つからなかったので削除
 					for video_id in chunk:

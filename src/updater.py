@@ -62,7 +62,7 @@ class Updater:
 		total_schedules = await self.youtube_repository.load_schedules_async()
 
 		# データ更新
-		requset_ids = [total_schedules.keys()]
+		requset_ids = list(total_schedules.keys()
 
 		# 動画ID単体で記憶しているものを結合する
 		single_video_ids = await self.youtube_repository.get_single_list_async()
@@ -137,8 +137,8 @@ class Updater:
 				if updated_date <= last_updated_datetime:
 					continue
 
-			# 動画ID単体で記憶する
-			await self.youtube_repository.save_single_async(video["video_id"])
+				# 動画ID単体で記憶する
+				await self.youtube_repository.save_single_async(video["video_id"])
 
 			# チャンネルの更新日時
 			last_updated[channel_id] = current_date.isoformat()

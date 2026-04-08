@@ -25,7 +25,7 @@ class YouTubeScheduleRepository:
 
 	async def save_single_async(self, video_id):
 		"""KVにキャッシュを保存する"""
-		await self.cache_store.PUT(f"{YOUTUBE_VIDEO_KEY_PREFIX}/{video_id}", video_id)
+		await self.cache_store.put(f"{YOUTUBE_VIDEO_KEY_PREFIX}/{video_id}", video_id)
 
 	async def get_single_list_async(self):
 		"""KVからキャッシュを読み込む"""
