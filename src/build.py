@@ -38,6 +38,11 @@ crons = [
 	"45 * * * *",
 ]
 
+# 通知受け取り用DurableObject
+[[durable_objects.bindings]]
+name = "YOUTUBE_NOTICES_CACHE"
+class_name = "YouTubeNoticesCache"
+
 # マスター用KV
 [[kv_namespaces]]
 binding = "KV_MASTER"

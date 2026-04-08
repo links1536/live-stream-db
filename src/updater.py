@@ -2,6 +2,8 @@ from api.youtube_data_api import YouTubeDataAPI
 from api.youtube_rss_fetcher import YouTubeRSSFetcher
 from repository.vtuber_repository import VTuberRepository
 from repository.youtube_schedule_repository import YouTubeScheduleRepository
+from repository.youtube_notices_cache import YouTubeNoticesCache
+
 
 import json
 from datetime import datetime, timedelta, timezone
@@ -16,9 +18,10 @@ class Updater:
 	"""ステータス更新メインロジック"""
 
 	def __init__(self, env):
-		self.youtube_repository = YouTubeScheduleRepository(env.KV_CACHE)
-		self.vtuber_repository = VTuberRepository(env.KV_MASTER, env.KV_CACHE)
-		self.youtube_data_api = YouTubeDataAPI(env.YOUTUBE_DATA_API_KEY)
+		self.youtube_repository: YouTubeScheduleRepository = YouTubeScheduleRepository(env.KV_CACHE)
+		self.vtuber_repository: VTuberRepository = VTuberRepository(env.KV_MASTER, env.KV_CACHE)
+		self.youtube_data_api: YouTubeDataAPI = YouTubeDataAPI(env.YOUTUBE_DATA_API_KEY)
+		self.youtube_notices_cache: YouTubeNoticesCache = env.YOUTUBE_NOTICES_CACHE
 		self.lives_json_store = env.KV_OUTPUT
 
 
@@ -80,7 +83,7 @@ class Updater:
 		requset_ids = set(total_schedules.keys())
 
 		# 動画ID単体で記憶しているものを結合する
-		single_video_ids = await self.youtube_repository.get_single_list_async()
+		single_video_ids = await self.youtube_notices_cache.pop_all()
 		for video_id in single_video_ids:
 			print(f"Single: {video_id}")
 			requset_ids.add(video_id)
@@ -96,11 +99,11 @@ class Updater:
 		}
 
 		# 単体のIDを削除する
-		#delete_single_video_ids = []
-		#for video_id in single_video_ids:
-		#	if video_id in response or video_id in removed_ids:
-		#		delete_single_video_ids.append(video_id)
-		#await self.youtube_repository.delete_single_list_async(delete_single_video_ids)
+		delete_single_video_ids = []
+		for video_id in single_video_ids:
+			if video_id in response or video_id in removed_ids:
+				delete_single_video_ids.append(video_id)
+		await self.youtube_repository.delete_single_list_async(delete_single_video_ids)
 
 		# レスポンスに乗っていたデータを更新
 		# エラーなどで更新されなかったデータは response にも removed_ids にも乗らないので
@@ -131,6 +134,7 @@ class Updater:
 		current_date = datetime.now(timezone.utc)
 		rss_fetcher = YouTubeRSSFetcher()
 
+		video_ids = set()
 		for vtuber in vtubers:
 			streamer_name = vtuber.get("Name")
 			channel_ids = vtuber.get("YouTubeID")
@@ -158,7 +162,7 @@ class Updater:
 					updated_date = datetime.fromisoformat(updated_str)
 
 					# 切り捨てレベルで古い
-					limit_date = datetime.now(timezone.utc) - timedelta(days=PAST_DAYS)
+					limit_date = current_date - timedelta(days=PAST_DAYS)
 					if updated_date < limit_date:
 						print(f"{streamer_name} / {channel_id}: video_id={video_id} skips")
 						continue
@@ -170,7 +174,7 @@ class Updater:
 
 					# 動画ID単体で記憶する
 					print(f"{streamer_name} / {channel_id}: video_id={video_id} ({updated_str})")
-					await self.youtube_repository.save_single_async(video["video_id"])
+					self.youtube_notices_cache.push(video_id)
 
 				# チャンネルの更新日時
 				last_updated[channel_id] = current_date.isoformat()
