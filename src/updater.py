@@ -21,7 +21,10 @@ class Updater:
 		self.youtube_repository: YouTubeScheduleRepository = YouTubeScheduleRepository(env.KV_CACHE)
 		self.vtuber_repository: VTuberRepository = VTuberRepository(env.KV_MASTER, env.KV_CACHE)
 		self.youtube_data_api: YouTubeDataAPI = YouTubeDataAPI(env.YOUTUBE_DATA_API_KEY)
-		self.youtube_notices_cache: YouTubeNoticesCache = env.YOUTUBE_NOTICES_CACHE
+
+		do_id = env.YOUTUBE_NOTICES_CACHE.idFromName("rss-key-cache") 
+		self.youtube_notices_cache: YouTubeNoticesCache = env.YOUTUBE_NOTICES_CACHE.get(do_id)
+
 		self.lives_json_store = env.KV_OUTPUT
 
 
@@ -174,7 +177,7 @@ class Updater:
 
 					# 動画ID単体で記憶する
 					print(f"{streamer_name} / {channel_id}: video_id={video_id} ({updated_str})")
-					self.youtube_notices_cache.push(video_id)
+					await self.youtube_notices_cache.push(video_id)
 
 				# チャンネルの更新日時
 				last_updated[channel_id] = current_date.isoformat()
