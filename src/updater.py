@@ -77,17 +77,16 @@ class Updater:
 		total_schedules = await self.youtube_repository.load_schedules_async()
 
 		# データ更新
-		requset_ids = list(total_schedules.keys())
+		requset_ids = set(total_schedules.keys())
 
 		# 動画ID単体で記憶しているものを結合する
 		single_video_ids = await self.youtube_repository.get_single_list_async()
 		for video_id in single_video_ids:
-			if video_id in total_schedules:
-				continue
-			requset_ids.append(video_id)
+			print(f"Single: {video_id}")
+			requset_ids.add(video_id)
 
 		# リクエスト
-		response, removed_ids = await self.youtube_data_api.get_video_infos_async(target_ids=requset_ids, vtubers=vtubers)
+		response, removed_ids = await self.youtube_data_api.get_video_infos_async(target_ids=list(requset_ids), vtubers=vtubers)
 
 		# キャッシュから明確に受け取ることのできなかったデータ
 		#  ＝ 非公開などでレスポンスに乗らなくなったデータを削除
