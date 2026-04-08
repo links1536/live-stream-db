@@ -33,7 +33,10 @@ enabled = false
 
 # 15分ごとに実行（調整可能）
 [triggers]
-crons = ["*/15 * * * *"]
+crons = [
+	"*/15 * * * *",
+	"45 * * * *",
+]
 
 # マスター用KV
 [[kv_namespaces]]
