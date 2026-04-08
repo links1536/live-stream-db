@@ -27,7 +27,7 @@ class Updater:
 		"""公開用JSONを生成する"""
 		public_data = {
 			"updated_at": datetime.now(timezone.utc).isoformat(),
-			"all_schedules": schedules
+			"all_schedules": schedules.get("videos", {}).values()
 		}
 		await self.lives_json_store.put(OUTPUT_KEY, json.dumps(public_data, ensure_ascii=True))
 		print(f"Generated {OUTPUT_KEY} ({len(schedules)} streams)")
