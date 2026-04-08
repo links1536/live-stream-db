@@ -29,7 +29,17 @@ class YouTubeScheduleRepository:
 
 	async def get_single_list_async(self):
 		"""KVからキャッシュを読み込む"""
-		return await self.cache_store.list(prefix = f"{YOUTUBE_VIDEO_KEY_PREFIX}/")
+		result = await self.cache_store.list(prefix = f"{YOUTUBE_VIDEO_KEY_PREFIX}/")
+		
+		# JsProxyオブジェクトをPythonの辞書に変換
+		result_py = result.to_py()
+		
+		video_ids = []
+		for key_data in result_py.get("keys", []):
+			video_id = key_data.get("value", "")
+			video_ids.append(video_id)
+			
+		return video_ids
 	
 	async def delete_single_list_async(self, video_ids: list):
 		"""KVからキャッシュを削除する"""
