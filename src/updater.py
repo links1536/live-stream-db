@@ -159,7 +159,7 @@ class Updater:
 					updated_date = datetime.fromisoformat(updated_str)
 
 					# 切り捨てレベルで古い
-					limit_date = datetime.now() - timedelta(days=PAST_DAYS)
+					limit_date = datetime.now(timezone.utc) - timedelta(days=PAST_DAYS)
 					if updated_date < limit_date:
 						print(f"{streamer_name} / {channel_id}: video_id={video_id} skips")
 						continue
