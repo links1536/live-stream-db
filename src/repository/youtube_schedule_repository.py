@@ -2,7 +2,7 @@ import json
 
 # --- 設定定数 ---
 MASTER_DATA_KEY = "master_data"
-SCHEDULE_KEY = "schedules"
+SCHEDULE_KEY = "status.json"
 YOUTUBE_VIDEO_KEY_PREFIX = "youtube_id"
 
 class YouTubeScheduleRepository:
