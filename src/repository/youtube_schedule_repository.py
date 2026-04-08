@@ -33,10 +33,13 @@ class YouTubeScheduleRepository:
 		
 		# JsProxyオブジェクトをPythonの辞書に変換
 		result_py = result.to_py()
+		print(result_py)
 		
 		video_ids = []
-		for key_data in result_py.get("keys", []):
-			video_id = key_data.get("value", "")
+		for key_data in result_py.get("keys", {}):
+			video_id = key_data.get("value", None)
+			if not video_id:
+				continue
 			video_ids.append(video_id)
 			
 		return video_ids
