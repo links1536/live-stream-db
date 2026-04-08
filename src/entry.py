@@ -1,5 +1,6 @@
 from workers import WorkerEntrypoint # type: ignore
 from updater import Updater
+from repository.youtube_notices_cache import YouTubeNoticesCache
 import httputils
 
 class Default(WorkerEntrypoint):
