@@ -15,11 +15,20 @@ class YouTubeDataAPI:
 				maxRes = thumbnail
 		return maxRes.get("url")
 
-	async def get_video_infos_async(self, target_ids):
+	async def get_video_infos_async(self, target_ids, vtubers):
 		"""ステータス更新メインロジック"""
 		if not self.api_key:
 			print("[ERROR] YouTube APIキーが設定されていません")
 			return {}
+		
+		vtuber_map = {}
+
+		for vtuber in vtubers:
+			channel_id = vtuber.get("channel_id")
+			if not channel_id:
+				continue
+			vtuber_map[channel_id] = vtuber
+
 		chunk_size = 50
 
 		videos = {}
@@ -47,12 +56,25 @@ class YouTubeDataAPI:
 
 					# 配信じゃないなら処理しない
 					if not live:
+						removed_ids.append(video_id)
 						continue
 
 					snippet = item["snippet"]
 					thumbnails = snippet["thumbnails"]
 
+					channel_id = snippet.get("channelId")
+					vtuber = vtuber_map.get(channel_id, None)
+					if not vtuber:
+						removed_ids.append(video_id)
+						continue
+
 					videos[video_id] = {
+						"streamer_name": vtuber.get("name"),
+						"color": vtuber.get("color"),
+						"agency": vtuber.get("Agency"),
+						"tags": vtuber.get("Tags"),
+
+						"video_id": video_id,
 						"title": snippet["title"],
 						"thumbnail": self.get_thumbnail(thumbnails),
 						"start_time_iso": live.get("scheduledStartTime") or live.get("actualStartTime")

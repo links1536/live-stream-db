@@ -70,6 +70,9 @@ class Updater:
 	async def update_schedules(self):
 		"""ステータス更新メインロジック"""
 
+		# マスターを読み出し
+		vtubers = await self.vtuber_repository.load_master_data_async()
+
 		# キャッシュを読み出し
 		total_schedules = await self.youtube_repository.load_schedules_async()
 
@@ -84,7 +87,7 @@ class Updater:
 		#	requset_ids.append(video_id)
 
 		# リクエスト
-		response, removed_ids = await self.youtube_data_api.get_video_infos_async(requset_ids)
+		response, removed_ids = await self.youtube_data_api.get_video_infos_async(requset_ids=requset_ids, vtubers=vtubers)
 
 		# キャッシュから明確に受け取ることのできなかったデータ
 		#  ＝ 非公開などでレスポンスに乗らなくなったデータを削除
