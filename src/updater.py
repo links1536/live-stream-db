@@ -87,7 +87,7 @@ class Updater:
 		#	requset_ids.append(video_id)
 
 		# リクエスト
-		response, removed_ids = await self.youtube_data_api.get_video_infos_async(requset_ids=requset_ids, vtubers=vtubers)
+		response, removed_ids = await self.youtube_data_api.get_video_infos_async(target_ids=requset_ids, vtubers=vtubers)
 
 		# キャッシュから明確に受け取ることのできなかったデータ
 		#  ＝ 非公開などでレスポンスに乗らなくなったデータを削除
