@@ -15,5 +15,6 @@ class Default(WorkerEntrypoint):
 	# テスト用に表示でも
 	async def fetch(self, request):
 		updater = Updater(self.env)
+		await updater.fetch_new_schedules()
 		await updater.update_schedules()
 		return httputils.response("")
