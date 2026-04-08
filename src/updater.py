@@ -133,29 +133,35 @@ class Updater:
 		rss_fetcher = YouTubeRSSFetcher()
 
 		for vtuber in vtubers:
-			channel_id = vtuber.get("channel_id")
-			if not channel_id:
+			streamer_name = vtuber.get("Name")
+			channel_ids = vtuber.get("YouTubeID")
+			if not channel_ids:
 				continue
 
-			videos = await rss_fetcher.get_video_info(channel_id)	
-			if not videos:
-				continue
-
-			# 前回の更新と比較しながらIDを覚える
-			last_updated_str = last_updated.get(channel_id, None) or "1970-01-01T00:00:00+00:00"
-			last_updated_datetime = datetime.fromisoformat(last_updated_str)
-			for video in videos:
-				updated_str = video["updated"]
-				updated_date = datetime.fromisoformat(updated_str)
-
-				# 前回更新より古いものはとばす
-				if updated_date <= last_updated_datetime:
+			for channel_id in channel_ids:
+				if not channel_id:
 					continue
 
-				# 動画ID単体で記憶する
-				await self.youtube_repository.save_single_async(video["video_id"])
+				videos = await rss_fetcher.get_video_info(channel_id)	
+				if not videos:
+					continue
 
-			# チャンネルの更新日時
-			last_updated[channel_id] = current_date.isoformat()
+				# 前回の更新と比較しながらIDを覚える
+				last_updated_str = last_updated.get(channel_id, None) or "1970-01-01T00:00:00+00:00"
+				last_updated_datetime = datetime.fromisoformat(last_updated_str)
+				for video in videos:
+					updated_str = video["updated"]
+					updated_date = datetime.fromisoformat(updated_str)
+
+					# 前回更新より古いものはとばす
+					if updated_date <= last_updated_datetime:
+						print(f"{streamer_name} / {channel_id}: {updated_str} < {last_updated_str}")
+						continue
+
+					# 動画ID単体で記憶する
+					await self.youtube_repository.save_single_async(video["video_id"])
+
+				# チャンネルの更新日時
+				last_updated[channel_id] = current_date.isoformat()
 
 		await self.vtuber_repository.save_channel_last_updated_async(last_updated)
