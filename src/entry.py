@@ -16,4 +16,4 @@ class Default(WorkerEntrypoint):
 	async def fetch(self, request):
 		updater = Updater(self.env)
 		await updater.update_schedules()
-		return httputils.response("")
+		return await httputils.response("")
