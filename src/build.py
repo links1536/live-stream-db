@@ -43,6 +43,10 @@ crons = [
 name = "YOUTUBE_NOTICES_CACHE"
 class_name = "YouTubeNoticesCache"
 
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = [ "YouTubeNoticesCache" ]
+
 # マスター用KV
 [[kv_namespaces]]
 binding = "KV_MASTER"
