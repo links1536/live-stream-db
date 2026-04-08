@@ -142,6 +142,10 @@ class Updater:
 				if not channel_id:
 					continue
 
+				# ログに出す
+				print(f"{streamer_name} / {channel_id} fetch")
+
+				# RSS取得
 				videos = await rss_fetcher.get_video_info(channel_id)	
 				if not videos:
 					continue
@@ -150,15 +154,17 @@ class Updater:
 				last_updated_str = last_updated.get(channel_id, None) or "1970-01-01T00:00:00+00:00"
 				last_updated_datetime = datetime.fromisoformat(last_updated_str)
 				for video in videos:
+					video_id = video["video_id"]
 					updated_str = video["updated"]
 					updated_date = datetime.fromisoformat(updated_str)
 
 					# 前回更新より古いものはとばす
 					if updated_date <= last_updated_datetime:
-						print(f"{streamer_name} / {channel_id}: {updated_str} < {last_updated_str}")
+						print(f"{streamer_name} / {channel_id}: video_id={video_id} ({updated_str} < {last_updated_str})")
 						continue
 
 					# 動画ID単体で記憶する
+					print(f"{streamer_name} / {channel_id}: video_id={video_id} ({updated_str})")
 					await self.youtube_repository.save_single_async(video["video_id"])
 
 				# チャンネルの更新日時
