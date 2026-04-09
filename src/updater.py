@@ -106,7 +106,7 @@ class Updater:
 		for video_id in single_video_ids:
 			if video_id in response or video_id in removed_ids:
 				delete_single_video_ids.append(video_id)
-		await self.youtube_repository.delete_single_list_async(delete_single_video_ids)
+		await self.youtube_notices_cache.delete_list_async(delete_single_video_ids)
 
 		# レスポンスに乗っていたデータを更新
 		# エラーなどで更新されなかったデータは response にも removed_ids にも乗らないので
