@@ -9,7 +9,8 @@ import json
 from datetime import datetime, timedelta, timezone
 
 # --- 設定 ---
-PAST_DAYS = 1
+BEFORE_DAYS = 1
+AFTER_DAYS = 7
 
 # --- 設定定数 ---
 OUTPUT_KEY = "lives.json"
@@ -28,33 +29,8 @@ class Updater:
 		self.lives_json_store = env.KV_OUTPUT
 
 
-
-	async def save_data_json(self, schedules):
-		"""公開用JSONを生成する"""
-
-		# 開始時間があるものだけ
-		valid_schedules = [
-			video for video in schedules.values() 
-			if video.get("start_time_iso") is not None
-		]
-		
-		# 開始時間でソートする
-		sorted_schedules = sorted(
-			valid_schedules, 
-			key=lambda x: x["start_time_iso"]
-		)
-
-		# 更新日時（現在）と配信情報を保存
-		public_data = {
-			"updated_at": datetime.now(timezone.utc).isoformat(),
-			"all_schedules": sorted_schedules
-		}
-		await self.lives_json_store.put(OUTPUT_KEY, json.dumps(public_data, ensure_ascii=True))
-		print(f"Generated {OUTPUT_KEY} ({len(schedules)} streams)")
-
-
-	def is_within_period(self, video_data, start_limit):
-		"""配信データが有効期間内かつ削除フラグが立っていないか判定"""
+	def is_expired_cache(self, video_data, start_limit):
+		"""配信データがキャッシュ期限切れか判定"""
 		# すでに削除済みのものは除外
 		if video_data.get("status") == "removed":
 			return False
@@ -73,6 +49,50 @@ class Updater:
 			return True
 
 
+	def is_within_display_period(self, video_data, start_limit, end_limit):
+		"""配信データが有効期間内かつ削除フラグが立っていないか判定"""
+		# すでに削除済みのものは除外
+		if video_data.get("status") == "removed":
+			return False
+		
+		# 開始時間が不明なものは「予定あり」として残す
+		start_time_str = video_data.get("start_time_iso")
+		if not start_time_str:
+			return True
+		
+		# 文字列をdatetimeに変換（Zと+00:00の両方に対応）
+		try:
+			start_time = datetime.fromisoformat(start_time_str.replace("Z", "+00:00"))
+			return start_limit <= start_time <= end_limit
+		except ValueError:
+			# パース失敗時は安全のため残す
+			return True
+
+
+	async def save_data_json(self, schedules, start_limit, end_limit):
+		"""公開用JSONを生成する"""
+
+		# 開始時間があるものだけ
+		valid_schedules = [
+			video for video in schedules.values() 
+			if video.get("start_time_iso") is not None
+			and self.is_within_display_period(video, start_limit, end_limit)
+		]
+		
+		# 開始時間でソートする
+		sorted_schedules = sorted(
+			valid_schedules, 
+			key=lambda x: x["start_time_iso"]
+		)
+
+		# 更新日時（現在）と配信情報を保存
+		public_data = {
+			"updated_at": datetime.now(timezone.utc).isoformat(),
+			"all_schedules": sorted_schedules
+		}
+		await self.lives_json_store.put(OUTPUT_KEY, json.dumps(public_data, ensure_ascii=True))
+		print(f"Generated {OUTPUT_KEY} ({len(schedules)} streams)")
+
 	async def update_schedules(self):
 		"""ステータス更新メインロジック"""
 
@@ -87,6 +107,7 @@ class Updater:
 
 		# 動画ID単体で記憶しているものを結合する
 		single_video_ids = await self.youtube_notices_cache.pop_all()
+		print(f"Single Count: {len(single_video_ids or [])}")
 		for video_id in single_video_ids:
 			print(f"Single: {video_id}")
 			requset_ids.add(video_id)
@@ -106,7 +127,7 @@ class Updater:
 		# 更新を受け取ったか削除されたなら
 		delete_single_video_ids = [
 			video_id for video_id in single_video_ids
-			if video_id in response_keys or video_id in removed_ids			
+			if video_id in response_keys or video_id in removed_ids
 		]
 		await self.youtube_notices_cache.delete_list_async(delete_single_video_ids)
 
@@ -118,10 +139,11 @@ class Updater:
 
 		# 期間外のデータを削除
 		now = datetime.now(timezone.utc)
-		start_limit = (now - timedelta(days=PAST_DAYS))
+		start_limit = (now - timedelta(days=BEFORE_DAYS))
+		end_limit = (now + timedelta(days=AFTER_DAYS))
 		new_schedules = {
 			id: video for id, video in total_schedules.items()
-			if self.is_within_period(video, start_limit)
+			if self.is_expired_cache(video, start_limit)
 		}
 		print(f"Cleanup: {len(total_schedules)} -> {len(new_schedules)}")
 
@@ -129,7 +151,7 @@ class Updater:
 		await self.youtube_repository.save_schedules_async(new_schedules)
 
 		# 公開用JSONのみ生成
-		await self.save_data_json(new_schedules)
+		await self.save_data_json(new_schedules, start_limit, end_limit)
 
 	async def fetch_new_schedules(self):
 
@@ -167,7 +189,7 @@ class Updater:
 					updated_date = datetime.fromisoformat(updated_str)
 
 					# 切り捨てレベルで古い
-					limit_date = current_date - timedelta(days=PAST_DAYS)
+					limit_date = current_date - timedelta(days=BEFORE_DAYS)
 					if updated_date < limit_date:
 						print(f"{streamer_name} / {channel_id}: video_id={video_id} skips")
 						continue
