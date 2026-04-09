@@ -57,7 +57,7 @@ class YouTubeDataAPI:
 
 					# 配信じゃないなら処理しない
 					if not live:
-						removed_ids.append(video_id)
+						removed_ids.add(video_id)
 						continue
 
 					snippet = item["snippet"]
@@ -66,7 +66,7 @@ class YouTubeDataAPI:
 					channel_id = snippet.get("channelId")
 					vtuber = vtuber_map.get(channel_id, None)
 					if not vtuber:
-						removed_ids.append(video_id)
+						removed_ids.add(video_id)
 						continue
 
 					videos[video_id] = {
