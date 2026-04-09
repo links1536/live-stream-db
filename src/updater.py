@@ -4,7 +4,6 @@ from repository.vtuber_repository import VTuberRepository
 from repository.youtube_schedule_repository import YouTubeScheduleRepository
 from repository.youtube_notices_cache import YouTubeNoticesCache
 
-
 import json
 from datetime import datetime, timedelta, timezone
 
@@ -91,7 +90,7 @@ class Updater:
 			"all_schedules": sorted_schedules
 		}
 		await self.lives_json_store.put(OUTPUT_KEY, json.dumps(public_data, ensure_ascii=True))
-		print(f"Generated {OUTPUT_KEY} ({len(schedules)} streams)")
+		print(f"Generated {OUTPUT_KEY} ({len(valid_schedules)} streams)")
 
 	async def update_schedules(self):
 		"""ステータス更新メインロジック"""
