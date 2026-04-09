@@ -48,11 +48,11 @@ class YouTubeDataAPI:
 					break
 
 				data = await response.json()
-				found_ids = []
+				found_ids = set()
 				
 				for item in data.get("items", []):
 					video_id = item["id"]
-					found_ids.append(video_id)
+					found_ids.add(video_id)
 					live = item.get("liveStreamingDetails")
 
 					# 配信じゃないなら処理しない
@@ -89,11 +89,11 @@ class YouTubeDataAPI:
 					else:
 						videos[video_id]["status"] = "upcoming"
 
-					# 見つからなかったので削除
-					for video_id in chunk:
-						if video_id not in found_ids:
-							removed_ids.add(video_id)
-							print(f"Video marked as removed: {video_id}")
+				# 見つからなかったので削除
+				for video_id in chunk:
+					if video_id not in found_ids:
+						removed_ids.add(video_id)
+						print(f"Video marked as removed: {video_id}")
 
 			except Exception as e:
 				print(f"API Error: {e}")
