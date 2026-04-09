@@ -105,7 +105,7 @@ class Updater:
 		requset_ids = set(total_schedules.keys())
 
 		# 動画ID単体で記憶しているものを結合する
-		single_video_ids = await self.youtube_notices_cache.pop_all()
+		single_video_ids = await self.youtube_notices_cache.get_all()
 		print(f"Single Count: {len(single_video_ids or [])}")
 		for video_id in single_video_ids:
 			print(f"Single: {video_id}")
@@ -199,7 +199,7 @@ class Updater:
 
 					# 動画ID単体で記憶する
 					print(f"{streamer_name} / {channel_id}: video_id={video_id} ({updated_str})")
-					await self.youtube_notices_cache.push(video_id)
+					await self.youtube_notices_cache.add(video_id)
 
 				# チャンネルの更新日時
 				last_updated[channel_id] = current_date.isoformat()
