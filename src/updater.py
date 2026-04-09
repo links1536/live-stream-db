@@ -102,10 +102,12 @@ class Updater:
 		}
 
 		# 単体のIDを削除する
-		delete_single_video_ids = []
-		for video_id in single_video_ids:
-			if video_id in response or video_id in removed_ids:
-				delete_single_video_ids.append(video_id)
+		response_keys = set(response.keys())
+		# 更新を受け取ったか削除されたなら
+		delete_single_video_ids = [
+			video_id for video_id in single_video_ids
+			if video_id in response_keys or video_id in removed_ids			
+		]
 		await self.youtube_notices_cache.delete_list_async(delete_single_video_ids)
 
 		# レスポンスに乗っていたデータを更新

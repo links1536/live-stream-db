@@ -15,7 +15,7 @@ class YouTubeDataAPI:
 				maxRes = thumbnail
 		return maxRes.get("url")
 
-	async def get_video_infos_async(self, target_ids, vtubers):
+	async def get_video_infos_async(self, target_ids, vtubers) -> tuple[dict, set]:
 		"""ステータス更新メインロジック"""
 		if not self.api_key:
 			print("[ERROR] YouTube APIキーが設定されていません")
@@ -33,7 +33,7 @@ class YouTubeDataAPI:
 		chunk_size = 50
 
 		videos = {}
-		removed_ids = []
+		removed_ids = set()
 		
 		for i in range(0, len(target_ids), chunk_size):
 			chunk = target_ids[i:i+chunk_size]
@@ -92,7 +92,7 @@ class YouTubeDataAPI:
 					# 見つからなかったので削除
 					for video_id in chunk:
 						if video_id not in found_ids:
-							removed_ids.append(video_id)
+							removed_ids.add(video_id)
 							print(f"Video marked as removed: {video_id}")
 
 			except Exception as e:

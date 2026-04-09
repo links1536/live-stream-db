@@ -12,9 +12,7 @@ class YouTubeNoticesCache(DurableObject):
 		storage = self.ctx.storage
 		# 全てのキーを取得
 		keys_map = await storage.list()
-		video_ids = list(keys_map.keys())
-		
-		# 全てのデータを削除
-		await storage.delete_all()
-		
-		return video_ids
+		return list(keys_map.keys())
+
+	async def delete_list_async(self, video_ids):
+		await self.ctx.storage.delete(video_ids)
