@@ -190,7 +190,6 @@ class Updater:
 					# 切り捨てレベルで古い
 					limit_date = current_date - timedelta(days=BEFORE_DAYS)
 					if updated_date < limit_date:
-						print(f"{streamer_name} / {channel_id}: video_id={video_id} skips")
 						continue
 
 					# 前回更新より古いものはとばす
