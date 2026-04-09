@@ -70,8 +70,8 @@ class YouTubeDataAPI:
 						continue
 
 					videos[video_id] = {
-						"streamer_name": vtuber.get("name"),
-						"color": vtuber.get("color"),
+						"streamer_name": vtuber.get("Name"),
+						"color": vtuber.get("Color"),
 						"agency": vtuber.get("Agency"),
 						"tags": vtuber.get("Tags"),
 
