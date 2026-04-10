@@ -42,13 +42,13 @@ class YouTubeWebSub:
 		query = parse_qs(parsed.query)
 
 		# WebSub検証
-		mode = query.get("hub.mode")
-		topic = query.get("hub.topic")
-		challenge = query.get("hub.challenge")
+		mode = query.get("hub.mode", [None])[0]
+		topic = query.get("hub.topic", [None])[0]
+		challenge = query.get("hub.challenge", [None])[0]
 		
-		if "subscribe" in mode:
+		if mode == "subscribe":
 			if challenge:
-				verify_token = query.get("hub.verify_token")
+				verify_token = query.get("hub.verify_token", [None])[0]
 				if not verify_token or verify_token != self.web_sub_verify_token:
 					# 無効な検証トークン
 					print(f"[WebSub] Invalid verify token: topic={topic}")
@@ -63,7 +63,7 @@ class YouTubeWebSub:
 				"Content-Type": "text/plain",
 			})
 		
-		elif "unsubscribe" in mode:
+		elif mode == "unsubscribe":
 			# アンサブスクリプション
 			print(f"[WebSub] Unsubscribe request: topic={topic}")
 			return httputils.response("OK", {
