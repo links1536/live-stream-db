@@ -1,5 +1,7 @@
 from api.youtube_data_api import YouTubeDataAPI
 from api.youtube_rss_fetcher import YouTubeRSSFetcher
+from api.youtube_websub import YouTubeWebSub
+
 from repository.vtuber_repository import VTuberRepository
 from repository.youtube_schedule_repository import YouTubeScheduleRepository
 from repository.youtube_notices_cache import YouTubeNoticesCache
@@ -21,6 +23,7 @@ class Updater:
 		self.youtube_repository: YouTubeScheduleRepository = YouTubeScheduleRepository(env.KV_CACHE)
 		self.vtuber_repository: VTuberRepository = VTuberRepository(env.KV_MASTER, env.KV_CACHE)
 		self.youtube_data_api: YouTubeDataAPI = YouTubeDataAPI(env.YOUTUBE_DATA_API_KEY)
+		self.youtube_websub: YouTubeWebSub = YouTubeWebSub(env.WEBSUB_VERIFY_TOKEN, env.WEBSUB_SECRETS)
 
 		do_id = env.YOUTUBE_NOTICES_CACHE.idFromName("rss-key-cache") 
 		self.youtube_notices_cache: YouTubeNoticesCache = env.YOUTUBE_NOTICES_CACHE.get(do_id)
@@ -205,3 +208,11 @@ class Updater:
 				last_updated[channel_id] = current_date.isoformat()
 
 		await self.vtuber_repository.save_channel_last_updated_async(last_updated)
+
+	async def handle_youtube_webhook(self, request):
+		"""YouTube WebSub (PubSubHubbub) の通知を解析する"""
+		video_ids = await websub.handle_youtube_webhook(request)
+		return httputils.response("", {
+			"Status": 200,
+			"Content-Type": "text/plain",
+		})

@@ -1,10 +1,8 @@
-from workers import WorkerEntrypoint # type: ignore
+from workers import WorkerEntrypoint, Response # type: ignore
 from updater import Updater
-from repository.youtube_notices_cache import YouTubeNoticesCache
-import httputils
+from urllib.parse import urlparse
 
 class Default(WorkerEntrypoint):
-	# runs based on "triggers" in wrangler config
 	async def scheduled(self, controller, env, ctx):
 		if controller.cron == "45 * * * *":
 			updater = Updater(self.env)
@@ -13,9 +11,18 @@ class Default(WorkerEntrypoint):
 			updater = Updater(self.env)
 			await updater.update_schedules()
 
-	# テスト用に表示でも
 	async def fetch(self, request):
+		# WebSubエンドポイント
+		parsed = urlparse(request.url)
+		
+		if parsed.path == '/favicon.ico':
+			return Response("")
+		
+		if parsed.path == "/webhooks/youtube":
+			updater = Updater(self.env)
+			return await updater.handle_youtube_webhook(request)
+		
+		# 通常の処理
 		updater = Updater(self.env)
-		#await updater.fetch_new_schedules()
 		await updater.update_schedules()
-		return httputils.response("")
+		return Response("")

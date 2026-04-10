@@ -1,5 +1,4 @@
-
-from workers import DurableObject
+from workers import DurableObject # type: ignore
 
 class YouTubeNoticesCache(DurableObject):
 	def __init__(self, ctx, env):
