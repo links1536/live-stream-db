@@ -10,7 +10,11 @@ async def post(url, headers = {}, body = None):
 	headers["method"] = headers.get("method", "POST")
 	if body is not None:
 		headers["content-type"] = headers.get("content-type", "application/x-www-form-urlencoded")
-	return await fetch(url, headers=headers, body=body)
+	return await fetch(url, {
+		"method": "POST",
+		"headers": headers,
+		"body": body
+	})
 
 def response(body):
 	"""レスポンスを返す"""
