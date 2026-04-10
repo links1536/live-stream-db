@@ -46,7 +46,7 @@ class YouTubeWebSub:
 		topic = query.get("hub.topic")
 		challenge = query.get("hub.challenge")
 		
-		if mode == "subscribe":
+		if "subscribe" in mode:
 			if challenge:
 				verify_token = query.get("hub.verify_token")
 				if not verify_token or verify_token != self.web_sub_verify_token:
@@ -63,7 +63,7 @@ class YouTubeWebSub:
 				"Content-Type": "text/plain",
 			})
 		
-		elif mode == "unsubscribe":
+		elif "unsubscribe" in mode:
 			# アンサブスクリプション
 			print(f"[WebSub] Unsubscribe request: topic={topic}")
 			return httputils.response("OK", {
