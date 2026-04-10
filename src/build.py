@@ -19,7 +19,7 @@ def generate_wrangler_toml():
 	# wrangler.tomlの内容
 	content = f"""name = "live-stream-db"
 main = "src/entry.py"
-compatibility_date = "{datetime.now().strftime('%Y-%m-%d')}"
+compatibility_date = "2026-04-10"
 compatibility_flags = ["python_workers"]
 
 # ログ設定
@@ -45,8 +45,8 @@ name = "YOUTUBE_NOTICES_CACHE"
 class_name = "YouTubeNoticesCache"
 
 [[migrations]]
-tag = "v2"
-#new_sqlite_classes = [ "YouTubeNoticesCache" ]
+tag = "v3"
+new_sqlite_classes = [ "YouTubeNoticesCache" ]
 
 # マスター用KV
 [[kv_namespaces]]
