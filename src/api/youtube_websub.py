@@ -17,18 +17,18 @@ class YouTubeWebSub:
 		hub_url = "https://pubsubhubbub.appspot.com/subscribe"
 		topic_url = f"https://www.youtube.com/xml/feeds/videos.xml?channel_id={channel_id}"
 
-		header = {
-			{ "hub.mode", "subscribe" },
-			{ "hub.topic", topic_url },
-			{ "hub.callback", callback_url },
-			{ "hub.verify", "async" },
-			{ "hub.lease_seconds", "432000" } # 5日間 (最大値)
+		dict = {
+			"hub.mode": "subscribe",
+			"hub.topic": topic_url,
+			"hub.callback": callback_url,
+			"hub.verify": "async",
+			"hub.lease_seconds": "432000"	# 5日間 (最大値)
 		}
 
 		if self.web_sub_verify_token is not None:
-			dict["hub.verify_token"] = self.web_sub_verify_token
+			dict["hub.verify_token"] = self.web_sub_verify_token # pyright: ignore[reportUndefinedVariable]
 		if self.web_sub_secrets is not None:
-			dict["hub.secret"] = self.web_sub_secrets
+			dict["hub.secret"] = self.web_sub_secrets # pyright: ignore[reportUndefinedVariable]
 
 		response = await httputils.post(hub_url, body=dict)
 		return response.status == 202
