@@ -144,7 +144,7 @@ class Updater:
 			id: video for id, video in total_schedules.items()
 			if self.is_expired_cache(video, start_limit)
 		}
-		print(f"Cleanup: {len(total_schedules)} -> {len(new_schedules)}")
+		#print(f"Cleanup: {len(total_schedules)} -> {len(new_schedules)}")
 
 		# キャッシュ保存
 		await self.youtube_repository.save_schedules_async(new_schedules)
@@ -172,7 +172,7 @@ class Updater:
 					continue
 
 				# ログに出す
-				print(f"{streamer_name} / {channel_id} fetch")
+				#print(f"{streamer_name} / {channel_id} fetch")
 
 				# RSS取得
 				videos = await rss_fetcher.get_video_info(channel_id)	
@@ -194,7 +194,7 @@ class Updater:
 
 					# 前回更新より古いものはとばす
 					if updated_date <= last_updated_datetime:
-						print(f"{streamer_name} / {channel_id}: video_id={video_id} ({updated_str} < {last_updated_str})")
+						#print(f"{streamer_name} / {channel_id}: video_id={video_id} ({updated_str} < {last_updated_str})")
 						continue
 
 					# 動画ID単体で記憶する

@@ -93,13 +93,13 @@ class YouTubeDataAPI:
 				for video_id in chunk:
 					if video_id not in found_ids:
 						removed_ids.add(video_id)
-						print(f"Video marked as removed: {video_id}")
+						#print(f"Video marked as removed: {video_id}")
 
 			except Exception as e:
 				print(f"API Error: {e}")
 				continue
 
-		print(f"Successfully updated {len(videos)} video details.")
+		#print(f"Successfully updated {len(videos)} video details.")
 		return videos, removed_ids
 
 
