@@ -2,6 +2,9 @@ from workers import WorkerEntrypoint, Response # type: ignore
 from updater import Updater
 from urllib.parse import urlparse
 
+# DurableObjectのエクスポート
+from repository.youtube_notices_cache import YouTubeNoticesCache 
+
 class Default(WorkerEntrypoint):
 	async def scheduled(self, controller, env, ctx):
 		if controller.cron == "0 * * * *":
