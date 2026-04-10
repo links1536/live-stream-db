@@ -45,7 +45,7 @@ name = "YOUTUBE_NOTICES_CACHE"
 class_name = "YouTubeNoticesCache"
 
 [[migrations]]
-tag = "v3"
+tag = "v1"
 new_sqlite_classes = [ "YouTubeNoticesCache" ]
 
 # マスター用KV
