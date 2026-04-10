@@ -224,8 +224,10 @@ class Updater:
 
 	async def handle_youtube_webhook(self, request):
 		"""YouTube WebSub (PubSubHubbub) の通知を解析する"""
-		video_ids = await self.youtube_websub.handle_youtube_webhook(request)
+		if request.method == "GET":
+			return await self.youtube_websub.process_get(request)
 
+		video_ids = await self.youtube_websub.process_post(request)
 		if video_ids:
 			for video_id in video_ids:
 				await self.youtube_notices_cache.add(video_id)

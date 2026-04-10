@@ -1,6 +1,10 @@
 import os
 from datetime import datetime
 
+def get_vars(secret_name):
+	"""環境変数から値を取得"""
+	return os.environ.get(secret_name)
+
 def get_secret(secret_name):
 	"""シークレットから値を取得"""
 	return os.environ.get(secret_name)
@@ -11,6 +15,9 @@ def generate_wrangler_toml():
 	kv_master_id = get_secret("VAR_KV_MASTER_ID")
 	kv_cache_id = get_secret("VAR_KV_CACHE_ID")
 	kv_output_id = get_secret("VAR_KV_OUTPUT_ID")
+	callback_url = get_secret("VAR_YOUTUBE_WEBSUB_CALLBACK_URL")
+	verify_token = get_secret("VAR_YOUTUBE_WEBSUB_VERIFY_TOKEN")
+
 	
 	if not all([kv_master_id, kv_cache_id, kv_output_id]):
 		print("Error: All KV IDs must be set as secrets")
