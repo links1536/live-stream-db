@@ -34,8 +34,9 @@ enabled = false
 # 15分ごとに実行（調整可能）
 [triggers]
 crons = [
-	"*/15 * * * *",
+	"0 * * * *",
 	"45 * * * *",
+	"*/15 * * * *",
 ]
 
 # 通知受け取り用DurableObject
