@@ -5,7 +5,7 @@ async def get(url, headers = {}):
 	headers["method"] = headers.get("method", "GET")
 	return await fetch(url, headers=headers)
 
-async def post(url, headers = {}):
+async def post(url, headers = {}, body = None):
 	"""RSSから最新動画情報を取得"""
 	headers["method"] = headers.get("method", "POST")
 	return await fetch(url, headers=headers)

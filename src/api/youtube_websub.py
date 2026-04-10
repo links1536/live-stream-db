@@ -11,6 +11,28 @@ class YouTubeWebSub:
 		self.web_sub_verify_token = web_sub_verify_token
 		self.web_sub_secrets = web_sub_secrets
 
+	async def register_websub(self, callback_url, channel_id):
+		"""WebSubを登録する"""
+
+		hub_url = "https://pubsubhubbub.appspot.com/subscribe"
+		topic_url = f"https://www.youtube.com/xml/feeds/videos.xml?channel_id={channel_id}"
+
+		header = {
+			{ "hub.mode", "subscribe" },
+			{ "hub.topic", topic_url },
+			{ "hub.callback", callback_url },
+			{ "hub.verify", "async" },
+			{ "hub.lease_seconds", "432000" } # 5日間 (最大値)
+		}
+
+		if self.web_sub_verify_token is not None:
+			dict["hub.verify_token"] = self.web_sub_verify_token
+		if self.web_sub_secrets is not None:
+			dict["hub.secret"] = self.web_sub_secrets
+
+		response = await httputils.post(hub_url, body=dict)
+		return response.status == 202
+
 	async def handle_youtube_webhook(self, request):
 		parsed = urlparse(request.url)
 		query = parse_qs(parsed.query)

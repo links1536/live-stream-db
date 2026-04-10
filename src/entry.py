@@ -4,6 +4,9 @@ from urllib.parse import urlparse
 
 class Default(WorkerEntrypoint):
 	async def scheduled(self, controller, env, ctx):
+		if controller.cron == "0 * * * *":
+			updater = Updater(self.env)
+			await updater.register_websub(self.env.YOUTUBE_WEBSUB_CALLBACK_URL)
 		if controller.cron == "45 * * * *":
 			updater = Updater(self.env)
 			await updater.fetch_new_schedules()
@@ -21,8 +24,13 @@ class Default(WorkerEntrypoint):
 		if parsed.path == "/webhooks/youtube":
 			updater = Updater(self.env)
 			return await updater.handle_youtube_webhook(request)
-		
-		# 通常の処理
-		updater = Updater(self.env)
-		await updater.update_schedules()
-		return Response("")
+
+		if parsed.path == "/youtube-websub-resister":
+			updater = Updater(self.env)
+			await updater.register_websub(self.env.YOUTUBE_WEBSUB_CALLBACK_URL)
+		if parsed.path == "/youtube-fetch-rss":
+			updater = Updater(self.env)
+			await updater.fetch_new_schedules()
+		if parsed.path == "/youtube-update":
+			updater = Updater(self.env)
+			await updater.update_schedules()
