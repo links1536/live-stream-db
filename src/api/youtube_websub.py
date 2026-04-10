@@ -70,6 +70,7 @@ class YouTubeWebSub:
 				"Content-Type": "text/plain",
 			})
 
+		print(f"[WebSub] Unknown mode: mode={mode}")
 		return httputils.response("Not Found", {
 			"Content-Type": "text/plain",
 			"Status": 404
