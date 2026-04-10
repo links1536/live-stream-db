@@ -86,7 +86,7 @@ class YouTubeWebSub:
 			return None
 
 		# WebSub検証
-		signature = request.headers.get("HTTP_X_HUB_SIGNATURE")
+		signature = request.headers.get("x-hub-signature")
 		if not signature:
 			print("[WebSub] No signature")
 			return None
