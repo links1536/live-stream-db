@@ -10,7 +10,6 @@ async def post(url, headers = {}, body = None):
 	headers["method"] = headers.get("method", "POST")
 	if body is not None:
 		headers["content-type"] = headers.get("content-type", "application/x-www-form-urlencoded")
-		body = body.encode("utf-8")
 	return await fetch(url, headers=headers, body=body)
 
 def response(body):
