@@ -164,7 +164,6 @@ class Updater:
 		current_date = datetime.now(timezone.utc)
 		rss_fetcher = YouTubeRSSFetcher()
 
-		video_ids = set()
 		for vtuber in vtubers:
 			streamer_name = vtuber.get("Name")
 			channel_ids = vtuber.get("YouTubeID")
@@ -225,7 +224,12 @@ class Updater:
 
 	async def handle_youtube_webhook(self, request):
 		"""YouTube WebSub (PubSubHubbub) の通知を解析する"""
-		video_ids = await self.websub.handle_youtube_webhook(request)
+		video_ids = await self.youtube_websub.handle_youtube_webhook(request)
+
+		if video_ids:
+			for video_id in video_ids:
+				await self.youtube_notices_cache.add(video_id)
+
 		return httputils.response("", {
 			"Status": 200,
 			"Content-Type": "text/plain",
