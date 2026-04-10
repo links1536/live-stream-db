@@ -47,17 +47,17 @@ class YouTubeWebSub:
 		challenge = query.get("hub.challenge")
 		
 		if request.method == "GET":
-			if mode == "subscribe" and challenge:
-
-				verify_token = query.get("hub.verify_token")
-				if not verify_token or verify_token != self.web_sub_verify_token:
-					# 無効な検証トークン
-					print(f"[WebSub] Invalid verify token: topic={topic}")
-					return httputils.response("Forbidden", {
-						 "Content-Type": "text/plain",
-						 "Status": 403
-					})
-				
+			if mode == "subscribe":
+				if challenge:
+					verify_token = query.get("hub.verify_token")
+					if not verify_token or verify_token != self.web_sub_verify_token:
+						# 無効な検証トークン
+						print(f"[WebSub] Invalid verify token: topic={topic}")
+						return httputils.response("Forbidden", {
+							"Content-Type": "text/plain",
+							"Status": 403
+						})
+					
 				# サブスクリプション検証
 				print(f"[WebSub] Subscribe request: topic={topic}")
 				return httputils.response(challenge, {

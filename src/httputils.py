@@ -10,6 +10,6 @@ async def post(url, headers = {}, body = None):
 	request = Request(url, method="POST", headers=headers, body=body)
 	return await fetch(request)
 
-def response(body):
+def response(body, headers = {}):
 	"""レスポンスを返す"""
-	return Response(body)
+	return Response(body=body, headers=headers)
