@@ -1,6 +1,6 @@
 import hashlib
 import hmac
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 import httputils
 import xml.etree.ElementTree as ET
 
@@ -30,7 +30,11 @@ class YouTubeWebSub:
 		if self.web_sub_secrets is not None:
 			dict["hub.secret"] = self.web_sub_secrets # pyright: ignore[reportUndefinedVariable]
 
-		response = await httputils.post(hub_url, body=dict)
+		headers ={
+			"content-type": "application/x-www-form-urlencoded"
+		}
+		body = urlencode(dict)
+		response = await httputils.post(hub_url, headers=headers, body=body)
 		return response.status == 202
 
 	async def handle_youtube_webhook(self, request):
