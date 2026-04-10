@@ -8,7 +8,10 @@ async def get(url, headers = {}):
 async def post(url, headers = {}, body = None):
 	"""RSSから最新動画情報を取得"""
 	headers["method"] = headers.get("method", "POST")
-	return await fetch(url, headers=headers)
+	if body is not None:
+		headers["content-type"] = headers.get("content-type", "application/x-www-form-urlencoded")
+		body = body.encode("utf-8")
+	return await fetch(url, headers=headers, body=body)
 
 def response(body):
 	"""レスポンスを返す"""
