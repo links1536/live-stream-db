@@ -76,45 +76,31 @@ class YouTubeWebSub:
 			"Status": 404
 		})
 	
-	async def process_post(self, request):
+	async def process_post(self, request) -> list[str] | None:
 	
 		# 実際の更新通知
 		body = await request.text()
 		if body is None or body == "":
-			return httputils.response("400 Bad Request", {
-				"Status": 400,
-				"Content-Type": "text/plain",
-			})
+			return None
 
 		# WebSub検証
 		signature = request.headers.get("HTTP_X_HUB_SIGNATURE")
 		if not signature:
 			print("[WebSub] No signature")
-			return httputils.response("Forbidden", {
-				"Content-Type": "text/plain",
-				"Status": 403
-			})
+			return None
 
 		secret_bytes = self.web_sub_secrets.encode('utf-8')
 		sha1_hash = hmac.new(secret_bytes, body, hashlib.sha1).hexdigest()
 		expected_signature = f"sha1={sha1_hash}"
 		if not hmac.compare_digest(signature, expected_signature):
 			print("[WebSub] Invalid signature")
-			return httputils.response("Forbidden", {
-				"Content-Type": "text/plain",
-				"Status": 403
-			})
+			return None
 
 		# ここで処理を実行
 		print(f"[WebSub] Update notification received: {len(body)} bytes")
-		await self.parse_notification(body)
-		
-		return httputils.response("", {
-			"Status": 200,
-			"Content-Type": "text/plain",
-		})
+		return await self.parse_notification(body)
 	
-	async def parse_notification(self, body: str):
+	async def parse_notification(self, body: str) -> list[str]:
 		"""
 		通知のXMLボディを解析して動画IDのリストを返す
 		"""
