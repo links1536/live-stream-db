@@ -37,7 +37,7 @@ class YouTubeWebSub:
 		response = await httputils.post(hub_url, headers=headers, body=body)
 		return response.status == 202
 
-	async def handle_youtube_webhook(self, request):
+	async def process_get(self, request):
 		parsed = urlparse(request.url)
 		query = parse_qs(parsed.query)
 
@@ -46,33 +46,29 @@ class YouTubeWebSub:
 		topic = query.get("hub.topic")
 		challenge = query.get("hub.challenge")
 		
-		if request.method == "GET":
-			if mode == "subscribe":
-				if challenge:
-					verify_token = query.get("hub.verify_token")
-					if not verify_token or verify_token != self.web_sub_verify_token:
-						# 無効な検証トークン
-						print(f"[WebSub] Invalid verify token: topic={topic}")
-						return httputils.response("Forbidden", {
-							"Content-Type": "text/plain",
-							"Status": 403
-						})
-					
-				# サブスクリプション検証
-				print(f"[WebSub] Subscribe request: topic={topic}")
-				return httputils.response(challenge, {
-					"Content-Type": "text/plain",
-				})
-			
-			elif mode == "unsubscribe":
-				# アンサブスクリプション
-				print(f"[WebSub] Unsubscribe request: topic={topic}")
-				return httputils.response("OK", {
-					"Content-Type": "text/plain",
-				})
+		if mode == "subscribe":
+			if challenge:
+				verify_token = query.get("hub.verify_token")
+				if not verify_token or verify_token != self.web_sub_verify_token:
+					# 無効な検証トークン
+					print(f"[WebSub] Invalid verify token: topic={topic}")
+					return httputils.response("Forbidden", {
+						"Content-Type": "text/plain",
+						"Status": 403
+					})
+				
+			# サブスクリプション検証
+			print(f"[WebSub] Subscribe request: topic={topic}")
+			return httputils.response(challenge, {
+				"Content-Type": "text/plain",
+			})
 		
-		elif request.method == "POST":
-			return await self.process_post(request)
+		elif mode == "unsubscribe":
+			# アンサブスクリプション
+			print(f"[WebSub] Unsubscribe request: topic={topic}")
+			return httputils.response("OK", {
+				"Content-Type": "text/plain",
+			})
 
 		return httputils.response("Not Found", {
 			"Content-Type": "text/plain",
