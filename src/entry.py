@@ -7,7 +7,7 @@ from repository.youtube_notices_cache import YouTubeNoticesCache
 
 class Default(WorkerEntrypoint):
 	async def scheduled(self, controller, env, ctx):
-		if controller.cron == "0 * * * *":
+		if controller.cron == "0 19 * * *":
 			updater = Updater(self.env)
 			await updater.register_websub(self.env.YOUTUBE_WEBSUB_CALLBACK_URL)
 		if controller.cron == "45 * * * *":

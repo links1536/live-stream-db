@@ -38,12 +38,12 @@ invocation_logs = true
 [observability.traces]
 enabled = false
 
-# 15分ごとに実行（調整可能）
+
 [triggers]
 crons = [
-	"0 * * * *",
-	"45 * * * *",
-	"*/15 * * * *",
+	"0 19 * * *",	# 登録更新 1日1回
+	"45 * * * *",	# RSS更新 45分おき
+	"*/15 * * * *",	# API更新 15分おき
 ]
 
 # 通知受け取り用DurableObject
