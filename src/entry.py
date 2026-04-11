@@ -10,10 +10,10 @@ class Default(WorkerEntrypoint):
 		if controller.cron == "0 19 * * *":
 			updater = Updater(self.env)
 			await updater.register_websub(self.env.YOUTUBE_WEBSUB_CALLBACK_URL)
-		if controller.cron == "45 * * * *":
+		elif controller.cron == "45 * * * *":
 			updater = Updater(self.env)
 			await updater.fetch_new_schedules()
-		if controller.cron == "*/15 * * * *":
+		else:
 			updater = Updater(self.env)
 			await updater.update_schedules()
 
