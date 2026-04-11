@@ -91,8 +91,9 @@ class YouTubeWebSub:
 			print("[WebSub] No signature")
 			return None
 
+		encoded_body = body.encode('utf-8')
 		secret_bytes = self.web_sub_secrets.encode('utf-8')
-		sha1_hash = hmac.new(secret_bytes, body, hashlib.sha1).hexdigest()
+		sha1_hash = hmac.new(secret_bytes, encoded_body, hashlib.sha1).hexdigest()
 		expected_signature = f"sha1={sha1_hash}"
 		if not hmac.compare_digest(signature, expected_signature):
 			print("[WebSub] Invalid signature")
