@@ -187,7 +187,7 @@ class Updater:
 				last_updated_datetime = datetime.fromisoformat(last_updated_str)
 
 				# 60分以内ならスキップ
-				if (current_date - last_updated_datetime).total_seconds < (60 * 60):
+				if (current_date - last_updated_datetime).total_seconds() < (60 * 60):
 					continue
 
 				for video in videos:
