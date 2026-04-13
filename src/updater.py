@@ -185,6 +185,11 @@ class Updater:
 				# 前回の更新と比較しながらIDを覚える
 				last_updated_str = last_updated.get(channel_id, None) or "1970-01-01T00:00:00+00:00"
 				last_updated_datetime = datetime.fromisoformat(last_updated_str)
+
+				# 60分以内ならスキップ
+				if (current_date - last_updated_datetime).total_seconds < (60 * 60):
+					continue
+
 				for video in videos:
 					video_id = video["video_id"]
 					updated_str = video["updated"]
