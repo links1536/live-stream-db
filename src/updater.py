@@ -174,20 +174,20 @@ class Updater:
 				if not channel_id:
 					continue
 
+				# 前回の更新と比較しながらIDを覚える
+				last_updated_str = last_updated.get(channel_id, None) or "1970-01-01T00:00:00+00:00"
+				last_updated_datetime = datetime.fromisoformat(last_updated_str)
+
+				# 15分以内ならスキップ
+				if (current_date - last_updated_datetime).total_seconds() < (60 * 15):
+					continue
+
 				# ログに出す
 				#print(f"{streamer_name} / {channel_id} fetch")
 
 				# RSS取得
 				videos = await rss_fetcher.get_video_info(channel_id)	
 				if not videos:
-					continue
-
-				# 前回の更新と比較しながらIDを覚える
-				last_updated_str = last_updated.get(channel_id, None) or "1970-01-01T00:00:00+00:00"
-				last_updated_datetime = datetime.fromisoformat(last_updated_str)
-
-				# 60分以内ならスキップ
-				if (current_date - last_updated_datetime).total_seconds() < (60 * 60):
 					continue
 
 				for video in videos:
