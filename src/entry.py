@@ -7,18 +7,6 @@ from urllib.parse import urlparse
 from repository.youtube_notices_cache import YouTubeNoticesCache 
 
 class Default(WorkerEntrypoint):
-	async def scheduled(self, controller, env, ctx):
-		if controller.cron == "0 19 * * *":
-			updater = Updater(self.env)
-			await updater.register_websub(self.env.YOUTUBE_WEBSUB_CALLBACK_URL)
-		elif controller.cron == "45 * * * *":
-			updater = Updater(self.env)
-			await updater.fetch_new_schedules()
-		else:
-			updater = Updater(self.env)
-			await updater.update_schedules()
-
-		return Response("")
 
 	async def fetch(self, request):
 		# WebSubエンドポイント
@@ -38,6 +26,19 @@ class Default(WorkerEntrypoint):
 			updater = Updater(self.env)
 			await updater.fetch_new_schedules()
 		if parsed.path == "/youtube-update":
+			updater = Updater(self.env)
+			await updater.update_schedules()
+
+		return Response("")
+
+	async def scheduled(self, controller, env, ctx):
+		if controller.cron == "0 19 * * *":
+			updater = Updater(self.env)
+			await updater.register_websub(self.env.YOUTUBE_WEBSUB_CALLBACK_URL)
+		elif controller.cron == "45 * * * *":
+			updater = Updater(self.env)
+			await updater.fetch_new_schedules()
+		else:
 			updater = Updater(self.env)
 			await updater.update_schedules()
 
