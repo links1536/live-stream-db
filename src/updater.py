@@ -214,9 +214,10 @@ class Updater:
 
 		await self.vtuber_repository.save_channel_last_updated_async(last_updated)
 
-	async def register_websub(self, callback_url):
+	async def register_websub(self):
 		"""WebSubを登録する"""
 		vtubers = await self.vtuber_repository.load_master_data_async()
+
 		for vtuber in vtubers:
 			channel_ids = vtuber.get("YouTubeID")
 			if not channel_ids:
@@ -225,7 +226,7 @@ class Updater:
 			for channel_id in channel_ids:
 				if not channel_id:
 					continue
-				await self.youtube_websub.register_websub(callback_url, channel_id)
+				await self.env.RESISTER_YOUTUBE_WEBHOOK_IDS.send(channel_id)
 
 	async def handle_youtube_webhook(self, request):
 		"""YouTube WebSub (PubSubHubbub) の通知を解析する"""

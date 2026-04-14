@@ -1,3 +1,4 @@
+from api.youtube_websub import YouTubeWebSub
 from workers import WorkerEntrypoint, Response # type: ignore
 from updater import Updater
 from urllib.parse import urlparse
@@ -30,10 +31,15 @@ class Default(WorkerEntrypoint):
 
 		if parsed.path == "/youtube-websub-resister":
 			updater = Updater(self.env)
-			await updater.register_websub(self.env.YOUTUBE_WEBSUB_CALLBACK_URL)
+			await updater.register_websub()
 		if parsed.path == "/youtube-fetch-rss":
 			updater = Updater(self.env)
 			await updater.fetch_new_schedules()
 		if parsed.path == "/youtube-update":
 			updater = Updater(self.env)
 			await updater.update_schedules()
+
+	async def queue(self, batch):
+		youtube_websub: YouTubeWebSub = YouTubeWebSub(self.env.YOUTUBE_WEBSUB_VERIFY_TOKEN, self.env.YOUTUBE_WEBSUB_SECRETS)
+		for msg in batch.messages:
+			youtube_websub.register_websub(self.env.YOUTUBE_WEBSUB_CALLBACK_URL, msg.body)

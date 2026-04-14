@@ -15,8 +15,7 @@ def generate_wrangler_toml():
 	kv_master_id = get_secret("VAR_KV_MASTER_ID")
 	kv_cache_id = get_secret("VAR_KV_CACHE_ID")
 	kv_output_id = get_secret("VAR_KV_OUTPUT_ID")
-	callback_url = get_secret("VAR_YOUTUBE_WEBSUB_CALLBACK_URL")
-	verify_token = get_secret("VAR_YOUTUBE_WEBSUB_VERIFY_TOKEN")
+	yt_register_websub_queue = get_secret("VAR_YT_REGISTER_WEBSUB_QUEUE")
 
 	
 	if not all([kv_master_id, kv_cache_id, kv_output_id]):
@@ -42,7 +41,7 @@ enabled = false
 [triggers]
 crons = [
 	"0 19 * * *",	# 登録更新 1日1回
-	"45 * * * *",	# RSS更新 45分おき
+	#"45 * * * *",	# RSS更新 45分おき
 	"*/15 * * * *",	# API更新 15分おき
 ]
 
@@ -69,6 +68,15 @@ id = "{kv_cache_id}"
 [[kv_namespaces]]
 binding = "KV_OUTPUT"
 id = "{kv_output_id}"
+
+[[queues.producers]]
+binding = "RESISTER_YOUTUBE_WEBHOOK_IDS"
+queue = "{yt_register_websub_queue}"
+delivery_delay = 60
+
+[[queues.consumers]]
+queue = "{yt_register_websub_queue}"
+retry_delay = 300
 """
 	
 	# ファイルに書き込み
