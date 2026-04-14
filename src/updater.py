@@ -219,7 +219,12 @@ class Updater:
 		"""WebSubを登録する"""
 		vtubers = await self.vtuber_repository.load_master_data_async()
 
+		index = 0
+		vtuber_count = len(vtubers)
 		for vtuber in vtubers:
+			index += 1
+
+			streamer_name = vtuber.get("Name")
 			channel_ids = vtuber.get("YouTubeID")
 			if not channel_ids:
 				continue
@@ -227,6 +232,8 @@ class Updater:
 			for channel_id in channel_ids:
 				if not channel_id:
 					continue
+
+				print(f"{streamer_name}: {channel_id} ({index} / {vtuber_count}) enqueue")
 				await self.youtube_websub_queue.send(channel_id)
 
 	async def handle_youtube_webhook(self, request):

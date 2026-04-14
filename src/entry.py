@@ -46,4 +46,5 @@ class Default(WorkerEntrypoint):
 	async def queue(self, batch, env, ctx):
 		youtube_websub: YouTubeWebSub = YouTubeWebSub(self.env.YOUTUBE_WEBSUB_VERIFY_TOKEN, self.env.YOUTUBE_WEBSUB_SECRETS)
 		for msg in batch.messages:
+			print(f"{msg.body}) register youtube websub")
 			await youtube_websub.register_websub(self.env.YOUTUBE_WEBSUB_CALLBACK_URL, msg.body)
