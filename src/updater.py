@@ -25,6 +25,7 @@ class Updater:
 		self.vtuber_repository: VTuberRepository = VTuberRepository(env.KV_MASTER, env.KV_CACHE)
 		self.youtube_data_api: YouTubeDataAPI = YouTubeDataAPI(env.YOUTUBE_DATA_API_KEY)
 		self.youtube_websub: YouTubeWebSub = YouTubeWebSub(env.YOUTUBE_WEBSUB_VERIFY_TOKEN, env.YOUTUBE_WEBSUB_SECRETS)
+		self.youtube_websub_queue = env.RESISTER_YOUTUBE_WEBHOOK_IDS
 
 		do_id = env.YOUTUBE_NOTICES_CACHE.idFromName("rss-key-cache") 
 		self.youtube_notices_cache: YouTubeNoticesCache = env.YOUTUBE_NOTICES_CACHE.get(do_id)
@@ -226,7 +227,7 @@ class Updater:
 			for channel_id in channel_ids:
 				if not channel_id:
 					continue
-				await self.env.RESISTER_YOUTUBE_WEBHOOK_IDS.send(channel_id)
+				await self.youtube_websub_queue.send(channel_id)
 
 	async def handle_youtube_webhook(self, request):
 		"""YouTube WebSub (PubSubHubbub) の通知を解析する"""
