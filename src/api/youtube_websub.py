@@ -26,10 +26,8 @@ class YouTubeWebSub:
 		}
 
 		if self.web_sub_verify_token is not None:
-			print(f"hub.verify_token を追加")
 			dict["hub.verify_token"] = self.web_sub_verify_token # pyright: ignore[reportUndefinedVariable]
 		if self.web_sub_secrets is not None:
-			print(f"hub.secret を追加")
 			dict["hub.secret"] = self.web_sub_secrets # pyright: ignore[reportUndefinedVariable]
 
 		headers ={
