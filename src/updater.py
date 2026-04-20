@@ -17,6 +17,7 @@ AFTER_DAYS = 7
 
 # --- 設定定数 ---
 OUTPUT_KEY = "lives.json"
+ENSURE_ASCIi = False
 
 def format_elapsed_time(start_time):
 	"""計測時間をミリ秒形式で出力"""
@@ -86,7 +87,7 @@ class Updater:
 			"updated_at": current_date.isoformat(),
 			"all_schedules": sorted_schedules
 		}
-		await self.lives_json_store.put(OUTPUT_KEY, json.dumps(public_data, ensure_ascii=True))
+		await self.lives_json_store.put(OUTPUT_KEY, json.dumps(public_data, ensure_ascii=ENSURE_ASCIi))
 		print(f"[PERF] Write JSON to KV store: {format_elapsed_time(step_start)}")
 		print(f"Generated {OUTPUT_KEY} ({len(valid_schedules)} streams)")
 		

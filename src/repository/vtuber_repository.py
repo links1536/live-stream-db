@@ -3,6 +3,7 @@ import json
 # --- 設定定数 ---
 MASTER_DATA_KEY = "master_data"
 LAST_UPDATED_KEY = "last_updated"
+ENSURE_ASCIi = False
 
 class VTuberRepository:
 
@@ -26,4 +27,4 @@ class VTuberRepository:
 
 	async def save_channel_last_updated_async(self, last_updated) -> dict:
 		"""KVにチャンネルごとの最終更新日時を保存する"""
-		await self.cache_store.put(LAST_UPDATED_KEY, json.dumps(last_updated, ensure_ascii=True))
+		await self.cache_store.put(LAST_UPDATED_KEY, json.dumps(last_updated, ensure_ascii=ENSURE_ASCIi))

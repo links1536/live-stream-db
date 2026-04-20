@@ -11,7 +11,7 @@ class YouTubeNoticesCache(DurableObject):
 		keys_map = await self.ctx.storage.list()
 		return set(keys_map.keys())
 
-	async def delete_list_async(self, video_ids: list):
+	async def delete_list_async(self, video_ids: list | set):
 		if not video_ids:
 			return
 		for video_id in video_ids:
