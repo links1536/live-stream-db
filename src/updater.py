@@ -64,7 +64,7 @@ class Updater:
 		# 開始時間があるものだけ
 		valid_schedules = [
 			video for video in schedules.values() 
-			if video.get("start_time_iso") not None
+			if video.get("start_time_iso") is not None
 			if self.is_within_display_period(video, start_times, start_limit, end_limit)
 		]
 		
