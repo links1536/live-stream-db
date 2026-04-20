@@ -20,7 +20,7 @@ class YouTubeDataAPI:
 
 		return ""
 
-	async def get_video_infos_async(self, target_ids, vtubers) -> tuple[dict, set]:
+	async def get_video_infos_async(self, target_ids, vtubers) -> tuple[dict, dict, set]:
 		"""ステータス更新メインロジック"""
 		if not self.api_key:
 			print("[ERROR] YouTube APIキーが設定されていません")
