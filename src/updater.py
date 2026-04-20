@@ -32,31 +32,25 @@ class Updater:
 
 		self.lives_json_store = env.KV_OUTPUT
 
+	def get_video_start_time(self, video_data, start_times):
+		video_id = video_data.get("video_id")
+		if not video_id:
+			return None
+		return start_times.get(video_id)
 
 	def is_expired_cache(self, video_data, start_times, start_limit):
 		"""配信データがキャッシュ期限切れか判定"""
 
 		# 開始時間が不明なものは「予定あり」として残す
-		video_id = video_data.get("video_id")
-		if not video_id:
-			return True
-		start_time_datetime = start_times.get(video_id)
-		if not start_time_datetime:
-			return True
-		return start_limit <= start_time_datetime
+		start_time = self.get_video_start_time(video_data, start_times)
+		return not start_time or start_limit <= start_time
 
 	def is_within_display_period(self, video_data, start_times, start_limit, end_limit):
 		"""配信データが有効期間内かつ削除フラグが立っていないか判定"""
 
-		# 開始時間が不明なものは「予定あり」として残す
-		video_id = video_data.get("video_id")
-		if not video_id:
-			return True
-		start_time_datetime = start_times.get(video_id)
-		if not start_time_datetime:
-			return True
-		return start_limit <= start_time_datetime
-
+		# 開始時間が不明なものは表示しない
+		start_time = self.get_video_start_time(video_data, start_times)
+		return start_time and (start_limit <= start_time <= end_limit)
 
 	async def save_data_json(self, schedules, start_times, current_date, start_limit, end_limit):
 		"""公開用JSONを生成する"""
