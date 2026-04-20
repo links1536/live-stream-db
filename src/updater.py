@@ -112,9 +112,8 @@ class Updater:
 		# 動画ID単体で記憶しているものを結合する
 		single_video_ids = await self.youtube_notices_cache.get_all()
 		print(f"Single Count: {len(single_video_ids or [])}")
-		for video_id in single_video_ids:
-			print(f"Single: {video_id}")
-			requset_ids.add(video_id)
+		if single_video_ids:
+			requset_ids.update(single_video_ids)
 
 		# リクエスト
 		response, removed_ids = await self.youtube_data_api.get_video_infos_async(target_ids=list(requset_ids), vtubers=vtubers)
