@@ -1,5 +1,3 @@
-import stickytape
-import python_minifier
 import os
 from datetime import datetime
 
@@ -88,39 +86,8 @@ retry_delay = 300
 	print("Generated wrangler.toml successfully")
 	return True
 
-def build_and_deploy():
-	# 1. wrangler.toml の生成 (提示されたコード)
-	if not generate_wrangler_toml():
-		return False
-
-	# 2. コードのインライン化と圧縮 (src/entry.py を起点にする)
-	print("Bundling and minifying code...")
-	try:
-		# 自作モジュールをすべて1つにまとめる
-		bundled_code = stickytape.script_bundle(
-			"src/entry.py", 
-			add_python_paths=["src"] 
-		)
-		
-		# 不要なコメントや型ヒント、空白を削ってCPUパース負荷を軽減
-		minified_code = python_minifier.minify(
-			bundled_code,
-			remove_annotations=True,      # 型ヒント削除
-			remove_literal_statements=True # docstring削除
-		)
-
-		# 出力ディレクトリ作成と書き出し
-		os.makedirs("dist", exist_ok=True)
-		with open("dist/index.py", "w", encoding="utf-8") as f:
-			f.write(minified_code)
-			
-	except Exception as e:
-		print(f"Build Error: {e}")
-		return False
-
-	return True
 if __name__ == "__main__":
-	if not build_and_deploy():
+	if not generate_wrangler_toml():
 		exit(1)
 	
 	print("Deployment completed successfully")
