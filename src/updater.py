@@ -70,7 +70,7 @@ class Updater:
 		# 開始時間でソートする
 		sorted_schedules = sorted(
 			valid_schedules, 
-			key=lambda x: start_times.get(x["video_id"])
+			key=lambda x: x["start_time_iso"]
 		)
 
 		# 更新日時（現在）と配信情報を保存
