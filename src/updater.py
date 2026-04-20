@@ -84,9 +84,6 @@ class Updater:
 	async def update_schedules(self):
 		"""ステータス更新メインロジック"""
 
-		# 現在時刻
-		current_date = datetime.now(timezone.utc)
-
 		# マスターを読み出し
 		vtubers = await self.vtuber_repository.load_master_data_async()
 
@@ -103,7 +100,7 @@ class Updater:
 			requset_ids.update(single_video_ids)
 
 		# リクエスト
-		response, start_times, removed_ids = await self.youtube_data_api.get_video_infos_async(target_ids=list(requset_ids), vtubers=vtubers, current_date=current_date)
+		response, start_times, removed_ids = await self.youtube_data_api.get_video_infos_async(target_ids=list(requset_ids), vtubers=vtubers)
 
 		# キャッシュから明確に受け取ることのできなかったデータ
 		#  ＝ 非公開などでレスポンスに乗らなくなったデータを削除
@@ -127,6 +124,7 @@ class Updater:
 		total_schedules_count = len(total_schedules)
 
 		# 期間外のデータを削除
+		current_date = datetime.now(timezone.utc)
 		start_limit = (current_date - timedelta(days=BEFORE_DAYS))
 		end_limit = (current_date + timedelta(days=AFTER_DAYS))
 		new_schedules = {

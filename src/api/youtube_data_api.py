@@ -20,7 +20,7 @@ class YouTubeDataAPI:
 
 		return ""
 
-	async def get_video_infos_async(self, target_ids, vtubers, current_date) -> tuple[dict, set]:
+	async def get_video_infos_async(self, target_ids, vtubers) -> tuple[dict, set]:
 		"""ステータス更新メインロジック"""
 		if not self.api_key:
 			print("[ERROR] YouTube APIキーが設定されていません")
@@ -88,10 +88,7 @@ class YouTubeDataAPI:
 
 					# 開始時間を前もってパースしておく
 					#videos[video_id]["start_time_datetime"] = datetime.fromisoformat(start_time_str.replace("Z", "+00:00"))
-					if start_time_str:
-						start_times[video_id] = datetime.fromisoformat(start_time_str)
-					else:
-						start_times[video_id] = current_date
+					start_times[video_id] = datetime.fromisoformat(start_time_str)
 
 					# 実開始・終了時間をもとにステータスを決める
 					if "actualEndTime" in live:
