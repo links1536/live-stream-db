@@ -8,7 +8,6 @@ from repository.youtube_schedule_repository import YouTubeScheduleRepository
 from repository.youtube_notices_cache import YouTubeNoticesCache
 
 import json
-import time
 from datetime import datetime, timedelta, timezone
 
 # --- 設定 ---
@@ -18,11 +17,6 @@ AFTER_DAYS = 7
 # --- 設定定数 ---
 OUTPUT_KEY = "lives.json"
 ENSURE_ASCIi = False
-
-def format_elapsed_time(start_time):
-	"""計測時間をミリ秒形式で出力"""
-	elapsed_ms = (time.perf_counter() - start_time) * 1000
-	return f"{elapsed_ms:.2f}ms"
 
 class Updater:
 	"""ステータス更新メインロジック"""
@@ -61,90 +55,64 @@ class Updater:
 
 	async def save_data_json(self, schedules, start_times, current_date, start_limit, end_limit):
 		"""公開用JSONを生成する"""
-		
-		perf_start = time.perf_counter()
 
 		# 開始時間があるものだけ
-		step_start = time.perf_counter()
 		valid_schedules = [
 			video for video in schedules.values() 
 			if video.get("start_time_iso") is not None
 			if self.is_within_display_period(video, start_times, start_limit, end_limit)
 		]
-		print(f"[PERF] Filter valid schedules: {format_elapsed_time(step_start)}")
 		
 		# 開始時間でソートする
-		step_start = time.perf_counter()
 		sorted_schedules = sorted(
 			valid_schedules, 
 			key=lambda x: x["start_time_iso"]
 		)
-		print(f"[PERF] Sort schedules: {format_elapsed_time(step_start)}")
 
 		# 更新日時（現在）と配信情報を保存
-		step_start = time.perf_counter()
 		public_data = {
 			"updated_at": current_date.isoformat(),
 			"all_schedules": sorted_schedules
 		}
-		await self.lives_json_store.put(OUTPUT_KEY, json.dumps(public_data, ensure_ascii=ENSURE_ASCIi))
-		print(f"[PERF] Write JSON to KV store: {format_elapsed_time(step_start)}")
+		await self.lives_json_store.put(OUTPUT_KEY, json.dumps(public_data, ensure_ascii=True))
 		print(f"Generated {OUTPUT_KEY} ({len(valid_schedules)} streams)")
-		
-		print(f"[PERF] Total save_data_json time: {format_elapsed_time(perf_start)}")
 
 	async def update_schedules(self):
 		"""ステータス更新メインロジック"""
-		
-		perf_start = time.perf_counter()
 
 		# マスターを読み出し
-		step_start = time.perf_counter()
 		vtubers = await self.vtuber_repository.load_master_data_async()
-		print(f"[PERF] Load master data: {format_elapsed_time(step_start)}")
 
 		# キャッシュを読み出し
-		step_start = time.perf_counter()
 		total_schedules = await self.youtube_repository.load_schedules_async()
-		print(f"[PERF] Load schedules cache: {format_elapsed_time(step_start)}")
 
 		# データ更新
 		requset_ids = set(total_schedules.keys())
 
 		# 動画ID単体で記憶しているものを結合する
-		step_start = time.perf_counter()
 		single_video_ids = await self.youtube_notices_cache.get_all()
-		print(f"[PERF] Get single video IDs: {format_elapsed_time(step_start)}")
 		print(f"Single Count: {len(single_video_ids or [])}")
 		requset_ids |= single_video_ids
 
 		# リクエスト
-		step_start = time.perf_counter()
 		response, start_times, removed_ids = await self.youtube_data_api.get_video_infos_async(target_ids=list(requset_ids), vtubers=vtubers)
-		print(f"[PERF] API call (get_video_infos): {format_elapsed_time(step_start)}")
 
 		# キャッシュから明確に受け取ることのできなかったデータ
 		#  ＝ 非公開などでレスポンスに乗らなくなったデータを削除
-		step_start = time.perf_counter()
 		for rid in removed_ids:
 			total_schedules.pop(rid, None)
-		print(f"[PERF] Remove outdated schedules ({len(removed_ids)} items): {format_elapsed_time(step_start)}")
 
 		# 単体のIDを削除する
 		response_keys = set(response.keys())
 		# 更新を受け取ったか削除されたなら
 		# removed_ids と response_keys を結合したものに対して single_video_ids でマスクする
-		step_start = time.perf_counter()
 		delete_single_video_ids = list(single_video_ids & (removed_ids | response_keys))
 		await self.youtube_notices_cache.delete_list_async(delete_single_video_ids)
-		print(f"[PERF] Delete single video IDs ({len(delete_single_video_ids)} items): {format_elapsed_time(step_start)}")
 
 		# レスポンスに乗っていたデータを更新
 		# エラーなどで更新されなかったデータは response にも removed_ids にも乗らないので
 		# 古いデータがそのまま残る
-		step_start = time.perf_counter()
 		total_schedules.update(response)
-		print(f"[PERF] Update schedules with API response ({len(response)} items): {format_elapsed_time(step_start)}")
 
 		total_schedules_count = len(total_schedules)
 
@@ -152,25 +120,17 @@ class Updater:
 		current_date = datetime.now(timezone.utc)
 		start_limit = (current_date - timedelta(days=BEFORE_DAYS))
 		end_limit = (current_date + timedelta(days=AFTER_DAYS))
-		step_start = time.perf_counter()
 		new_schedules = {
 			id: video for id, video in total_schedules.items()
 			if self.is_expired_cache(video, start_times, start_limit)
 		}
-		print(f"[PERF] Filter schedules by date range: {format_elapsed_time(step_start)}")
-		print(f"Cleanup: {total_schedules_count} -> {len(new_schedules)}")
+		#print(f"Cleanup: {total_schedules_count} -> {len(new_schedules)}")
 
 		# キャッシュ保存
-		step_start = time.perf_counter()
 		await self.youtube_repository.save_schedules_async(new_schedules)
-		print(f"[PERF] Save schedules cache: {format_elapsed_time(step_start)}")
 
 		# 公開用JSONのみ生成
-		step_start = time.perf_counter()
 		await self.save_data_json(new_schedules, start_times, current_date, start_limit, end_limit)
-		print(f"[PERF] Generate and save JSON: {format_elapsed_time(step_start)}")
-		
-		print(f"[PERF] Total update_schedules time: {format_elapsed_time(perf_start)}")
 
 	async def fetch_new_schedules(self):
 
