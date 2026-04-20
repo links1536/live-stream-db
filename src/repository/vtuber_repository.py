@@ -1,4 +1,7 @@
+from datetime import time
 import json
+
+from updater import format_elapsed_time
 
 # --- 設定定数 ---
 MASTER_DATA_KEY = "master_data"
@@ -16,14 +19,24 @@ class VTuberRepository:
 		data = await self.master_store.get(MASTER_DATA_KEY)
 		if not data:
 			return []
-		return json.loads(data)
+		
+		step_start = time.perf_counter()
+		vtuvers = json.loads(data)
+		print(f"[PERF] load_master_data_async deserialize: {format_elapsed_time(step_start)}")
+
+		return vtuvers
 
 	async def load_channel_last_updated_async(self) -> dict:
 		"""KVからチャンネルごとの最終更新日時を読み込む"""
 		data = await self.cache_store.get(LAST_UPDATED_KEY)
 		if not data:
 			return {}
-		return json.loads(data)
+		
+		step_start = time.perf_counter()
+		last_updates = json.loads(data)
+		print(f"[PERF] load_channel_last_updated_async deserialize: {format_elapsed_time(step_start)}")
+
+		return last_updates
 
 	async def save_channel_last_updated_async(self, last_updated) -> dict:
 		"""KVにチャンネルごとの最終更新日時を保存する"""

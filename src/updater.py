@@ -115,7 +115,8 @@ class Updater:
 		step_start = time.perf_counter()
 		single_video_ids = await self.youtube_notices_cache.get_all()
 		print(f"[PERF] Get single video IDs: {format_elapsed_time(step_start)}")
-		print(f"Single Count: {len(single_video_ids or [])}")
+		single_video_count = len(single_video_ids or [])
+		print(f"Single Count: {single_video_count}")
 		requset_ids |= single_video_ids
 
 		# リクエスト
@@ -135,8 +136,9 @@ class Updater:
 		# 更新を受け取ったか削除されたなら
 		# removed_ids と response_keys を結合したものに対して single_video_ids でマスクする
 		step_start = time.perf_counter()
-		delete_single_video_ids = list(single_video_ids & (removed_ids | response_keys))
-		await self.youtube_notices_cache.delete_list_async(delete_single_video_ids)
+		if single_video_count > 0:
+			delete_single_video_ids = list(single_video_ids & (removed_ids | response_keys))
+			await self.youtube_notices_cache.delete_list_async(delete_single_video_ids)
 		print(f"[PERF] Delete single video IDs ({len(delete_single_video_ids)} items): {format_elapsed_time(step_start)}")
 
 		# レスポンスに乗っていたデータを更新
