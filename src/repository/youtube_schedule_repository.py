@@ -1,6 +1,6 @@
+from datetime import time
 import json
 
-import time
 from stopwatch import format_elapsed_time
 
 # --- 設定定数 ---
