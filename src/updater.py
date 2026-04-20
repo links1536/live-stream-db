@@ -33,33 +33,38 @@ class Updater:
 		self.lives_json_store = env.KV_OUTPUT
 
 
-	def is_expired_cache(self, video_data, start_limit):
+	def is_expired_cache(self, video_data, start_times, start_limit):
 		"""配信データがキャッシュ期限切れか判定"""
 
 		# 開始時間が不明なものは「予定あり」として残す
-		start_time_datetime = video_data.get("start_time_datetime")
+		video_id = video_data.get("video_id")
+		if not video_id:
+			return True
+		start_time_datetime = start_times.get(video_id)
 		if not start_time_datetime:
 			return True
 		return start_limit <= start_time_datetime
 
-	def is_within_display_period(self, video_data, start_limit, end_limit):
+	def is_within_display_period(self, video_data, start_times, start_limit, end_limit):
 		"""配信データが有効期間内かつ削除フラグが立っていないか判定"""
 
 		# 開始時間が不明なものは「予定あり」として残す
-		start_time_datetime = video_data.get("start_time_datetime")
+		video_id = video_data.get("video_id")
+		if not video_id:
+			return True
+		start_time_datetime = start_times.get(video_id)
 		if not start_time_datetime:
 			return True
 		return start_limit <= start_time_datetime
 
 
-	async def save_data_json(self, schedules, current_date, start_limit, end_limit):
+	async def save_data_json(self, schedules, start_times, current_date, start_limit, end_limit):
 		"""公開用JSONを生成する"""
 
 		# 開始時間があるものだけ
 		valid_schedules = [
 			video for video in schedules.values() 
-			if video.get("start_time_iso") is not None
-			and self.is_within_display_period(video, start_limit, end_limit)
+			if self.is_within_display_period(video, start_times, start_limit, end_limit)
 		]
 		
 		# 開始時間でソートする
@@ -95,7 +100,7 @@ class Updater:
 			requset_ids.update(single_video_ids)
 
 		# リクエスト
-		response, removed_ids = await self.youtube_data_api.get_video_infos_async(target_ids=list(requset_ids), vtubers=vtubers)
+		response, start_times, removed_ids = await self.youtube_data_api.get_video_infos_async(target_ids=list(requset_ids), vtubers=vtubers)
 
 		# キャッシュから明確に受け取ることのできなかったデータ
 		#  ＝ 非公開などでレスポンスに乗らなくなったデータを削除
@@ -107,7 +112,7 @@ class Updater:
 		# 更新を受け取ったか削除されたなら
 		delete_single_video_ids = [
 			video_id for video_id in single_video_ids
-			if video_id in response_keys or video_id in removed_ids
+			if video_id in removed_ids or video_id in response_keys
 		]
 		await self.youtube_notices_cache.delete_list_async(delete_single_video_ids)
 
@@ -116,21 +121,23 @@ class Updater:
 		# 古いデータがそのまま残る
 		total_schedules.update(response)
 
+		total_schedules_count = len(total_schedules)
+
 		# 期間外のデータを削除
 		current_date = datetime.now(timezone.utc)
 		start_limit = (current_date - timedelta(days=BEFORE_DAYS))
 		end_limit = (current_date + timedelta(days=AFTER_DAYS))
 		new_schedules = {
 			id: video for id, video in total_schedules.items()
-			if self.is_expired_cache(video, start_limit)
+			if self.is_expired_cache(video, start_times, start_limit)
 		}
-		#print(f"Cleanup: {len(total_schedules)} -> {len(new_schedules)}")
+		#print(f"Cleanup: {total_schedules_count} -> {len(new_schedules)}")
 
 		# キャッシュ保存
 		await self.youtube_repository.save_schedules_async(new_schedules)
 
 		# 公開用JSONのみ生成
-		await self.save_data_json(new_schedules, current_date, start_limit, end_limit)
+		await self.save_data_json(new_schedules, start_times, current_date, start_limit, end_limit)
 
 	async def fetch_new_schedules(self):
 
