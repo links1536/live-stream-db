@@ -35,42 +35,21 @@ class Updater:
 
 	def is_expired_cache(self, video_data, start_limit):
 		"""配信データがキャッシュ期限切れか判定"""
-		# すでに削除済みのものは除外
-		if video_data.get("status") == "removed":
-			return False
-		
-		# 開始時間が不明なものは「予定あり」として残す
-		start_time_str = video_data.get("start_time_iso")
-		if not start_time_str:
-			return True
-		
-		# 文字列をdatetimeに変換（Zと+00:00の両方に対応）
-		try:
-			start_time = datetime.fromisoformat(start_time_str.replace("Z", "+00:00"))
-			return start_limit <= start_time
-		except ValueError:
-			# パース失敗時は安全のため残す
-			return True
 
+		# 開始時間が不明なものは「予定あり」として残す
+		start_time_datetime = video_data.get("start_time_datetime")
+		if not start_time_datetime:
+			return True
+		return start_limit <= start_time_datetime
 
 	def is_within_display_period(self, video_data, start_limit, end_limit):
 		"""配信データが有効期間内かつ削除フラグが立っていないか判定"""
-		# すでに削除済みのものは除外
-		if video_data.get("status") == "removed":
-			return False
-		
+
 		# 開始時間が不明なものは「予定あり」として残す
-		start_time_str = video_data.get("start_time_iso")
-		if not start_time_str:
+		start_time_datetime = video_data.get("start_time_datetime")
+		if not start_time_datetime:
 			return True
-		
-		# 文字列をdatetimeに変換（Zと+00:00の両方に対応）
-		try:
-			start_time = datetime.fromisoformat(start_time_str.replace("Z", "+00:00"))
-			return start_limit <= start_time <= end_limit
-		except ValueError:
-			# パース失敗時は安全のため残す
-			return True
+		return start_limit <= start_time_datetime
 
 
 	async def save_data_json(self, schedules, current_date, start_limit, end_limit):

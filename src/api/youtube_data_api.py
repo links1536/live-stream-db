@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import httputils
 
 class YouTubeDataAPI:
@@ -70,6 +72,7 @@ class YouTubeDataAPI:
 						removed_ids.add(video_id)
 						continue
 
+					start_time_str = live.get("scheduledStartTime") or live.get("actualStartTime")
 					videos[video_id] = {
 						"streamer_name": vtuber.get("Name"),
 						"color": vtuber.get("Color"),
@@ -79,8 +82,12 @@ class YouTubeDataAPI:
 						"video_id": video_id,
 						"title": snippet["title"],
 						"thumbnail": self.get_thumbnail(snippet["thumbnails"]),
-						"start_time_iso": live.get("scheduledStartTime") or live.get("actualStartTime")
+						"start_time_iso": start_time_str
 					}
+
+					# 開始時間を前もってパースしておく
+					#videos[video_id]["start_time_datetime"] = datetime.fromisoformat(start_time_str.replace("Z", "+00:00"))
+					videos[video_id]["start_time_datetime"] = datetime.fromisoformat(start_time_str)
 
 					# 実開始・終了時間をもとにステータスを決める
 					if "actualEndTime" in live:
