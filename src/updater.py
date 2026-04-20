@@ -114,8 +114,7 @@ class Updater:
 		# レスポンスに乗っていたデータを更新
 		# エラーなどで更新されなかったデータは response にも removed_ids にも乗らないので
 		# 古いデータがそのまま残る
-		for video_id, video_data in response.items():
-			total_schedules[video_id] = video_data
+		total_schedules.update(response)
 
 		# 期間外のデータを削除
 		current_date = datetime.now(timezone.utc)
