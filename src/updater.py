@@ -32,46 +32,23 @@ class Updater:
 
 		self.lives_json_store = env.KV_OUTPUT
 
-	def get_video_start_time(self, video_data, start_times):
-		video_id = video_data.get("video_id")
-		if not video_id:
-			return None
-		return start_times.get(video_id)
-
-	def is_expired_cache(self, video_data, start_times, start_limit):
-		"""配信データがキャッシュ期限切れか判定"""
-
-		# 開始時間が不明なものは「予定あり」として残す
-		start_time = self.get_video_start_time(video_data, start_times)
-		return not start_time or start_limit <= start_time
-
-	def is_within_display_period(self, video_data, start_times, start_limit, end_limit):
-		"""配信データが有効期間内かつ削除フラグが立っていないか判定"""
-
-		# 開始時間が不明なものは表示しない
-		start_time = self.get_video_start_time(video_data, start_times)
-		return start_time and (start_limit <= start_time <= end_limit)
-
 	async def save_data_json(self, schedules, start_times, current_date, start_limit, end_limit):
 		"""公開用JSONを生成する"""
 
 		# 開始時間があるものだけ
 		valid_schedules = [
-			video for video in schedules.values() 
-			if video.get("start_time_iso") is not None
-			if self.is_within_display_period(video, start_times, start_limit, end_limit)
+			video for id, video in schedules.items()
+			if (start_time := start_times.get(id)) is not None
+			and start_limit <= start_time <= end_limit
 		]
-		
+
 		# 開始時間でソートする
-		sorted_schedules = sorted(
-			valid_schedules, 
-			key=lambda x: x["start_time_iso"]
-		)
+		valid_schedules.sort(key=lambda x: x["start_time_iso"])
 
 		# 更新日時（現在）と配信情報を保存
 		public_data = {
 			"updated_at": current_date.isoformat(),
-			"all_schedules": sorted_schedules
+			"all_schedules": valid_schedules
 		}
 		await self.lives_json_store.put(OUTPUT_KEY, json.dumps(public_data, ensure_ascii=True))
 		print(f"Generated {OUTPUT_KEY} ({len(valid_schedules)} streams)")
@@ -85,34 +62,33 @@ class Updater:
 		# キャッシュを読み出し
 		total_schedules = await self.youtube_repository.load_schedules_async()
 
-		# データ更新
-		requset_ids = set(total_schedules.keys())
-
 		# 動画ID単体で記憶しているものを結合する
-		single_video_ids = await self.youtube_notices_cache.get_all()
-		print(f"Single Count: {len(single_video_ids or [])}")
-		requset_ids |= single_video_ids
+		single_video_ids = await self.youtube_notices_cache.get_all() or set()
+		single_video_count = len(single_video_ids)
+		print(f"Single Count: {single_video_count}")
+		
+		# データ更新
+		requset_ids = set(total_schedules) | single_video_ids
 
 		# リクエスト
 		response, start_times, removed_ids = await self.youtube_data_api.get_video_infos_async(target_ids=list(requset_ids), vtubers=vtubers)
 
 		# キャッシュから明確に受け取ることのできなかったデータ
 		#  ＝ 非公開などでレスポンスに乗らなくなったデータを削除
-		for rid in removed_ids:
-			total_schedules.pop(rid, None)
+		if removed_ids:
+			total_schedules = {
+				video_id: video_data for video_id, video_data in total_schedules.items()
+				if video_id not in removed_ids
+			}
 
 		# 単体のIDを削除する
-		response_keys = set(response.keys())
 		# 更新を受け取ったか削除されたなら
-		# removed_ids と response_keys を結合したものに対して single_video_ids でマスクする
-		delete_single_video_ids = list(single_video_ids & (removed_ids | response_keys))
-		await self.youtube_notices_cache.delete_list_async(delete_single_video_ids)
+		to_delete = single_video_ids & (removed_ids | set(response.keys()))
+		if to_delete:
+			await self.youtube_notices_cache.delete_list_async(list(to_delete))
 
 		# レスポンスに乗っていたデータを更新
-		# エラーなどで更新されなかったデータは response にも removed_ids にも乗らないので
-		# 古いデータがそのまま残る
 		total_schedules.update(response)
-
 		total_schedules_count = len(total_schedules)
 
 		# 期間外のデータを削除
@@ -121,9 +97,9 @@ class Updater:
 		end_limit = (current_date + timedelta(days=AFTER_DAYS))
 		new_schedules = {
 			id: video for id, video in total_schedules.items()
-			if self.is_expired_cache(video, start_times, start_limit)
+			if (start_time := start_times.get(id)) is not None and start_limit <= start_time
 		}
-		#print(f"Cleanup: {total_schedules_count} -> {len(new_schedules)}")
+		print(f"Cleanup: {total_schedules_count} -> {len(new_schedules)}")
 
 		# キャッシュ保存
 		await self.youtube_repository.save_schedules_async(new_schedules)
