@@ -8,12 +8,15 @@ class YouTubeDataAPI:
 		self.youtube_url = "https://www.googleapis.com/youtube/v3/videos"
 
 	def get_thumbnail(self, thumbnails):
-		maxRes = None
-		for thumbnail in thumbnails.values():
-			if (thumbnail is not None
-			and maxRes is None or maxRes.get("width", 0) < thumbnail.get("width", 0)):
-				maxRes = thumbnail
-		return maxRes.get("url")
+		if not thumbnails:
+			return ""
+		
+		for key in ("maxres", "standard", "high", "medium", "default"):
+			thumb = thumbnails.get(key)
+			if thumb:
+				return thumb.get("url", "")
+
+		return ""
 
 	async def get_video_infos_async(self, target_ids, vtubers) -> tuple[dict, set]:
 		"""ステータス更新メインロジック"""
@@ -61,8 +64,6 @@ class YouTubeDataAPI:
 						continue
 
 					snippet = item["snippet"]
-					thumbnails = snippet["thumbnails"]
-
 					channel_id = snippet.get("channelId")
 					vtuber = vtuber_map.get(channel_id, None)
 					if not vtuber:
@@ -77,7 +78,7 @@ class YouTubeDataAPI:
 
 						"video_id": video_id,
 						"title": snippet["title"],
-						"thumbnail": self.get_thumbnail(thumbnails),
+						"thumbnail": self.get_thumbnail(snippet["thumbnails"]),
 						"start_time_iso": live.get("scheduledStartTime") or live.get("actualStartTime")
 					}
 
