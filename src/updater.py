@@ -121,10 +121,8 @@ class Updater:
 
 		# キャッシュから明確に受け取ることのできなかったデータ
 		#  ＝ 非公開などでレスポンスに乗らなくなったデータを削除
-		total_schedules = {
-			id: video for id, video in total_schedules.items()
-			if id not in removed_ids
-		}
+		for rid in removed_ids:
+			total_schedules.pop(rid, None)
 
 		# 単体のIDを削除する
 		response_keys = set(response.keys())
