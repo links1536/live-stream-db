@@ -1,7 +1,7 @@
 from datetime import time
 import json
 
-from updater import format_elapsed_time
+from stopwatch import format_elapsed_time
 
 # --- 設定定数 ---
 MASTER_DATA_KEY = "master_data"
