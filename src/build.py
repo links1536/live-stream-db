@@ -97,7 +97,7 @@ def build_and_deploy():
 	print("Bundling and minifying code...")
 	try:
 		# 自作モジュールをすべて1つにまとめる
-		bundled_code = stickytape.script_bundle(
+		bundled_code = stickytape.patch_all(
 			"src/entry.py", 
 			add_python_paths=["src"] 
 		)
