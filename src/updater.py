@@ -8,9 +8,9 @@ from repository.youtube_schedule_repository import YouTubeScheduleRepository
 from repository.youtube_notices_cache import YouTubeNoticesCache
 
 import json
-import time
 from datetime import datetime, timedelta, timezone
 
+import time
 from stopwatch import format_elapsed_time
 
 # --- 設定 ---
