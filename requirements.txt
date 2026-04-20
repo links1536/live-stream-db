@@ -1,0 +1,2 @@
+stickytape
+python-minifier
