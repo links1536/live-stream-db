@@ -39,7 +39,8 @@ class YouTubeDataAPI:
 
 		videos = {}
 		removed_ids = set()
-		
+		start_times = {}
+
 		for i in range(0, len(target_ids), chunk_size):
 			chunk = target_ids[i:i+chunk_size]
 			try:
@@ -87,7 +88,7 @@ class YouTubeDataAPI:
 
 					# 開始時間を前もってパースしておく
 					#videos[video_id]["start_time_datetime"] = datetime.fromisoformat(start_time_str.replace("Z", "+00:00"))
-					videos[video_id]["start_time_datetime"] = datetime.fromisoformat(start_time_str)
+					start_times[video_id] = datetime.fromisoformat(start_time_str)
 
 					# 実開始・終了時間をもとにステータスを決める
 					if "actualEndTime" in live:
@@ -108,6 +109,6 @@ class YouTubeDataAPI:
 				continue
 
 		#print(f"Successfully updated {len(videos)} video details.")
-		return videos, removed_ids
+		return videos, start_times, removed_ids
 
 
