@@ -88,7 +88,8 @@ class YouTubeDataAPI:
 
 					# 開始時間を前もってパースしておく
 					#videos[video_id]["start_time_datetime"] = datetime.fromisoformat(start_time_str.replace("Z", "+00:00"))
-					start_times[video_id] = datetime.fromisoformat(start_time_str)
+					if start_time_str:
+						start_times[video_id] = datetime.fromisoformat(start_time_str)
 
 					# 実開始・終了時間をもとにステータスを決める
 					if "actualEndTime" in live:
