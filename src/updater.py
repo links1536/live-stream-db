@@ -11,8 +11,6 @@ import json
 import time
 from datetime import datetime, timedelta, timezone
 
-from stopwatch import format_elapsed_time
-
 # --- 設定 ---
 BEFORE_DAYS = 1
 AFTER_DAYS = 7
@@ -20,6 +18,11 @@ AFTER_DAYS = 7
 # --- 設定定数 ---
 OUTPUT_KEY = "lives.json"
 ENSURE_ASCIi = False
+
+def format_elapsed_time(start_time):
+	"""計測時間をミリ秒形式で出力"""
+	elapsed_ms = (time.perf_counter() - start_time) * 1000
+	return f"{elapsed_ms:.2f}ms"
 
 class Updater:
 	"""ステータス更新メインロジック"""
