@@ -73,7 +73,7 @@ class Updater:
 			return True
 
 
-	async def save_data_json(self, schedules, start_limit, end_limit):
+	async def save_data_json(self, schedules, current_date, start_limit, end_limit):
 		"""公開用JSONを生成する"""
 
 		# 開始時間があるものだけ
@@ -91,7 +91,7 @@ class Updater:
 
 		# 更新日時（現在）と配信情報を保存
 		public_data = {
-			"updated_at": datetime.now(timezone.utc).isoformat(),
+			"updated_at": current_date.isoformat(),
 			"all_schedules": sorted_schedules
 		}
 		await self.lives_json_store.put(OUTPUT_KEY, json.dumps(public_data, ensure_ascii=True))
@@ -142,9 +142,9 @@ class Updater:
 			total_schedules[video_id] = video_data
 
 		# 期間外のデータを削除
-		now = datetime.now(timezone.utc)
-		start_limit = (now - timedelta(days=BEFORE_DAYS))
-		end_limit = (now + timedelta(days=AFTER_DAYS))
+		current_date = datetime.now(timezone.utc)
+		start_limit = (current_date - timedelta(days=BEFORE_DAYS))
+		end_limit = (current_date + timedelta(days=AFTER_DAYS))
 		new_schedules = {
 			id: video for id, video in total_schedules.items()
 			if self.is_expired_cache(video, start_limit)
@@ -155,7 +155,7 @@ class Updater:
 		await self.youtube_repository.save_schedules_async(new_schedules)
 
 		# 公開用JSONのみ生成
-		await self.save_data_json(new_schedules, start_limit, end_limit)
+		await self.save_data_json(new_schedules, current_date, start_limit, end_limit)
 
 	async def fetch_new_schedules(self):
 
