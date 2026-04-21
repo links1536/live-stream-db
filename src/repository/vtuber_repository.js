@@ -1,6 +1,6 @@
 // --- 設定定数 ---
-const MASTER_DATA_KEY = "master_data"
-const LAST_UPDATED_KEY = "last_updated"
+const MASTER_DATA_KEY = "streamers.json"
+const LAST_UPDATED_KEY = "lastupdate.json"
 
 export class VTuberRepository
 {
