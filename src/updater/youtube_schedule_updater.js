@@ -133,12 +133,12 @@ export class YouTubeScheduleUpdater
 		// 公開用 JSON 生成
 		await this.saveDataJson(newSchedules, startTimes, currentDate, startLimit, endLimit);
 
-		// 単体IDキャッシュのクリーンアップ
+		// 処理が成功したので、単体IDキャッシュを削除する
 		const responseKeys = new Set(Object.keys(response));
 		const removedSet = new Set(removedIds);
 		const deleteSingleVideoIds = (singleVideoIds || []).filter(
 			(id) => removedSet.has(id) || responseKeys.has(id)
 		);
-		//await this.youtubeNoticesCache.deleteListAsync(deleteSingleVideoIds);
+		await this.youtubeNoticesCache.deleteListAsync(deleteSingleVideoIds);
 	}
 }
