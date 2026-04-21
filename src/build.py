@@ -90,8 +90,8 @@ delivery_delay = 60
 
 [[queues.consumers]]
 queue = "{yr_rss_feed_queue}"
+max_batch_size = 5 # パースとかいろいろ重いので、一度に最大5件とする
 retry_delay = 300
-max_batch_size = 10
 
 """
 	
