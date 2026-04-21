@@ -10,15 +10,15 @@ export class YouTubeWebSubUpdater
 {
 	constructor(env)
 	{
-		this.vtuber_repository = new VTuberRepository(env.KV_MASTER, env.KV_CACHE);
-		this.youtube_websub = new YouTubeWebSub(
+		this.vtuberRepository = new VTuberRepository(env.KV_MASTER, env.KV_CACHE);
+		this.youtubeWebsub = new YouTubeWebSub(
 			env.YOUTUBE_WEBSUB_VERIFY_TOKEN,
 			env.YOUTUBE_WEBSUB_SECRETS
 		);
-		this.youtube_websub_queue = env.RESISTER_YOUTUBE_WEBHOOK_IDS;
+		this.youtubeWebsubQueue = env.RESISTER_YOUTUBE_WEBHOOK_IDS;
 
 		const doId = env.YOUTUBE_NOTICES_CACHE.idFromName("rss-key-cache");
-		this.youtube_notices_cache = env.YOUTUBE_NOTICES_CACHE.get(doId);
+		this.youtubeNoticesCache = env.YOUTUBE_NOTICES_CACHE.get(doId);
 	}
 
 	/**
@@ -26,7 +26,7 @@ export class YouTubeWebSubUpdater
 	 */
 	async register_websub(callbackUrl = null)
 	{
-		const vtubers = await this.vtuber_repository.load_master_data_async();
+		const vtubers = await this.vtuberRepository.load_master_data_async();
 
 		const vtuberCount = vtubers.length;
 		let index = 0;
@@ -48,7 +48,7 @@ export class YouTubeWebSubUpdater
 				console.log(`${streamerName}: ${channelId} (${index} / ${vtuberCount}) enqueue`);
 
 				// Queue にチャンネルIDを送信
-				await this.youtube_websub_queue.send(channelId);
+				await this.youtubeWebsubQueue.send(channelId);
 			}
 		}
 
@@ -62,15 +62,15 @@ export class YouTubeWebSubUpdater
 	{
 		// GET リクエスト（検証用）
 		if (request.method === "GET") {
-			return await this.youtube_websub.process_get(request);
+			return await this.youtubeWebsub.process_get(request);
 		}
 
 		// POST リクエスト（通知受信）
-		const videoIds = await this.youtube_websub.process_post(request);
+		const videoIds = await this.youtubeWebsub.process_post(request);
 
 		if (videoIds && videoIds.length > 0) {
 			for (const videoId of videoIds) {
-				await this.youtube_notices_cache.add(videoId);
+				await this.youtubeNoticesCache.add(videoId);
 			}
 			console.log(`✅ Received ${videoIds.length} new video(s) from WebSub`);
 		}

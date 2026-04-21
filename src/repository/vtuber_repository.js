@@ -6,16 +6,16 @@ export class VTuberRepository
 {
 	constructor(kv_master, kv_cache)
 	{
-		self.master_store = kv_master;
-		self.cache_store = kv_cache;
+		self.masterStore = kv_master;
+		self.cacheStore = kv_cache;
 	}
 
 	/**
 	 * KVからマスターデータを読み込む
 	 */
-	async load_master_data_async()
+	async loadMasterDataAsync()
 	{
-		var data = await self.master_store.get(MASTER_DATA_KEY);
+		var data = await self.masterStore.get(MASTER_DATA_KEY);
 		if (data)
 			return JSON.parse(data);
 		return [];
@@ -24,9 +24,9 @@ export class VTuberRepository
 	/**
 	 * KVからチャンネルごとの最終更新日時を読み込む
 	 */
-	async load_channel_last_updated_async()
+	async loadChannelLastUpdatedAsync()
 	{
-		var data = await self.cache_store.get(LAST_UPDATED_KEY)
+		var data = await self.cacheStore.get(LAST_UPDATED_KEY)
 		if (data)
 			return JSON.parse(data);
 		return {};
@@ -35,8 +35,8 @@ export class VTuberRepository
 	/**
 	 * KVにチャンネルごとの最終更新日時を保存する
 	 */
-	async save_channel_last_updated_async(last_updated)
+	async saveChannelLastUpdatedAsync(last_updated)
 	{
-		await self.cache_store.put(LAST_UPDATED_KEY, JSON.stringify(last_updated))
+		await self.cacheStore.put(LAST_UPDATED_KEY, JSON.stringify(last_updated))
 	}
 }

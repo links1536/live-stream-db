@@ -11,13 +11,13 @@ export class YouTubeNoticesCache extends DurableObject
 		await self.ctx.storage.put(video_id, True);
 	}
 
-	async get_all(self)
+	async getAll(self)
 	{
 		keys_map = await self.ctx.storage.list();
 		return set(keys_map.keys());
 	}
 
-	async delete_list_async(self, video_ids)
+	async deleteListAsync(self, video_ids)
 	{
 		if (video_ids) {
 			for (const video_id in video_ids) {

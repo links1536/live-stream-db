@@ -1,14 +1,14 @@
-import { HttpUtils } from './http.js';
+import { HttpUtils } from '../httputils.js'
 
 /**
  * YouTube WebSub (PubSubHubbub) の通知を解析するクラス
  */
-export class YouTubeWebSub {
+export class YouTubeWebSub
+{
 	constructor(verifyToken, secret)
 	{
 		this.verifyToken = verifyToken;
 		this.secret = secret;
-		this.http = new HttpUtils();
 	}
 
 	/**
@@ -38,7 +38,7 @@ export class YouTubeWebSub {
 			"Content-Type": "application/x-www-form-urlencoded"
 		};
 
-		const response = await this.http.post(hubUrl, headers, params.toString());
+		const response = await HttpUtils.post(hubUrl, headers, params.toString());
 		return response.status === 202;
 	}
 
@@ -58,26 +58,27 @@ export class YouTubeWebSub {
 				const verifyToken = searchParams.get("hub.verify_token");
 				if (verifyToken !== this.verifyToken) {
 					console.error(`[WebSub] Invalid verify token: topic=${topic}`);
-					return this.http.response("Forbidden", { "Status": 403 });
+					return HttpUtils.response("Forbidden", { "Status": 403 });
 				}
 
 				console.log(`[WebSub] Subscribe request: topic=${topic}`);
-				return this.http.response(challenge, { "Content-Type": "text/plain" });
+				return HttpUtils.response(challenge, { "Content-Type": "text/plain" });
 			}
 		}
 		else if (mode === "unsubscribe") {
 			console.log(`[WebSub] Unsubscribe request: topic=${topic}`);
-			return this.http.response("OK", { "Content-Type": "text/plain" });
+			return HttpUtils.response("OK", { "Content-Type": "text/plain" });
 		}
 
 		console.error(`[WebSub] Unknown mode: mode=${mode}`);
-		return this.http.response("Not Found", { "Status": 404 });
+		return HttpUtils.response("Not Found", { "Status": 404 });
 	}
 
 	/**
 	 * POST リクエスト (更新通知) を処理
 	 */
-	async processPost(request) {
+	async processPost(request)
+	{
 		const body = await request.text();
 		if (!body)
 			return null;
