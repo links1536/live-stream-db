@@ -26,20 +26,20 @@ export default {
 		// WebSub 受信エンドポイント
 		if (path === "/webhooks/youtube") {
 			const updater = new YouTubeWebSubUpdater(env);
-			return await updater.handle_youtube_webhook(request);
+			return await updater.handleYoutubeWebhook(request);
 		}
 
 		// WebSub 登録（手動トリガー）
 		if (path === "/youtube-websub-resister") {
 			const updater = new YouTubeWebSubUpdater(env);
-			await updater.register_websub();
+			await updater.registerWebsub();
 			return new Response("WebSub registration triggered");
 		}
 
 		// RSS フィード取得（手動トリガー）
 		if (path === "/youtube-fetch-rss") {
 			const updater = new YouTubeRssFeedUpdater(env);
-			await updater.fetch_new_schedules();
+			await updater.fetchNewSchedules();
 			return new Response("RSS feed fetch triggered");
 		}
 
@@ -63,14 +63,14 @@ export default {
 			if (controller.cron === "0 19 * * *") {
 				// 毎日 UTC19:00 - WebSub 再登録
 				const updater = new YouTubeWebSubUpdater(env);
-				await updater.register_websub(env.YOUTUBE_WEBSUB_CALLBACK_URL);
+				await updater.registerWebsub(env.YOUTUBE_WEBSUB_CALLBACK_URL);
 				console.log("✅ WebSub registration completed (scheduled)");
 
 			}
 			else if (controller.cron === "45 * * * *") {
 				// 毎時45分 - RSS フィード取得
 				const updater = new YouTubeRssFeedUpdater(env);
-				await updater.fetch_new_schedules();
+				await updater.fetchNewSchedules();
 				console.log("✅ RSS feed fetch completed (scheduled)");
 			}
 			else {
@@ -99,7 +99,7 @@ export default {
 			console.log(`Processing queue message: ${msg.body}`);
 
 			try {
-				await youtube_websub.register_websub(
+				await youtube_websub.registerWebSub(
 					env.YOUTUBE_WEBSUB_CALLBACK_URL,
 					msg.body
 				);

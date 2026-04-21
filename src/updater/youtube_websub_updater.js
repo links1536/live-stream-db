@@ -59,11 +59,11 @@ export class YouTubeWebSubUpdater
 	{
 		// GET リクエスト（検証用）
 		if (request.method === "GET") {
-			return await this.youtubeWebsub.process_get(request);
+			return await this.youtubeWebsub.processGet(request);
 		}
 
 		// POST リクエスト（通知受信）
-		const videoIds = await this.youtubeWebsub.process_post(request);
+		const videoIds = await this.youtubeWebsub.processPost(request);
 
 		if (videoIds && videoIds.length > 0) {
 			for (const videoId of videoIds) {
