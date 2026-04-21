@@ -24,7 +24,7 @@ export class YouTubeScheduleRepository
 	/**
 	 * KVにキャッシュを保存する
 	 */
-	async saveSchedulesAsync( schedules)
+	async saveSchedulesAsync(schedules)
 	{
 		await this.cacheStore.put(SCHEDULE_KEY, JSON.stringify(schedules));
 	}
