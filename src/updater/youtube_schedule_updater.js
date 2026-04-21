@@ -52,7 +52,7 @@ export class YouTubeScheduleUpdater
 	isExpiredCache(videoData, startTimes, startLimit)
 	{
 		const startTime = this.getVideoStartTime(videoData, startTimes);
-		return !startTime || startLimit <= startTime;
+		return !startTime || startTime <= startLimit;
 	}
 
 	isWithinDisplayPeriod(videoData, startTimes, startLimit, endLimit)
@@ -138,7 +138,7 @@ export class YouTubeScheduleUpdater
 		// 期間外（古すぎる）データを削除 → 残すのは startLimit 以降のもの
 		const newSchedules = {};
 		for (const [id, video] of Object.entries(totalSchedules)) {
-			if (this.isExpiredCache(video, startTimes, startLimit)) {
+			if (!this.isExpiredCache(video, startTimes, startLimit)) {
 				newSchedules[id] = video;
 			}
 		}

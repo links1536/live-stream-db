@@ -2,6 +2,7 @@
 
 import { YouTubeWebSub } from "../api/youtube_websub.js";
 import { VTuberRepository } from "../repository/vtuber_repository.js";
+import { HttpUtils } from "../httputils.js";
 
 export class YouTubeWebSubUpdater
 {
@@ -73,7 +74,7 @@ export class YouTubeWebSubUpdater
 		}
 
 		// 成功レスポンス
-		return response("", {
+		return HttpUtils.response("", {
 			"Status": 200,
 			"Content-Type": "text/plain",
 		});

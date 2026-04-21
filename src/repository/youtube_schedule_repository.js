@@ -3,6 +3,9 @@
 /**
  * YouTube Data APIを利用するクラス
  */
+
+const SCHEDULE_KEY = "schedules";
+
 export class YouTubeScheduleRepository
 {
 	constructor(kv_cache)

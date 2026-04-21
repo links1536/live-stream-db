@@ -6,22 +6,22 @@ export class YouTubeNoticesCache extends DurableObject
 		super(ctx, env);
 	}
 
-	async add(video_id)
+	async add(videoId)
 	{
-		await this.ctx.storage.put(video_id, True);
+		await this.ctx.storage.put(videoId, true);
 	}
 
 	async getAll()
 	{
-		const keys_map = await this.ctx.storage.list();
-		return set(keys_map.keys());
+		const keysMap = await this.ctx.storage.list();
+		return Array.from(keysMap.keys());
 	}
 
-	async deleteListAsync(video_ids)
+	async deleteListAsync(videoIds)
 	{
-		if (video_ids) {
-			for (const video_id in video_ids) {
-				await this.ctx.storage.delete(video_id);
+		if (videoIds) {
+			for (const videoId of videoIds) {
+				await this.ctx.storage.delete(videoId);
 			}
 		}
 	}
