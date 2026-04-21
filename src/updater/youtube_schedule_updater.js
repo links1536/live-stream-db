@@ -33,20 +33,7 @@ export class YouTubeScheduleUpdater
 		if (!videoId)
 			return null;
 
-		const raw = startTimes?.[videoId];
-		if (!raw)
-			return null;
-
-		// 文字列（ISO） or 数値（timestamp）の両方に対応
-		if (typeof raw === "number")
-			return raw;
-		if (typeof raw === "string") {
-			const date = new Date(raw);
-			return isNaN(date.getTime())
-				? null
-				: date.getTime();
-		}
-		return null;
+		return startTimes?.[videoId];
 	}
 
 	isWithinCachePeriod(videoData, startTimes, startLimit)
