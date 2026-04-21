@@ -45,7 +45,7 @@ export class YouTubeScheduleUpdater
 	isWithinDisplayPeriod(videoData, startTimes, startLimit, endLimit)
 	{
 		const startTime = this.getVideoStartTime(videoData, startTimes);
-		return startTime == null && startLimit <= startTime && startTime <= endLimit;
+		return startTime != null && startLimit <= startTime && startTime <= endLimit;
 	}
 
 
