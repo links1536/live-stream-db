@@ -60,9 +60,9 @@ export class YouTubeScheduleUpdater
 	async saveDataJson(schedules, startTimes, currentDate, startLimit, endLimit)
 	{
 		// 開始時間がある + 表示期間内のものだけ
-		const validSchedules = Object.values(schedules).filter((video)
-			=> video.start_time_iso != null
-			&& this.isWithinDisplayPeriod(video, startTimes, startLimit, endLimit)
+		const validSchedules = Object.values(schedules).filter(
+			(video) => video.start_time_iso != null
+					&& this.isWithinDisplayPeriod(video, startTimes, startLimit, endLimit)
 		);
 
 		// 開始時間でソート
