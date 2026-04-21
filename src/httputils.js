@@ -5,7 +5,7 @@ export class HttpUtils
 	/**
 	* GET リクエストを送信する
 	*/
-	async static get(url, headers = {})
+	static async get(url, headers = {})
 	{
 		const request = new Request(url, {
 			method: "GET",
@@ -17,7 +17,7 @@ export class HttpUtils
 	/**
 	* POST リクエストを送信する
 	*/
-	async static post(url, headers = {}, body = null)
+	static async post(url, headers = {}, body = null)
 	{
 		const request = new Request(url, {
 			method: "POST",

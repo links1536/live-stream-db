@@ -1,4 +1,4 @@
-import { YouTubeRSSFetcher } from './youtube_rss_fetcher.js';
+import { YouTubeRSSFetcher } from '../api/youtube_rss_fetcher.js';
 
 // --- 設定 ---
 const BEFORE_DAYS = 1;
