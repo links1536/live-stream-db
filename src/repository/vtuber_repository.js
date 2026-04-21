@@ -18,7 +18,7 @@ export class VTuberRepository
 		var data = await self.master_store.get(MASTER_DATA_KEY);
 		if (data)
 			return JSON.parse(data);
-		return []
+		return [];
 	}
 
 	/**
@@ -28,8 +28,8 @@ export class VTuberRepository
 	{
 		var data = await self.cache_store.get(LAST_UPDATED_KEY)
 		if (data)
-			return JSON.parse(data)
-		return {}
+			return JSON.parse(data);
+		return {};
 	}
 
 	/**

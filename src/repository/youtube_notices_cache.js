@@ -6,10 +6,6 @@ export class YouTubeNoticesCache extends DurableObject
 		super(ctx, env);
 	}
 
-	async sayHello() {
-		return "Hello, World!";
-	}
-	
 	async add(self, video_id)
 	{
 		await self.ctx.storage.put(video_id, True);
@@ -24,7 +20,7 @@ export class YouTubeNoticesCache extends DurableObject
 	async delete_list_async(self, video_ids)
 	{
 		if (video_ids) {
-			for (const video_id in video_ids){
+			for (const video_id in video_ids) {
 				await self.ctx.storage.delete(video_id);
 			}
 		}
