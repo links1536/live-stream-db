@@ -4,7 +4,7 @@
  * YouTube Data APIを利用するクラス
  */
 
-const SCHEDULE_KEY = "schedules";
+const SCHEDULE_KEY = "status.json";
 
 export class YouTubeScheduleRepository
 {
