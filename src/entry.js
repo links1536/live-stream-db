@@ -1,0 +1,116 @@
+// entry.js
+// Cloudflare Workers 用メインエントリポイント
+
+import { YouTubeWebSubUpdater } from "./updater/youtube_websub_updater.js";
+import { YouTubeRssFeedUpdater } from "./updater/youtube_rss_feed_updater.js";
+import { YouTubeScheduleUpdater } from "./updater/youtube_schedule_updater.js";
+import { YouTubeWebSub } from "./api/youtube_websub.js";
+
+// Durable Object のエクスポート（必須）
+export { YouTubeNoticesCache } from "./repository/youtube_notices_cache.js";
+
+export default {
+	/**
+	 * HTTP リクエスト処理
+	 */
+	async fetch(request, env, ctx)
+	{
+		const url = new URL(request.url);
+		const path = url.pathname;
+
+		// favicon.ico は空レスポンス
+		if (path === "/favicon.ico") {
+			return new Response("");
+		}
+
+		// WebSub 受信エンドポイント
+		if (path === "/webhooks/youtube") {
+			const updater = new YouTubeWebSubUpdater(env);
+			return await updater.handle_youtube_webhook(request);
+		}
+
+		// WebSub 登録（手動トリガー）
+		if (path === "/youtube-websub-resister") {
+			const updater = new YouTubeWebSubUpdater(env);
+			await updater.register_websub();
+			return new Response("WebSub registration triggered");
+		}
+
+		// RSS フィード取得（手動トリガー）
+		if (path === "/youtube-fetch-rss") {
+			const updater = new YouTubeRssFeedUpdater(env);
+			await updater.fetch_new_schedules();
+			return new Response("RSS feed fetch triggered");
+		}
+
+		// スケジュール更新（手動トリガー）
+		if (path === "/youtube-update") {
+			const updater = new YouTubeScheduleUpdater(env);
+			await updater.updateSchedules();
+			return new Response("Schedule update triggered");
+		}
+
+		// 該当なしの場合
+		return new Response("No matching route", { status: 404 });
+	},
+
+	/**
+	 * Cron スケジュール処理
+	 */
+	async scheduled(controller, env, ctx)
+	{
+		try {
+			if (controller.cron === "0 19 * * *") {
+				// 毎日 UTC19:00 - WebSub 再登録
+				const updater = new YouTubeWebSubUpdater(env);
+				await updater.register_websub(env.YOUTUBE_WEBSUB_CALLBACK_URL);
+				console.log("✅ WebSub registration completed (scheduled)");
+
+			}
+			else if (controller.cron === "45 * * * *") {
+				// 毎時45分 - RSS フィード取得
+				const updater = new YouTubeRssFeedUpdater(env);
+				await updater.fetch_new_schedules();
+				console.log("✅ RSS feed fetch completed (scheduled)");
+			}
+			else {
+				// その他（デフォルト） - スケジュール更新
+				const updater = new YouTubeScheduleUpdater(env);
+				await updater.updateSchedules();
+				console.log("✅ Schedule update completed (scheduled)");
+			}
+		}
+		catch (err) {
+			console.error("❌ Scheduled task failed:", err);
+		}
+	},
+
+	/**
+	 * Queue メッセージ処理
+	 */
+	async queue(batch, env, ctx)
+	{
+		const youtube_websub = new YouTubeWebSub(
+			env.YOUTUBE_WEBSUB_VERIFY_TOKEN,
+			env.YOUTUBE_WEBSUB_SECRETS
+		);
+
+		for (const msg of batch.messages) {
+			console.log(`Processing queue message: ${msg.body}`);
+
+			try {
+				await youtube_websub.register_websub(
+					env.YOUTUBE_WEBSUB_CALLBACK_URL,
+					msg.body
+				);
+				// 成功時は ack
+				msg.ack();
+			}
+			catch (err) {
+				console.error(`Failed to process message ${msg.body}:`, err);
+				// 失敗時は retry
+				msg.retry();
+			}
+		}
+	},
+};

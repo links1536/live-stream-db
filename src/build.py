@@ -24,9 +24,8 @@ def generate_wrangler_toml():
 	
 	# wrangler.tomlの内容
 	content = f"""name = "live-stream-db"
-main = "src/entry.py"
+main = "src/entry.js"
 compatibility_date = "2026-04-09"
-compatibility_flags = ["python_workers"]
 
 # ログ設定
 [observability]
