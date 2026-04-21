@@ -15,7 +15,7 @@ export class VTuberRepository
 	 */
 	async loadMasterDataAsync()
 	{
-		var data = await self.masterStore.get(MASTER_DATA_KEY);
+		const data = await self.masterStore.get(MASTER_DATA_KEY);
 		if (data)
 			return JSON.parse(data);
 		return [];
@@ -26,7 +26,7 @@ export class VTuberRepository
 	 */
 	async loadChannelLastUpdatedAsync()
 	{
-		var data = await self.cacheStore.get(LAST_UPDATED_KEY)
+		const data = await self.cacheStore.get(LAST_UPDATED_KEY)
 		if (data)
 			return JSON.parse(data);
 		return {};

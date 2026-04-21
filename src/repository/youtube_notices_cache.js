@@ -13,7 +13,7 @@ export class YouTubeNoticesCache extends DurableObject
 
 	async getAll(self)
 	{
-		keys_map = await self.ctx.storage.list();
+		const keys_map = await self.ctx.storage.list();
 		return set(keys_map.keys());
 	}
 

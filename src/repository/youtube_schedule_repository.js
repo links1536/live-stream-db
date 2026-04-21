@@ -15,7 +15,7 @@ export class YouTubeScheduleRepository
 	 */
 	async loadSchedulesAsync()
 	{
-		data = await self.cacheStore.get(SCHEDULE_KEY);
+		const data = await self.cacheStore.get(SCHEDULE_KEY);
 		if (data)
 			return JSON.parse(data);
 		return {};
