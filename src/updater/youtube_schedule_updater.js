@@ -40,7 +40,6 @@ export class YouTubeScheduleUpdater
 		const startTime = this.getVideoStartTime(videoData, startTimes);
 		if (!startTime)
 			return true;
-		console.log(`[Cache] ${videoData?.video_id} ${startTime}`)
 		return startTime == null || startLimit <= startTime;
 	}
 
@@ -57,16 +56,12 @@ export class YouTubeScheduleUpdater
 	async saveDataJson(schedules, startTimes, currentDate, startLimit, endLimit)
 	{
 		// 開始時間がある + 表示期間内のものだけ
-		//const validSchedules = [];
-		//for (const [id, video] of Object.entries(schedules)) {
-		//	if (this.isWithinDisplayPeriod(video, startTimes, startLimit, endLimit)) {
-		//		validSchedules.push(video);
-		//	}
-		//}
-		const validSchedules = Object.values(schedules).filter(
-			(video) => this.isWithinDisplayPeriod(video, startTimes, startLimit, endLimit)
-		);
-
+		const validSchedules = [];
+		for (const [id, video] of Object.entries(schedules)) {
+			if (this.isWithinDisplayPeriod(video, startTimes, startLimit, endLimit)) {
+				validSchedules.push(video);
+			}
+		}
 
 		// 開始時間でソート
 		const sortedSchedules = validSchedules.toSorted
