@@ -39,13 +39,17 @@ export class YouTubeScheduleUpdater
 	isWithinCachePeriod(videoData, startTimes, startLimit)
 	{
 		const startTime = this.getVideoStartTime(videoData, startTimes);
+		console.log(`[Cache] ${videoData?.video_id} ${startTime}`)
 		return startTime == null || startLimit <= startTime;
 	}
 
 	isWithinDisplayPeriod(videoData, startTimes, startLimit, endLimit)
 	{
 		const startTime = this.getVideoStartTime(videoData, startTimes);
-		return startTime != null && startLimit <= startTime && startTime <= endLimit;
+		if (!startTime)
+			return false;
+		console.log(`[Display] ${videoData?.video_id} ${startTime}`)
+		return startLimit <= startTime && startTime <= endLimit;
 	}
 
 
