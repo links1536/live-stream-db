@@ -48,7 +48,6 @@ export class YouTubeScheduleUpdater
 		const startTime = this.getVideoStartTime(videoData, startTimes);
 		if (!startTime)
 			return false;
-		console.log(`[Display] ${videoData?.video_id} ${startTime}`)
 		return startLimit <= startTime && startTime <= endLimit;
 	}
 
