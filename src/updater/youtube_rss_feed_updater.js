@@ -1,4 +1,5 @@
-import { YouTubeRSSFetcher } from '../api/youtube_rss_fetcher.js';
+import { YouTubeRSSFetcher } from "../api/youtube_rss_fetcher.js";
+import { VTuberRepository } from "../repository/vtuber_repository.js";
 
 // --- 設定 ---
 const BEFORE_DAYS = 1;

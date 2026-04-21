@@ -4,7 +4,6 @@ import { YouTubeWebSub } from "../api/youtube_websub.js";
 import { VTuberRepository } from "../repository/vtuber_repository.js";
 import { YouTubeNoticesCache } from "../repository/youtube_notices_cache.js";
 
-import { response } from "../httputils.js";
 
 export class YouTubeWebSubUpdater
 {
@@ -26,7 +25,7 @@ export class YouTubeWebSubUpdater
 	 */
 	async registerWebsub(callbackUrl = null)
 	{
-		const vtubers = await this.vtuberRepository.load_master_data_async();
+		const vtubers = await this.vtuberRepository.loadMasterDataAsync();
 
 		const vtuberCount = vtubers.length;
 		let index = 0;
