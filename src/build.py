@@ -16,6 +16,7 @@ def generate_wrangler_toml():
 	kv_cache_id = get_secret("VAR_KV_CACHE_ID")
 	kv_output_id = get_secret("VAR_KV_OUTPUT_ID")
 	yt_register_websub_queue = get_secret("VAR_QUEUE_YOUTUBE_WEBSUB_RESISTER")
+	yr_rss_feed_queue = get_secret("VAR_QUEUE_YOUTUBE_RSS_FEED")
 
 	
 	if not all([kv_master_id, kv_cache_id, kv_output_id]):
@@ -26,6 +27,11 @@ def generate_wrangler_toml():
 	content = f"""name = "live-stream-db"
 main = "src/entry.js"
 compatibility_date = "2026-04-09"
+
+# 変数
+[vars]
+QUEUE_NAME_YOUTUBE_WEBSUB_RESISTER = "{yt_register_websub_queue}"
+QUEUE_NAME_YOUTUBE_RSS_FEED = "{yr_rss_feed_queue}"
 
 # ログ設定
 [observability]
@@ -76,6 +82,17 @@ delivery_delay = 60
 [[queues.consumers]]
 queue = "{yt_register_websub_queue}"
 retry_delay = 300
+
+[[queues.producers]]
+binding = "QUEUE_YOUTUBE_RSS_FEED_TARGET"
+queue = "{yr_rss_feed_queue}"
+delivery_delay = 60
+
+[[queues.consumers]]
+queue = "{yr_rss_feed_queue}"
+retry_delay = 300
+max_batch_size = 10
+
 """
 	
 	# ファイルに書き込み

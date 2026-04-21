@@ -39,7 +39,7 @@ export default {
 		// RSS フィード取得（手動トリガー）
 		if (path === "/youtube-fetch-rss") {
 			const updater = new YouTubeRssFeedUpdater(env);
-			await updater.fetchNewSchedules();
+			await updater.scheduleTrigger();
 			return new Response("RSS feed fetch triggered");
 		}
 
@@ -90,27 +90,43 @@ export default {
 	 */
 	async queue(batch, env, ctx)
 	{
-		const youtube_websub = new YouTubeWebSub(
-			env.YOUTUBE_WEBSUB_VERIFY_TOKEN,
-			env.YOUTUBE_WEBSUB_SECRETS
-		);
-
-		for (const msg of batch.messages) {
-			console.log(`Processing queue message: ${msg.body}`);
-
-			try {
-				await youtube_websub.registerWebSub(
-					env.YOUTUBE_WEBSUB_CALLBACK_URL,
-					msg.body
+		switch (batch.queue) {
+			case env.QUEUE_NAME_YOUTUBE_WEBSUB_RESISTER:
+				const youtube_websub = new YouTubeWebSub(
+					env.YOUTUBE_WEBSUB_VERIFY_TOKEN,
+					env.YOUTUBE_WEBSUB_SECRETS
 				);
-				// 成功時は ack
-				msg.ack();
-			}
-			catch (err) {
-				console.error(`Failed to process message ${msg.body}:`, err);
-				// 失敗時は retry
-				msg.retry();
-			}
+				for (const msg of batch.messages) {
+					console.log(`Processing queue message: ${msg.body}`);
+					
+					try {
+						await youtube_websub.registerWebSub(
+							env.YOUTUBE_WEBSUB_CALLBACK_URL,
+							msg.body
+						);
+						// 成功時は ack
+						msg.ack();
+					}
+					catch (err) {
+						console.error(`Failed to process message ${msg.body}:`, err);
+						// 失敗時は retry
+						msg.retry();
+					}
+				}
+				break;
+			case env.QUEUE_NAME_YOUTUBE_RSS_FEED:
+				const rssUpdater = new YouTubeRssFeedUpdater(env);
+
+				var channelIds = [];
+				for (const msg of batch.messages) {
+					channelIds.push(msg.body);
+					msg.ack();
+				}
+
+				await rssUpdater.fetchNewSchedulesByTargets(channelIds);
+				break;
+			default:
+				console.error(`Unknown queue: ${batch.queue}`);
 		}
 	},
 };
