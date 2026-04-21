@@ -90,6 +90,8 @@ export default {
 	 */
 	async queue(batch, env, ctx)
 	{
+		console.log(`Processing queue: ${batch.queue}`);
+
 		switch (batch.queue) {
 			case env.QUEUE_NAME_YOUTUBE_WEBSUB_RESISTER:
 				const youtube_websub = new YouTubeWebSub(

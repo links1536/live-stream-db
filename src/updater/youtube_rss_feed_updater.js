@@ -13,7 +13,7 @@ export class YouTubeRssFeedUpdater {
 	{
 		// リポジトリクラスもJS版に移植されている前提です
 		this.vtuberRepository = new VTuberRepository(env.KV_MASTER, env.KV_CACHE);
-		this.rssFeedTargetQueue = env.QUEUE_YOUTUBE_RSS_FEED_TARGET
+		this.rssFeedTargetQueue = env.QUEUE_YOUTUBE_RSS_FEED_TARGET;
 
 		// Durable Object のバインディング
 		// env.YOUTUBE_NOTICES_CACHE は Durable Object Namespace
@@ -32,7 +32,7 @@ export class YouTubeRssFeedUpdater {
 			for (const channelId of channelIds) {
 				if (!channelId)
 					continue;
-				this.rssFeedTargetQueue.send(channelId);
+				await this.rssFeedTargetQueue.send(channelId);
 				console.log(`${streamerName} / ${channelId}: enqueue`);
 			}
 		}
