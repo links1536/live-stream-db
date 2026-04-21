@@ -4,7 +4,7 @@ import { YouTubeWebSub } from "../api/youtube_websub.js";
 import { VTuberRepository } from "../repository/vtuber_repository.js";
 import { YouTubeNoticesCache } from "../repository/youtube_notices_cache.js";
 
-import { response } from "../http.js";
+import { response } from "../httputils.js";
 
 export class YouTubeWebSubUpdater
 {
@@ -24,7 +24,7 @@ export class YouTubeWebSubUpdater
 	/**
 	 * WebSub を登録する（Queue にチャンネルIDを送信）
 	 */
-	async register_websub(callbackUrl = null)
+	async registerWebsub(callbackUrl = null)
 	{
 		const vtubers = await this.vtuberRepository.load_master_data_async();
 
@@ -58,7 +58,7 @@ export class YouTubeWebSubUpdater
 	/**
 	 * YouTube からの WebSub (PubSubHubbub) 通知を処理する
 	 */
-	async handle_youtube_webhook(request)
+	async handleYoutubeWebhook(request)
 	{
 		// GET リクエスト（検証用）
 		if (request.method === "GET") {

@@ -1,4 +1,4 @@
-import { HttpUtils } from "../httputils";
+import { HttpUtils } from "../httputils.js";
 
 export class YouTubeDataAPI
 {

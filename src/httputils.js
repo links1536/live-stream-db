@@ -1,4 +1,4 @@
-// http.js
+// httputils.js
 
 export class HttpUtils
 {
