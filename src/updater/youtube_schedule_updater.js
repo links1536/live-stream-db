@@ -52,7 +52,7 @@ export class YouTubeScheduleUpdater
 	isExpiredCache(videoData, startTimes, startLimit)
 	{
 		const startTime = this.getVideoStartTime(videoData, startTimes);
-		return !startTime || startTime <= startLimit;
+		return startTime && startTime < startLimit;
 	}
 
 	isWithinDisplayPeriod(videoData, startTimes, startLimit, endLimit)
@@ -118,14 +118,6 @@ export class YouTubeScheduleUpdater
 			delete totalSchedules[rid];
 		});
 
-		// 単体IDキャッシュのクリーンアップ
-		const responseKeys = new Set(Object.keys(response));
-		const removedSet = new Set(removedIds);
-		const deleteSingleVideoIds = (singleVideoIds || []).filter(
-			(id) => removedSet.has(id) || responseKeys.has(id)
-		);
-		await this.youtubeNoticesCache.deleteListAsync(deleteSingleVideoIds);
-
 		// 最新データで上書き
 		Object.assign(totalSchedules, response);
 
@@ -148,5 +140,13 @@ export class YouTubeScheduleUpdater
 
 		// 公開用 JSON 生成
 		await this.saveDataJson(newSchedules, startTimes, currentDate, startLimit, endLimit);
+
+		// 単体IDキャッシュのクリーンアップ
+		const responseKeys = new Set(Object.keys(response));
+		const removedSet = new Set(removedIds);
+		const deleteSingleVideoIds = (singleVideoIds || []).filter(
+			(id) => removedSet.has(id) || responseKeys.has(id)
+		);
+		//await this.youtubeNoticesCache.deleteListAsync(deleteSingleVideoIds);
 	}
 }
