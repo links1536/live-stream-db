@@ -70,7 +70,7 @@ export default {
 			else if (controller.cron === "45 * * * *") {
 				// 毎時45分 - RSS フィード取得
 				const updater = new YouTubeRssFeedUpdater(env);
-				await updater.fetchNewSchedules();
+				await updater.scheduleTrigger();
 				console.log("✅ RSS feed fetch completed (scheduled)");
 			}
 			else {
