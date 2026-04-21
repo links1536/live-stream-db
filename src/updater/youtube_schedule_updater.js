@@ -40,7 +40,7 @@ export class YouTubeScheduleUpdater
 		const startTime = this.getVideoStartTime(videoData, startTimes);
 		if (!startTime)
 			return true;
-		return startTime == null || startLimit <= startTime;
+		return startLimit <= startTime;
 	}
 
 	isWithinDisplayPeriod(videoData, startTimes, startLimit, endLimit)
@@ -123,7 +123,7 @@ export class YouTubeScheduleUpdater
 		// 期間外（古すぎる）データを削除 → 残すのは startLimit 以降のもの
 		const newSchedules = {};
 		for (const [id, video] of Object.entries(totalSchedules)) {
-			if (!this.isWithinCachePeriod(video, startTimes, startLimit)) {
+			if (this.isWithinCachePeriod(video, startTimes, startLimit)) {
 				newSchedules[id] = video;
 			}
 		}
