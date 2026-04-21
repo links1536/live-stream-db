@@ -12,7 +12,7 @@ export class YouTubeNoticesCache extends DurableObject
 	
 	async add(self, video_id)
 	{
-		await self.ctx.storage.put(video_id, True)
+		await self.ctx.storage.put(video_id, True);
 	}
 
 	async get_all(self)
@@ -25,7 +25,7 @@ export class YouTubeNoticesCache extends DurableObject
 	{
 		if (video_ids) {
 			for (const video_id in video_ids){
-				await self.ctx.storage.delete(video_id)
+				await self.ctx.storage.delete(video_id);
 			}
 		}
 	}
