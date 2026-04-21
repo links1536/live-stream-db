@@ -15,7 +15,7 @@ def generate_wrangler_toml():
 	kv_master_id = get_secret("VAR_KV_MASTER_ID")
 	kv_cache_id = get_secret("VAR_KV_CACHE_ID")
 	kv_output_id = get_secret("VAR_KV_OUTPUT_ID")
-	yt_register_websub_queue = get_secret("VAR_YT_REGISTER_WEBSUB_QUEUE")
+	yt_register_websub_queue = get_secret("VAR_QUEUE_YOUTUBE_WEBSUB_RESISTER")
 
 	
 	if not all([kv_master_id, kv_cache_id, kv_output_id]):
@@ -69,7 +69,7 @@ binding = "KV_OUTPUT"
 id = "{kv_output_id}"
 
 [[queues.producers]]
-binding = "RESISTER_YOUTUBE_WEBHOOK_IDS"
+binding = "QUEUE_YOUTUBE_WEBHOOK_RESISTER"
 queue = "{yt_register_websub_queue}"
 delivery_delay = 60
 

@@ -13,7 +13,7 @@ export class YouTubeWebSubUpdater
 			env.YOUTUBE_WEBSUB_VERIFY_TOKEN,
 			env.YOUTUBE_WEBSUB_SECRETS
 		);
-		this.youtubeWebsubQueue = env.RESISTER_YOUTUBE_WEBHOOK_IDS;
+		this.youtubeWebsubQueue = env.QUEUE_YOUTUBE_WEBHOOK_RESISTER;
 
 		const doId = env.YOUTUBE_NOTICES_CACHE.idFromName("rss-key-cache");
 		this.youtubeNoticesCache = env.YOUTUBE_NOTICES_CACHE.get(doId);
