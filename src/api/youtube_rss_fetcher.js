@@ -1,6 +1,6 @@
 import { HttpUtils } from "../httputils.js";
 
-class YouTubeRSSFetcher
+export class YouTubeRSSFetcher
 {
 	/**
 	 * YouTube RSSから動画情報を取得するクラス
