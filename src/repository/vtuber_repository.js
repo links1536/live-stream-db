@@ -6,8 +6,8 @@ export class VTuberRepository
 {
 	constructor(kv_master, kv_cache)
 	{
-		self.masterStore = kv_master;
-		self.cacheStore = kv_cache;
+		this.masterStore = kv_master;
+		this.cacheStore = kv_cache;
 	}
 
 	/**
@@ -15,7 +15,7 @@ export class VTuberRepository
 	 */
 	async loadMasterDataAsync()
 	{
-		const data = await self.masterStore.get(MASTER_DATA_KEY);
+		const data = await this.masterStore.get(MASTER_DATA_KEY);
 		if (data)
 			return JSON.parse(data);
 		return [];
@@ -26,7 +26,7 @@ export class VTuberRepository
 	 */
 	async loadChannelLastUpdatedAsync()
 	{
-		const data = await self.cacheStore.get(LAST_UPDATED_KEY)
+		const data = await this.cacheStore.get(LAST_UPDATED_KEY)
 		if (data)
 			return JSON.parse(data);
 		return {};
@@ -37,6 +37,6 @@ export class VTuberRepository
 	 */
 	async saveChannelLastUpdatedAsync(last_updated)
 	{
-		await self.cacheStore.put(LAST_UPDATED_KEY, JSON.stringify(last_updated))
+		await this.cacheStore.put(LAST_UPDATED_KEY, JSON.stringify(last_updated))
 	}
 }

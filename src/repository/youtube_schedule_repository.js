@@ -7,7 +7,7 @@ export class YouTubeScheduleRepository
 {
 	constructor(kv_cache)
 	{
-		self.cacheStore = kv_cache;
+		this.cacheStore = kv_cache;
 	}
 
 	/**
@@ -15,7 +15,7 @@ export class YouTubeScheduleRepository
 	 */
 	async loadSchedulesAsync()
 	{
-		const data = await self.cacheStore.get(SCHEDULE_KEY);
+		const data = await this.cacheStore.get(SCHEDULE_KEY);
 		if (data)
 			return JSON.parse(data);
 		return {};
@@ -26,6 +26,6 @@ export class YouTubeScheduleRepository
 	 */
 	async saveSchedulesAsync( schedules)
 	{
-		await self.cacheStore.put(SCHEDULE_KEY, JSON.stringify(schedules));
+		await this.cacheStore.put(SCHEDULE_KEY, JSON.stringify(schedules));
 	}
 }
