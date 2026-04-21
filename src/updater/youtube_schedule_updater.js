@@ -1,5 +1,10 @@
 // youtube_schedule_updater.js
 
+import { YouTubeScheduleRepository } from "../repository/youtube_schedule_repository.js";
+import { VTuberRepository } from "../repository/vtuber_repository.js";
+import { YouTubeDataAPI } from "../api/youtube_data_api.js";
+
+// --- 設定 ---
 const BEFORE_DAYS = 1;
 const AFTER_DAYS = 7;
 const OUTPUT_KEY = "lives.json";

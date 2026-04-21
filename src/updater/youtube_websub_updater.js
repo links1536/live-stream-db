@@ -2,8 +2,6 @@
 
 import { YouTubeWebSub } from "../api/youtube_websub.js";
 import { VTuberRepository } from "../repository/vtuber_repository.js";
-import { YouTubeNoticesCache } from "../repository/youtube_notices_cache.js";
-
 
 export class YouTubeWebSubUpdater
 {
