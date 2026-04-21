@@ -2,6 +2,7 @@ import json
 
 # --- 設定定数 ---
 SCHEDULE_KEY = "status.json"
+ENSURE_ASCIi = False
 
 class YouTubeScheduleRepository:
 	"""YouTube Data APIを利用するクラス"""
@@ -18,4 +19,4 @@ class YouTubeScheduleRepository:
 
 	async def save_schedules_async(self, schedules):
 		"""KVにキャッシュを保存する"""
-		await self.cache_store.put(SCHEDULE_KEY, json.dumps(schedules, ensure_ascii=True))
+		await self.cache_store.put(SCHEDULE_KEY, json.dumps(schedules, ensure_ascii=ENSURE_ASCIi))

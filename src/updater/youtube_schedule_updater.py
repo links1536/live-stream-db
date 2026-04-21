@@ -69,7 +69,7 @@ class YouTubeScheduleUpdater:
 			"updated_at": current_date.isoformat(),
 			"all_schedules": sorted_schedules
 		}
-		await self.lives_json_store.put(OUTPUT_KEY, json.dumps(public_data, ensure_ascii=True))
+		await self.lives_json_store.put(OUTPUT_KEY, json.dumps(public_data, ensure_ascii=ENSURE_ASCIi))
 		print(f"Generated {OUTPUT_KEY} ({len(valid_schedules)} streams)")
 
 	async def update_schedules(self):
