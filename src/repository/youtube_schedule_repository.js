@@ -30,5 +30,6 @@ export class YouTubeScheduleRepository
 	async saveSchedulesAsync(schedules)
 	{
 		await this.cacheStore.put(SCHEDULE_KEY, JSON.stringify(schedules));
+		console.log(`${SCHEDULE_KEY} updated (${Object.keys(schedules).length} items)`);
 	}
 }
