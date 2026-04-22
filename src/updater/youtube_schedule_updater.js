@@ -63,7 +63,7 @@ export class YouTubeScheduleUpdater
 		}
 
 		const publicData = {
-			updated_at: currentDate.toISOString(),
+			updated_at: new Date(currentDate).toISOString(),
 			all_schedules: validSchedules,
 		};
 
