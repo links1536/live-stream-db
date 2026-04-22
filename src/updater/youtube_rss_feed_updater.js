@@ -98,7 +98,11 @@ export class YouTubeRssFeedUpdater {
 		const vtubers = await this.vtuberRepository.loadMasterDataAsync();
 		const lastUpdated = await this.vtuberRepository.loadChannelLastUpdatedAsync();
 
-		const currentDate = new Date();
+		const now = new Date();
+		const currentDate = now.getTime();
+		const currentDateISO = now.toISOString();
+		const msPerDay = 86400000; // 24 * 60 * 60 * 1000
+		const limitDate = currentDate - BEFORE_DAYS * msPerDay;
 		const rssFetcher = new YouTubeRSSFetcher();
 
 		for (const vtuber of vtubers) {
@@ -111,7 +115,7 @@ export class YouTubeRssFeedUpdater {
 
 				// 前回の更新日時を取得 (デフォルトは1970年)
 				const lastUpdatedStr = lastUpdated[channelId] || "1970-01-01T00:00:00Z";
-				const lastUpdatedDate = new Date(lastUpdatedStr);
+				const lastUpdatedDate = Date.parse(lastUpdatedStr);
 
 				// 15分以内の再取得はスキップ (15 * 60 * 1000 ms)
 				if (currentDate.getTime() - lastUpdatedDate.getTime() < 15 * 60 * 1000) {
@@ -125,16 +129,15 @@ export class YouTubeRssFeedUpdater {
 
 				for (const video of videos) {
 					const videoId = video.video_id;
-					const updatedDate = new Date(video.updated);
+					const updatedDate = Date.parse(video.updated);
 
 					// BEFORE_DAYS(1日)より古い動画はスキップ
-					const limitDate = new Date(currentDate.getTime() - BEFORE_DAYS * 24 * 60 * 60 * 1000);
 					if (updatedDate < limitDate) {
 						continue;
 					}
 
 					// 前回更新日時(lastUpdatedDate)以下のものは飛ばす
-					if (updatedDate.getTime() <= lastUpdatedDate.getTime()) {
+					if (updatedDate <= lastUpdatedDate) {
 						continue;
 					}
 
@@ -144,7 +147,7 @@ export class YouTubeRssFeedUpdater {
 				}
 
 				// チャンネルごとの最終更新日時を記録
-				lastUpdated[channelId] = currentDate.toISOString();
+				lastUpdated[channelId] = currentDateISO;
 			}
 		}
 

@@ -106,7 +106,7 @@ export class YouTubeDataAPI
 
 					if (startTimeStr) {
 						// JSのDateオブジェクトはISO 8601形式をそのままパース可能
-						startTimes[videoId] = new Date(startTimeStr);
+						startTimes[videoId] = Date.parse(startTimeStr);
 					}
 
 					// 実開始・終了時間をもとにステータスを判定

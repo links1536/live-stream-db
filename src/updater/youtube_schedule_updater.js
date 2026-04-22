@@ -109,10 +109,10 @@ export class YouTubeScheduleUpdater
 		Object.assign(totalSchedules, response);
 
 		// 期間外クリーンアップ用の現在時刻
-		const currentDate = new Date();
+		const currentDate = new Date().getTime();
 		const msPerDay = 86400000; // 24 * 60 * 60 * 1000
-		const startLimit = currentDate.getTime() - BEFORE_DAYS * msPerDay;
-		const endLimit = currentDate.getTime() + AFTER_DAYS * msPerDay;
+		const startLimit = (currentDate - BEFORE_DAYS * msPerDay);
+		const endLimit = (currentDate + AFTER_DAYS * msPerDay);
 
 		// 期間外（古すぎる）データを削除 → 残すのは startLimit 以降のもの
 		const newSchedules = {};
