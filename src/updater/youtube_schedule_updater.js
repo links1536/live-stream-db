@@ -62,14 +62,9 @@ export class YouTubeScheduleUpdater
 			}
 		}
 
-		// 開始時間でソート
-		const sortedSchedules = validSchedules.toSorted
-			? validSchedules.toSorted((a, b) => new Date(a.start_time_iso) - new Date(b.start_time_iso))
-			: [...validSchedules].sort((a, b) => new Date(a.start_time_iso) - new Date(b.start_time_iso));
-
 		const publicData = {
 			updated_at: currentDate.toISOString(),
-			all_schedules: sortedSchedules,
+			all_schedules: validSchedules,
 		};
 
 		await this.livesJsonStore.put(OUTPUT_KEY, JSON.stringify(publicData));
