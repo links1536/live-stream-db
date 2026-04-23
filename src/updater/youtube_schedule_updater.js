@@ -23,45 +23,8 @@ export class YouTubeScheduleUpdater
 		this.livesJsonStore = env.KV_OUTPUT;
 	}
 
-	/**
-	 * start_times から開始時刻（ms timestamp）を取得
-	 * Python の get_video_start_time と同等
-	 */
-	getVideoStartTime(videoData, startTimes)
+	async saveDataJson(validSchedules, currentDate)
 	{
-		const videoId = videoData?.video_id;
-		if (!videoId)
-			return null;
-		return startTimes?.[videoId];
-	}
-
-	isWithinCachePeriod(videoData, startTimes, startLimit)
-	{
-		const startTime = this.getVideoStartTime(videoData, startTimes);
-		if (!startTime)
-			return true;
-		return startLimit <= startTime;
-	}
-
-	isWithinDisplayPeriod(videoData, startTimes, startLimit, endLimit)
-	{
-		const startTime = this.getVideoStartTime(videoData, startTimes);
-		if (!startTime)
-			return false;
-		return startLimit <= startTime && startTime <= endLimit;
-	}
-
-
-	async saveDataJson(schedules, startTimes, currentDate, startLimit, endLimit)
-	{
-		// 開始時間がある + 表示期間内のものだけ
-		const validSchedules = [];
-		for (const [id, video] of Object.entries(schedules)) {
-			if (this.isWithinDisplayPeriod(video, startTimes, startLimit, endLimit)) {
-				validSchedules.push(video);
-			}
-		}
-
 		const publicData = {
 			updated_at: new Date(currentDate).toISOString(),
 			all_schedules: validSchedules,
@@ -125,9 +88,20 @@ export class YouTubeScheduleUpdater
 
 		// 期間外（古すぎる）データを削除 → 残すのは startLimit 以降のもの
 		const newSchedules = {};
-		for (const [id, video] of Object.entries(totalSchedules)) {
-			if (this.isWithinCachePeriod(video, startTimes, startLimit)) {
+		const validSchedules = [];
+		for (const id in totalSchedules) {
+			const video = totalSchedules[id];
+			const startTime = startTimes[id];
+
+			// startTime がない場合は残す
+			// ある場合は startLimit 以上なら残す
+			if (!startTime || startTime >= startLimit) {
 				newSchedules[id] = video;
+				
+				// 表示期間内（未来＋直近の過去）か判定
+				if (startTime && startTime <= endLimit) {
+					validSchedules.push(video);
+				}
 			}
 		}
 
@@ -138,7 +112,7 @@ export class YouTubeScheduleUpdater
 
 		// 公開用 JSON 生成
 		const startSaveJson = performance.now();
-		await this.saveDataJson(newSchedules, startTimes, currentDate, startLimit, endLimit);
+		await this.saveDataJson(validSchedules, currentDate);
 		console.log(`[PERF] saveDataJson took ${(performance.now() - startSaveJson).toFixed(2)}ms`);
 
 		// 処理が成功したので、単体IDキャッシュを削除する
