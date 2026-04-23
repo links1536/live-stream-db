@@ -54,7 +54,10 @@ export class YouTubeScheduleUpdater
 		console.log(`[PERF] loadSchedulesAsync IO wait: ${waitLoadCache.toFixed(2)}ms`);
 
 		// リクエスト対象ID
-		let requestIds = new Set(Object.keys(totalSchedules));
+		const requestIds = new Set();
+		for (const id in totalSchedules) {
+			requestIds.add(id);
+		}
 
 		// 単体IDキャッシュ
 		const startNotices = performance.now();
@@ -65,7 +68,9 @@ export class YouTubeScheduleUpdater
 		console.log(`Single Count: ${singleVideoIds?.length || 0}`);
 
 		if (singleVideoIds?.length) {
-			singleVideoIds.forEach((id) => requestIds.add(id));
+			for (const id of singleVideoIds) {
+				requestIds.add(id);
+			}
 		}
 
 		// YouTube Data API 呼び出し
@@ -80,9 +85,9 @@ export class YouTubeScheduleUpdater
 		totalIoWait += apiIoWait;
 
 		// 削除されたデータをキャッシュから除外
-		removedIds.forEach((rid) => {
+		for (const rid of removedIds) {
 			delete totalSchedules[rid];
-		});
+		}
 
 		// 最新データで上書き
 		Object.assign(totalSchedules, response);
