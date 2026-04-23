@@ -36,12 +36,14 @@ export class YouTubeDataAPI
 	 */
 	async getVideoInfosAsync(targetIds, vtubers)
 	{
+		const startTotal = performance.now();
 		if (!this.apiKey) {
 			console.error("[ERROR] YouTube APIキーが設定されていません");
 			return [{}, {}, new Set()];
 		}
 
 		// vtuberMapをシンプルに構築（重複処理を最小化）
+		const startMap = performance.now();
 		const vtuberMap = {};
 		for (const vtuber of vtubers) {
 			for (const channelId of (vtuber.YouTubeID || [])) {
@@ -50,6 +52,7 @@ export class YouTubeDataAPI
 				}
 			}
 		}
+		console.log(`[PERF] getVideoInfosAsync: vtuberMap build took ${(performance.now() - startMap).toFixed(2)}ms`);
 
 		const chunkSize = 50;
 		const videos = {};
@@ -62,16 +65,21 @@ export class YouTubeDataAPI
 				const ids = chunk.join(",");
 				const requestUrl = `${this.youtubeUrl}?key=${this.apiKey}&part=snippet,liveStreamingDetails&id=${ids}&maxResults=${chunkSize}`;
 
+				const startFetch = performance.now();
 				const response = await HttpUtils.get(requestUrl);
+				console.log(`[PERF] getVideoInfosAsync: fetch chunk ${i/chunkSize + 1} took ${(performance.now() - startFetch).toFixed(2)}ms`);
 				if (!response.ok) {
 					//エラーがあって処理できなかったIDはなにもしない
 					console.error(`API Error: ${response.status}`);
 					continue;
 				}
 
+				const startJson = performance.now();
 				const data = await response.json();
+				console.log(`[PERF] getVideoInfosAsync: response.json() chunk ${i/chunkSize + 1} took ${(performance.now() - startJson).toFixed(2)}ms`);
 				const foundIds = new Set();
 
+				const startProcess = performance.now();
 				for (const item of (data.items || [])) {
 					const videoId = item.id;
 					foundIds.add(videoId);
@@ -120,6 +128,7 @@ export class YouTubeDataAPI
 						removedIds.add(videoId);
 					}
 				}
+				console.log(`[PERF] getVideoInfosAsync: processing chunk ${i/chunkSize + 1} took ${(performance.now() - startProcess).toFixed(2)}ms`);
 
 			}
 			catch (e) {
@@ -129,6 +138,7 @@ export class YouTubeDataAPI
 			}
 		}
 
+		console.log(`[PERF] getVideoInfosAsync: TOTAL took ${(performance.now() - startTotal).toFixed(2)}ms`);
 		return [videos, startTimes, removedIds];
 	}
 }

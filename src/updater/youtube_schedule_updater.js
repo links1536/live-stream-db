@@ -73,17 +73,24 @@ export class YouTubeScheduleUpdater
 
 	async updateSchedules()
 	{
+		const startTotal = performance.now();
 		// マスター読み込み
+		const startMaster = performance.now();
 		const vtubers = await this.vtuberRepository.loadMasterDataAsync();
+		console.log(`[PERF] loadMasterDataAsync took ${(performance.now() - startMaster).toFixed(2)}ms`);
 
 		// キャッシュ読み込み
+		const startLoadCache = performance.now();
 		let totalSchedules = (await this.youtubeRepository.loadSchedulesAsync()) || {};
+		console.log(`[PERF] loadSchedulesAsync took ${(performance.now() - startLoadCache).toFixed(2)}ms`);
 
 		// リクエスト対象ID
 		let requestIds = new Set(Object.keys(totalSchedules));
 
 		// 単体IDキャッシュ
+		const startNotices = performance.now();
 		const singleVideoIds = await this.youtubeNoticesCache.getAll();
+		console.log(`[PERF] youtubeNoticesCache.getAll took ${(performance.now() - startNotices).toFixed(2)}ms`);
 		console.log(`Single Count: ${singleVideoIds?.length || 0}`);
 
 		if (singleVideoIds?.length) {
@@ -91,10 +98,12 @@ export class YouTubeScheduleUpdater
 		}
 
 		// YouTube Data API 呼び出し
+		const startApi = performance.now();
 		const apiResult = await this.youtubeDataApi.getVideoInfosAsync(
 			Array.from(requestIds),
 			vtubers
 		);
+		console.log(`[PERF] getVideoInfosAsync took ${(performance.now() - startApi).toFixed(2)}ms`);
 
 		const { response = {}, startTimes = {}, removedIds = [] } = Array.isArray(apiResult)
 			? { response: apiResult[0] || {}, startTimes: apiResult[1] || {}, removedIds: apiResult[2] || [] }
@@ -123,17 +132,24 @@ export class YouTubeScheduleUpdater
 		}
 
 		// キャッシュ保存
+		const startSaveCache = performance.now();
 		await this.youtubeRepository.saveSchedulesAsync(newSchedules);
+		console.log(`[PERF] saveSchedulesAsync took ${(performance.now() - startSaveCache).toFixed(2)}ms`);
 
 		// 公開用 JSON 生成
+		const startSaveJson = performance.now();
 		await this.saveDataJson(newSchedules, startTimes, currentDate, startLimit, endLimit);
+		console.log(`[PERF] saveDataJson took ${(performance.now() - startSaveJson).toFixed(2)}ms`);
 
 		// 処理が成功したので、単体IDキャッシュを削除する
+		const startDeleteNotices = performance.now();
 		const responseKeys = new Set(Object.keys(response));
 		const removedSet = new Set(removedIds);
 		const deleteSingleVideoIds = (singleVideoIds || []).filter(
 			(id) => removedSet.has(id) || responseKeys.has(id)
 		);
 		await this.youtubeNoticesCache.deleteListAsync(deleteSingleVideoIds);
+		console.log(`[PERF] deleteListAsync took ${(performance.now() - startDeleteNotices).toFixed(2)}ms`);
+		console.log(`[PERF] updateSchedules TOTAL took ${(performance.now() - startTotal).toFixed(2)}ms`);
 	}
 }
