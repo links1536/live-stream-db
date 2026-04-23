@@ -133,12 +133,18 @@ export class YouTubeScheduleUpdater
 
 		// 処理が成功したので、単体IDキャッシュを削除する
 		const startDeleteNotices = performance.now();
-		const responseKeys = new Set(Object.keys(response));
-		const removedSet = new Set(removedIds);
-		const deleteSingleVideoIds = (singleVideoIds || []).filter(
-			(id) => removedSet.has(id) || responseKeys.has(id)
-		);
-		await this.youtubeNoticesCache.deleteListAsync(deleteSingleVideoIds);
+		const deleteSingleVideoIds = [];
+		if (singleVideoIds?.length) {
+			for (const id of singleVideoIds) {
+				if (removedIds.has(id) || (id in response)) {
+					deleteSingleVideoIds.push(id);
+				}
+			}
+		}
+
+		if (deleteSingleVideoIds.length > 0) {
+			await this.youtubeNoticesCache.deleteListAsync(deleteSingleVideoIds);
+		}
 		const waitDeleteNotices = performance.now() - startDeleteNotices;
 		totalIoWait += waitDeleteNotices;
 		console.log(`[PERF] deleteListAsync IO wait: ${waitDeleteNotices.toFixed(2)}ms`);
