@@ -88,7 +88,8 @@ export class YouTubeDataAPI
 				const foundIds = new Set();
 				const startProcess = performance.now();
 
-				for (const item of (data.items || [])) {
+				const items = data.items || [];
+				for (const item of items) {
 					const videoId = item.id;
 					foundIds.add(videoId);
 					
@@ -100,8 +101,7 @@ export class YouTubeDataAPI
 					}
 
 					const snippet = item.snippet;
-					const channelId = snippet.channelId;
-					const vtuber = vtuberMap[channelId];
+					const vtuber = vtuberMap[snippet.channelId];
 
 					if (!vtuber) {
 						removedIds.add(videoId);
