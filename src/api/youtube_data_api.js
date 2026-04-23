@@ -20,14 +20,14 @@ export class YouTubeDataAPI
 			return "";
 		}
 
-		const priority = ["maxres", "standard", "high", "medium", "default"];
+		//const priority = ["maxres", "standard", "high", "medium", "default"];
+		const priority = ["standard", "high", "medium", "default"];
 		for (const key of priority) {
 			const thumb = thumbnails[key];
-			if (thumb) {
-				return thumb.url || "";
+			if (thumb?.url) {
+				return thumb.url;
 			}
 		}
-
 		return "";
 	}
 
@@ -41,10 +41,10 @@ export class YouTubeDataAPI
 			return [{}, {}, new Set()];
 		}
 
+		// vtuberMapをシンプルに構築（重複処理を最小化）
 		const vtuberMap = {};
 		for (const vtuber of vtubers) {
-			const channelIds = vtuber.YouTubeID || [];
-			for (const channelId of channelIds) {
+			for (const channelId of (vtuber.YouTubeID || [])) {
 				if (channelId) {
 					vtuberMap[channelId] = vtuber;
 				}
@@ -64,19 +64,20 @@ export class YouTubeDataAPI
 
 				const response = await HttpUtils.get(requestUrl);
 				if (!response.ok) {
+					//エラーがあって処理できなかったIDはなにもしない
 					console.error(`API Error: ${response.status}`);
-					break;
+					continue;
 				}
 
 				const data = await response.json();
 				const foundIds = new Set();
 
-				for (const item of data.items || []) {
+				for (const item of (data.items || [])) {
 					const videoId = item.id;
 					foundIds.add(videoId);
-					const live = item.liveStreamingDetails;
-
+					
 					// 配信情報がない場合は対象外
+					const live = item.liveStreamingDetails;
 					if (!live) {
 						removedIds.add(videoId);
 						continue;
@@ -93,6 +94,7 @@ export class YouTubeDataAPI
 
 					const startTimeStr = live.scheduledStartTime || live.actualStartTime;
 
+					// オブジェクト作成を1回にまとめて最小化
 					videos[videoId] = {
 						streamer_name: vtuber.Name,
 						color: vtuber.Color,
@@ -101,23 +103,14 @@ export class YouTubeDataAPI
 						video_id: videoId,
 						title: snippet.title,
 						thumbnail: this.getThumbnail(snippet.thumbnails),
-						start_time_iso: startTimeStr
+						start_time_iso: startTimeStr,
+						status: live.actualEndTime ? "archived" :
+								live.actualStartTime ? "live" : "upcoming"
 					};
 
 					if (startTimeStr) {
 						// JSのDateオブジェクトはISO 8601形式をそのままパース可能
 						startTimes[videoId] = Date.parse(startTimeStr);
-					}
-
-					// 実開始・終了時間をもとにステータスを判定
-					if (live.actualEndTime) {
-						videos[videoId].status = "archived";
-					}
-					else if (live.actualStartTime) {
-						videos[videoId].status = "live";
-					}
-					else {
-						videos[videoId].status = "upcoming";
 					}
 				}
 
@@ -130,6 +123,7 @@ export class YouTubeDataAPI
 
 			}
 			catch (e) {
+				//エラーがあって処理できなかったIDはなにもしない
 				console.error(`API Error: ${e.message}`);
 				continue;
 			}
