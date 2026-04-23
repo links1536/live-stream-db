@@ -12,26 +12,6 @@ export class YouTubeDataAPI
 	}
 
 	/**
-	 * サムネイルURLを取得
-	 */
-	getThumbnail(thumbnails)
-	{
-		if (!thumbnails) {
-			return "";
-		}
-
-		//const priority = ["maxres", "standard", "high", "medium", "default"];
-		const priority = ["standard", "high", "medium", "default"];
-		for (const key of priority) {
-			const thumb = thumbnails[key];
-			if (thumb?.url) {
-				return thumb.url;
-			}
-		}
-		return "";
-	}
-
-	/**
 	 * ステータス更新メインロジック
 	 */
 	async getVideoInfosAsync(targetIds, vtubers)
@@ -110,6 +90,10 @@ export class YouTubeDataAPI
 
 					const startTimeStr = live.scheduledStartTime || live.actualStartTime;
 
+					// サムネイル選択をインライン化
+					const thumbnails = snippet.thumbnails;
+					const thumb = thumbnails ? (thumbnails.standard || thumbnails.high || thumbnails.medium || thumbnails.default) : null;
+
 					// オブジェクト作成を1回にまとめて最小化
 					videos[videoId] = {
 						streamer_name: vtuber.Name,
@@ -118,7 +102,7 @@ export class YouTubeDataAPI
 						tags: vtuber.Tags,
 						video_id: videoId,
 						title: snippet.title,
-						thumbnail: this.getThumbnail(snippet.thumbnails),
+						thumbnail: thumb ? thumb.url : "",
 						start_time_iso: startTimeStr,
 						status: live.actualEndTime ? "archived" :
 								live.actualStartTime ? "live" : "upcoming"
