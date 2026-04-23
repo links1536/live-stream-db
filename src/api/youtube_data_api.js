@@ -37,9 +37,11 @@ export class YouTubeDataAPI
 	async getVideoInfosAsync(targetIds, vtubers)
 	{
 		const startTotal = performance.now();
+		let totalIoWait = 0;
+
 		if (!this.apiKey) {
 			console.error("[ERROR] YouTube APIキーが設定されていません");
-			return [{}, {}, new Set()];
+			return [{}, {}, new Set(), 0];
 		}
 
 		// vtuberMapをシンプルに構築（重複処理を最小化）
@@ -67,7 +69,10 @@ export class YouTubeDataAPI
 
 				const startFetch = performance.now();
 				const response = await HttpUtils.get(requestUrl);
-				console.log(`[PERF] getVideoInfosAsync: fetch chunk ${i/chunkSize + 1} took ${(performance.now() - startFetch).toFixed(2)}ms`);
+				const waitFetch = performance.now() - startFetch;
+				totalIoWait += waitFetch;
+				console.log(`[PERF] getVideoInfosAsync: fetch chunk ${i/chunkSize + 1} IO wait: ${waitFetch.toFixed(2)}ms`);
+
 				if (!response.ok) {
 					//エラーがあって処理できなかったIDはなにもしない
 					console.error(`API Error: ${response.status}`);
@@ -76,10 +81,13 @@ export class YouTubeDataAPI
 
 				const startJson = performance.now();
 				const data = await response.json();
-				console.log(`[PERF] getVideoInfosAsync: response.json() chunk ${i/chunkSize + 1} took ${(performance.now() - startJson).toFixed(2)}ms`);
-				const foundIds = new Set();
+				const waitJson = performance.now() - startJson;
+				totalIoWait += waitJson;
+				console.log(`[PERF] getVideoInfosAsync: response.json() chunk ${i/chunkSize + 1} IO wait: ${waitJson.toFixed(2)}ms`);
 
+				const foundIds = new Set();
 				const startProcess = performance.now();
+
 				for (const item of (data.items || [])) {
 					const videoId = item.id;
 					foundIds.add(videoId);
@@ -138,7 +146,8 @@ export class YouTubeDataAPI
 			}
 		}
 
-		console.log(`[PERF] getVideoInfosAsync: TOTAL took ${(performance.now() - startTotal).toFixed(2)}ms`);
-		return [videos, startTimes, removedIds];
+		const totalTime = performance.now() - startTotal;
+		console.log(`[PERF] getVideoInfosAsync: TOTAL took ${totalTime.toFixed(2)}ms (IO Wait: ${totalIoWait.toFixed(2)}ms)`);
+		return [videos, startTimes, removedIds, totalIoWait];
 	}
 }

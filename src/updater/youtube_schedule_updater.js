@@ -37,15 +37,21 @@ export class YouTubeScheduleUpdater
 	async updateSchedules()
 	{
 		const startTotal = performance.now();
+		let totalIoWait = 0;
+
 		// マスター読み込み
 		const startMaster = performance.now();
 		const vtubers = await this.vtuberRepository.loadMasterDataAsync();
-		console.log(`[PERF] loadMasterDataAsync took ${(performance.now() - startMaster).toFixed(2)}ms`);
+		const waitMaster = performance.now() - startMaster;
+		totalIoWait += waitMaster;
+		console.log(`[PERF] loadMasterDataAsync IO wait: ${waitMaster.toFixed(2)}ms`);
 
 		// キャッシュ読み込み
 		const startLoadCache = performance.now();
 		let totalSchedules = (await this.youtubeRepository.loadSchedulesAsync()) || {};
-		console.log(`[PERF] loadSchedulesAsync took ${(performance.now() - startLoadCache).toFixed(2)}ms`);
+		const waitLoadCache = performance.now() - startLoadCache;
+		totalIoWait += waitLoadCache;
+		console.log(`[PERF] loadSchedulesAsync IO wait: ${waitLoadCache.toFixed(2)}ms`);
 
 		// リクエスト対象ID
 		let requestIds = new Set(Object.keys(totalSchedules));
@@ -53,7 +59,9 @@ export class YouTubeScheduleUpdater
 		// 単体IDキャッシュ
 		const startNotices = performance.now();
 		const singleVideoIds = await this.youtubeNoticesCache.getAll();
-		console.log(`[PERF] youtubeNoticesCache.getAll took ${(performance.now() - startNotices).toFixed(2)}ms`);
+		const waitNotices = performance.now() - startNotices;
+		totalIoWait += waitNotices;
+		console.log(`[PERF] youtubeNoticesCache.getAll IO wait: ${waitNotices.toFixed(2)}ms`);
 		console.log(`Single Count: ${singleVideoIds?.length || 0}`);
 
 		if (singleVideoIds?.length) {
@@ -66,11 +74,10 @@ export class YouTubeScheduleUpdater
 			Array.from(requestIds),
 			vtubers
 		);
-		console.log(`[PERF] getVideoInfosAsync took ${(performance.now() - startApi).toFixed(2)}ms`);
-
-		const { response = {}, startTimes = {}, removedIds = [] } = Array.isArray(apiResult)
-			? { response: apiResult[0] || {}, startTimes: apiResult[1] || {}, removedIds: apiResult[2] || [] }
-			: apiResult || {};
+		const apiTime = performance.now() - startApi;
+		// apiResult に IO 待ち時間が含まれるように後ほど修正
+		const [response, startTimes, removedIds, apiIoWait = 0] = apiResult;
+		totalIoWait += apiIoWait;
 
 		// 削除されたデータをキャッシュから除外
 		removedIds.forEach((rid) => {
@@ -87,8 +94,8 @@ export class YouTubeScheduleUpdater
 		const endLimit = (currentDate + AFTER_DAYS * msPerDay);
 
 		// 期間外（古すぎる）データを削除 → 残すのは startLimit 以降のもの
-		const newSchedules = {};
-		const validSchedules = [];
+		const newCacheSchedules = {};
+		const displaySchedules = [];
 		for (const id in totalSchedules) {
 			const video = totalSchedules[id];
 			const startTime = startTimes[id];
@@ -96,24 +103,28 @@ export class YouTubeScheduleUpdater
 			// startTime がない場合は残す
 			// ある場合は startLimit 以上なら残す
 			if (!startTime || startTime >= startLimit) {
-				newSchedules[id] = video;
+				newCacheSchedules[id] = video;
 				
 				// 表示期間内（未来＋直近の過去）か判定
 				if (startTime && startTime <= endLimit) {
-					validSchedules.push(video);
+					displaySchedules.push(video);
 				}
 			}
 		}
 
 		// キャッシュ保存
 		const startSaveCache = performance.now();
-		await this.youtubeRepository.saveSchedulesAsync(newSchedules);
-		console.log(`[PERF] saveSchedulesAsync took ${(performance.now() - startSaveCache).toFixed(2)}ms`);
+		await this.youtubeRepository.saveSchedulesAsync(newCacheSchedules);
+		const waitSaveCache = performance.now() - startSaveCache;
+		totalIoWait += waitSaveCache;
+		console.log(`[PERF] saveSchedulesAsync IO wait: ${waitSaveCache.toFixed(2)}ms`);
 
 		// 公開用 JSON 生成
 		const startSaveJson = performance.now();
-		await this.saveDataJson(validSchedules, currentDate);
-		console.log(`[PERF] saveDataJson took ${(performance.now() - startSaveJson).toFixed(2)}ms`);
+		await this.saveDataJson(displaySchedules, currentDate);
+		const waitSaveJson = performance.now() - startSaveJson;
+		totalIoWait += waitSaveJson;
+		console.log(`[PERF] saveDataJson IO wait: ${waitSaveJson.toFixed(2)}ms`);
 
 		// 処理が成功したので、単体IDキャッシュを削除する
 		const startDeleteNotices = performance.now();
@@ -123,7 +134,12 @@ export class YouTubeScheduleUpdater
 			(id) => removedSet.has(id) || responseKeys.has(id)
 		);
 		await this.youtubeNoticesCache.deleteListAsync(deleteSingleVideoIds);
-		console.log(`[PERF] deleteListAsync took ${(performance.now() - startDeleteNotices).toFixed(2)}ms`);
-		console.log(`[PERF] updateSchedules TOTAL took ${(performance.now() - startTotal).toFixed(2)}ms`);
+		const waitDeleteNotices = performance.now() - startDeleteNotices;
+		totalIoWait += waitDeleteNotices;
+		console.log(`[PERF] deleteListAsync IO wait: ${waitDeleteNotices.toFixed(2)}ms`);
+
+		const totalTime = performance.now() - startTotal;
+		const pureCpuTime = totalTime - totalIoWait;
+		console.log(`[PERF] updateSchedules TOTAL: ${totalTime.toFixed(2)}ms (IO Wait: ${totalIoWait.toFixed(2)}ms, Pure CPU: ${pureCpuTime.toFixed(2)}ms)`);
 	}
 }
