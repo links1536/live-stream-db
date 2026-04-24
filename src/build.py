@@ -17,10 +17,12 @@ def generate_wrangler_toml():
 	kv_output_id = get_secret("VAR_KV_OUTPUT_ID")
 	yt_register_websub_queue = get_secret("VAR_QUEUE_YOUTUBE_WEBSUB_RESISTER")
 	yr_rss_feed_queue = get_secret("VAR_QUEUE_YOUTUBE_RSS_FEED")
+	d1_database_name = get_secret("VAR_D1_DATABASE_NAME")
+	d1_database_id = get_secret("VAR_D1_DATABASE_ID")
 
 	
-	if not all([kv_master_id, kv_cache_id, kv_output_id]):
-		print("Error: All KV IDs must be set as secrets")
+	if not all([kv_master_id, kv_cache_id, kv_output_id, d1_database_name, d1_database_id]):
+		print("Error: All KV IDs and D1 configuration must be set as secrets")
 		return False
 	
 	# wrangler.tomlの内容
@@ -73,6 +75,11 @@ id = "{kv_cache_id}"
 [[kv_namespaces]]
 binding = "KV_OUTPUT"
 id = "{kv_output_id}"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "{d1_database_name}"
+database_id = "{d1_database_id}"
 
 [[queues.producers]]
 binding = "QUEUE_YOUTUBE_WEBHOOK_RESISTER"

@@ -14,8 +14,8 @@ export class YouTubeScheduleUpdater
 {
 	constructor(env)
 	{
-		this.youtubeRepository = new YouTubeScheduleRepository(env.KV_CACHE);
-		this.vtuberRepository = new VTuberRepository(env.KV_MASTER, env.KV_CACHE);
+		this.youtubeRepository = new YouTubeScheduleRepository(env.DB);
+		this.vtuberRepository = new VTuberRepository(env.KV_MASTER, env.DB);
 		this.youtubeDataApi = new YouTubeDataAPI(env.YOUTUBE_DATA_API_KEY);
 
 		const doId = env.YOUTUBE_NOTICES_CACHE.idFromName("rss-key-cache");
@@ -24,28 +24,35 @@ export class YouTubeScheduleUpdater
 		this.livesJsonStore = env.KV_OUTPUT;
 	}
 
-	async saveDataJson(validSchedules, currentDate)
+	async saveDataJson(currentDate)
 	{
-		// 配信データ本体のハッシュを計算
-		const schedulesStr = JSON.stringify(validSchedules);
-		const newHash = await HttpUtils.digestHash(schedulesStr);
+		// 期間外クリーンアップ用の現在時刻
+		const msPerDay = 86400000;
+		const startLimit = (currentDate - BEFORE_DAYS * msPerDay);
+		const endLimit = (currentDate + AFTER_DAYS * msPerDay);
+
+		// DBからアクティブな配信（表示期間内）のみを抽出
+		const displaySchedules = await this.youtubeRepository.loadActiveSchedulesAsync(startLimit, endLimit);
+
+		const publicData = {
+			updated_at: new Date(currentDate).toISOString(),
+			all_schedules: displaySchedules,
+		};
+
+		const publicDataStr = JSON.stringify(publicData);
+		const newHash = await HttpUtils.digestHash(publicDataStr);
 
 		// 前回のメタデータを取得してハッシュ比較
 		const { metadata } = await this.livesJsonStore.getWithMetadata(OUTPUT_KEY);
-		const lastHash = metadata?.dataHash || null;
-
-		if (lastHash === newHash) {
+		if (metadata?.dataHash === newHash) {
 			console.log(`Schedules in ${OUTPUT_KEY} unchanged. Skip generating.`);
 			return;
 		}
 
-		const updatedAt = new Date(currentDate).toISOString();
-		const publicDataStr = `{"updated_at":"${updatedAt}","all_schedules":${schedulesStr}}`;
-
 		await this.livesJsonStore.put(OUTPUT_KEY, publicDataStr, {
 			metadata: { dataHash: newHash }
 		});
-		console.log(`Generated ${OUTPUT_KEY} (${validSchedules.length} streams)`);
+		console.log(`Generated ${OUTPUT_KEY} (${displaySchedules.length} streams)`);
 	}
 
 	async updateSchedules()
@@ -57,10 +64,7 @@ export class YouTubeScheduleUpdater
 		let totalSchedules = (await this.youtubeRepository.loadSchedulesAsync()) || {};
 
 		// リクエスト対象ID
-		const requestIds = new Set();
-		for (const id in totalSchedules) {
-			requestIds.add(id);
-		}
+		const requestIds = new Set(Object.keys(totalSchedules));
 
 		// 単体IDキャッシュ
 		const singleVideoIds = await this.youtubeNoticesCache.getAll();
@@ -78,44 +82,25 @@ export class YouTubeScheduleUpdater
 		);
 		const [response, startTimes, removedIds] = apiResult;
 
-		// 削除されたデータをキャッシュから除外
-		for (const rid of removedIds) {
-			delete totalSchedules[rid];
+		// 削除対象をDBから削除
+		const ridList = Array.from(removedIds);
+		if (ridList.length > 0) {
+			await this.youtubeRepository.deleteSchedulesAsync(ridList);
 		}
 
-		// 最新データで上書き
-		Object.assign(totalSchedules, response);
+		// 最新データでDBを更新
+		if (Object.keys(response).length > 0) {
+			await this.youtubeRepository.saveSchedulesAsync(response);
+		}
 
-		// 期間外クリーンアップ用の現在時刻
+		// 期間外クリーンアップ
 		const currentDate = new Date().getTime();
-		const msPerDay = 86400000; // 24 * 60 * 60 * 1000
-		const startLimit = (currentDate - BEFORE_DAYS * msPerDay);
-		const endLimit = (currentDate + AFTER_DAYS * msPerDay);
-
-		// 期間外（古すぎる）データを削除 → 残すのは startLimit 以降のもの
-		const newCacheSchedules = {};
-		const displaySchedules = [];
-		for (const id in totalSchedules) {
-			const video = totalSchedules[id];
-			const startTime = startTimes[id];
-
-			// startTime がない場合は残す
-			// ある場合は startLimit 以上なら残す
-			if (!startTime || startTime >= startLimit) {
-				newCacheSchedules[id] = video;
-				
-				// 表示期間内（未来＋直近の過去）か判定
-				if (startTime && startTime <= endLimit) {
-					displaySchedules.push(video);
-				}
-			}
-		}
-
-		// キャッシュ保存
-		await this.youtubeRepository.saveSchedulesAsync(newCacheSchedules);
+		const msPerDay = 86400000;
+		const startLimitIso = new Date(currentDate - BEFORE_DAYS * msPerDay).toISOString();
+		await this.youtubeRepository.cleanupOldSchedulesAsync(startLimitIso);
 
 		// 公開用 JSON 生成
-		await this.saveDataJson(displaySchedules, currentDate);
+		await this.saveDataJson(currentDate);
 
 		// 処理が成功したので、単体IDキャッシュを削除する
 		const deleteSingleVideoIds = [];

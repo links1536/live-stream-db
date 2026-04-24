@@ -1,51 +1,105 @@
 // repository/youtube_schedule_repository.js
 
-import { HttpUtils } from "../httputils.js";
-
 /**
  * YouTube Data APIを利用するクラス
  */
 
-const SCHEDULE_KEY = "status.json";
-
 export class YouTubeScheduleRepository
 {
-	constructor(kv_cache)
+	constructor(db)
 	{
-		this.cacheStore = kv_cache;
-		this.lastHash = null;
+		this.db = db;
 	}
 
 	/**
-	 * KVからキャッシュを読み込む
+	 * DBからキャッシュを読み込む
 	 */
 	async loadSchedulesAsync()
 	{
-		const { value, metadata } = await this.cacheStore.getWithMetadata(SCHEDULE_KEY);
-		this.lastHash = metadata?.hash || null;
-
-		if (value)
-			return JSON.parse(value);
-		return {};
+		try {
+			const { results } = await this.db.prepare("SELECT * FROM schedules").all();
+			const schedules = {};
+			for (const row of results) {
+				schedules[row.video_id] = {
+					...row,
+					tags: row.tags ? JSON.parse(row.tags) : []
+				};
+			}
+			return schedules;
+		} catch (e) {
+			console.error(`Failed to load schedules: ${e.message}`);
+			return {};
+		}
 	}
 
 	/**
-	 * KVにキャッシュを保存する
+	 * DBから特定のアクティブな配信を読み込む（KV出力用）
+	 */
+	async loadActiveSchedulesAsync(startLimit, endLimit)
+	{
+		try {
+			// 表示期間内のものを取得
+			const { results } = await this.db.prepare(
+				"SELECT * FROM schedules WHERE start_time_iso IS NOT NULL"
+			).all();
+			
+			// フィルタリング（本来はSQLのWHEREで行うのが理想的だが、startLimitの比較のためJS側で実施）
+			return results
+				.map(row => ({
+					...row,
+					tags: row.tags ? JSON.parse(row.tags) : []
+				}))
+				.filter(video => {
+					const startTime = Date.parse(video.start_time_iso);
+					return startTime >= startLimit && startTime <= endLimit;
+				});
+		} catch (e) {
+			console.error(`Failed to load active schedules: ${e.message}`);
+			return [];
+		}
+	}
+
+	/**
+	 * DBにキャッシュを保存する
 	 */
 	async saveSchedulesAsync(schedules)
 	{
-		const dataStr = JSON.stringify(schedules);
-		const newHash = await HttpUtils.digestHash(dataStr);
+		const entries = Object.entries(schedules);
+		if (entries.length === 0) return;
 
-		if (this.lastHash === newHash) {
-			console.log(`${SCHEDULE_KEY} unchanged. skip update.`);
-			return;
-		}
+		const stmt = this.db.prepare(`
+			INSERT OR REPLACE INTO schedules (
+				video_id, streamer_name, agency, tags, color, 
+				title, thumbnail, start_time_iso, status, updated_at
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`);
 
-		await this.cacheStore.put(SCHEDULE_KEY, dataStr, {
-			metadata: { hash: newHash }
-		});
-		this.lastHash = newHash;
-		console.log(`${SCHEDULE_KEY} updated (${Object.keys(schedules).length} items)`);
+		const batch = entries.map(([id, s]) => 
+			stmt.bind(
+				id, s.streamer_name, s.agency, JSON.stringify(s.tags), s.color,
+				s.title, s.thumbnail, s.start_time_iso, s.status, Date.now()
+			)
+		);
+
+		await this.db.batch(batch);
+		console.log(`D1: Updated ${entries.length} items in schedules table.`);
+	}
+
+	/**
+	 * 古いデータを削除する
+	 */
+	async deleteSchedulesAsync(videoIds)
+	{
+		if (videoIds.length === 0) return;
+		const placeholders = videoIds.map(() => "?").join(",");
+		await this.db.prepare(`DELETE FROM schedules WHERE video_id IN (${placeholders})`).bind(...videoIds).run();
+	}
+
+	/**
+	 * 期間外の古いデータを一括削除する
+	 */
+	async cleanupOldSchedulesAsync(limitIso)
+	{
+		await this.db.prepare("DELETE FROM schedules WHERE start_time_iso < ?").bind(limitIso).run();
 	}
 }

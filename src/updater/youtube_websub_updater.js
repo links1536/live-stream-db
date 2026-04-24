@@ -8,7 +8,7 @@ export class YouTubeWebSubUpdater
 {
 	constructor(env)
 	{
-		this.vtuberRepository = new VTuberRepository(env.KV_MASTER, env.KV_CACHE);
+		this.vtuberRepository = new VTuberRepository(env.KV_MASTER, env.DB);
 		this.youtubeWebsub = new YouTubeWebSub(
 			env.YOUTUBE_WEBSUB_VERIFY_TOKEN,
 			env.YOUTUBE_WEBSUB_SECRETS

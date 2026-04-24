@@ -12,7 +12,7 @@ export class YouTubeRssFeedUpdater {
 	constructor(env)
 	{
 		// リポジトリクラスもJS版に移植されている前提です
-		this.vtuberRepository = new VTuberRepository(env.KV_MASTER, env.KV_CACHE);
+		this.vtuberRepository = new VTuberRepository(env.KV_MASTER, env.DB);
 		this.rssFeedTargetQueue = env.QUEUE_YOUTUBE_RSS_FEED_TARGET;
 
 		// Durable Object のバインディング
