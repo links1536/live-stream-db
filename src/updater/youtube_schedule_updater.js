@@ -31,7 +31,7 @@ export class YouTubeScheduleUpdater
 		const newHash = HttpUtils.quickHash(schedulesStr);
 
 		// 前回のメタデータを取得してハッシュ比較
-		const { metadata } = await this.livesJsonStore.getWithMetadata(OUTPUT_KEY, { type: "none" });
+		const { metadata } = await this.livesJsonStore.getWithMetadata(OUTPUT_KEY);
 		const lastHash = metadata?.dataHash || null;
 
 		if (lastHash === newHash) {
