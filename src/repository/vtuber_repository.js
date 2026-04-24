@@ -2,6 +2,7 @@ import { HttpUtils } from "../httputils.js";
 
 // --- 設定定数 ---
 const MASTER_DATA_KEY = "streamers.json"
+const MASTER_YOUTUBE_MAP_KEY = "streamers_youtube_map.json"
 const LAST_UPDATED_KEY = "lastupdate.json"
 
 export class VTuberRepository
@@ -22,6 +23,17 @@ export class VTuberRepository
 		if (data)
 			return JSON.parse(data);
 		return [];
+	}
+
+	/**
+	 * YouTube ID マップを読み込む
+	 */
+	async loadYouTubeMapAsync()
+	{
+		const data = await this.masterStore.get(MASTER_YOUTUBE_MAP_KEY);
+		if (data)
+			return JSON.parse(data);
+		return {};
 	}
 
 	/**

@@ -14,21 +14,11 @@ export class YouTubeDataAPI
 	/**
 	 * ステータス更新メインロジック
 	 */
-	async getVideoInfosAsync(targetIds, vtubers)
+	async getVideoInfosAsync(targetIds, vtuberMap)
 	{
 		if (!this.apiKey) {
 			console.error("[ERROR] YouTube APIキーが設定されていません");
 			return [{}, {}, new Set()];
-		}
-
-		// vtuberMapをシンプルに構築（重複処理を最小化）
-		const vtuberMap = {};
-		for (const vtuber of vtubers) {
-			for (const channelId of (vtuber.YouTubeID || [])) {
-				if (channelId) {
-					vtuberMap[channelId] = vtuber;
-				}
-			}
 		}
 
 		const chunkSize = 50;

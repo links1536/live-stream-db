@@ -54,6 +54,7 @@ export class YouTubeScheduleUpdater
 	{
 		// マスター読み込み
 		const vtubers = await this.vtuberRepository.loadMasterDataAsync();
+		const youtubeIdMap = await this.vtuberRepository.loadYouTubeMapAsync();
 
 		// キャッシュ読み込み
 		let totalSchedules = (await this.youtubeRepository.loadSchedulesAsync()) || {};
@@ -76,7 +77,7 @@ export class YouTubeScheduleUpdater
 		// YouTube Data API 呼び出し
 		const apiResult = await this.youtubeDataApi.getVideoInfosAsync(
 			Array.from(requestIds),
-			vtubers
+			youtubeIdMap
 		);
 		const [response, startTimes, removedIds] = apiResult;
 
