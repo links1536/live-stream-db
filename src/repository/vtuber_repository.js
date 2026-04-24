@@ -55,7 +55,7 @@ export class VTuberRepository
 	async saveChannelLastUpdatedAsync(last_updated)
 	{
 		const dataStr = JSON.stringify(last_updated);
-		const newHash = HttpUtils.quickHash(dataStr);
+		const newHash = await HttpUtils.digestHash(dataStr);
 
 		if (this.lastLastUpdateHash === newHash) {
 			console.log(`${LAST_UPDATED_KEY} unchanged. skip update.`);

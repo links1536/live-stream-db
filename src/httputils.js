@@ -52,4 +52,15 @@ export class HttpUtils
 		h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
 		return (h2 >>> 0).toString(16).padStart(8, "0") + (h1 >>> 0).toString(16).padStart(8, "0");
 	}
+
+	/**
+	 * ネイティブ実装のハッシュ値を計算する (SHA-1)
+	 */
+	static async digestHash(str)
+	{
+		const msgUint8 = new TextEncoder().encode(str);
+		const hashBuffer = await crypto.subtle.digest("SHA-1", msgUint8);
+		const hashArray = Array.from(new Uint8Array(hashBuffer));
+		return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+	}
 }

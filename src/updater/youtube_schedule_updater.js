@@ -28,7 +28,7 @@ export class YouTubeScheduleUpdater
 	{
 		// 配信データ本体のハッシュを計算
 		const schedulesStr = JSON.stringify(validSchedules);
-		const newHash = HttpUtils.quickHash(schedulesStr);
+		const newHash = await HttpUtils.digestHash(schedulesStr);
 
 		// 前回のメタデータを取得してハッシュ比較
 		const { metadata } = await this.livesJsonStore.getWithMetadata(OUTPUT_KEY);

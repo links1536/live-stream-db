@@ -35,7 +35,7 @@ export class YouTubeScheduleRepository
 	async saveSchedulesAsync(schedules)
 	{
 		const dataStr = JSON.stringify(schedules);
-		const newHash = HttpUtils.quickHash(dataStr);
+		const newHash = await HttpUtils.digestHash(dataStr);
 
 		if (this.lastHash === newHash) {
 			console.log(`${SCHEDULE_KEY} unchanged. skip update.`);
