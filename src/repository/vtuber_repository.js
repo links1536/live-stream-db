@@ -1,3 +1,5 @@
+import { HttpUtils } from "../httputils.js";
+
 // --- 設定定数 ---
 const MASTER_DATA_KEY = "streamers.json"
 const MASTER_YOUTUBE_MAP_KEY = "streamers_youtube_map.json"
@@ -9,6 +11,7 @@ export class VTuberRepository
 	{
 		this.masterStore = kv_master;
 		this.cacheStore = kv_cache;
+		this.lastLastUpdateHash = null;
 	}
 
 	/**
@@ -38,9 +41,11 @@ export class VTuberRepository
 	 */
 	async loadChannelLastUpdatedAsync()
 	{
-		const data = await this.cacheStore.get(LAST_UPDATED_KEY)
-		if (data)
-			return JSON.parse(data);
+		const { value, metadata } = await this.cacheStore.getWithMetadata(LAST_UPDATED_KEY);
+		this.lastLastUpdateHash = metadata?.hash || null;
+
+		if (value)
+			return JSON.parse(value);
 		return {};
 	}
 
@@ -49,6 +54,17 @@ export class VTuberRepository
 	 */
 	async saveChannelLastUpdatedAsync(last_updated)
 	{
-		await this.cacheStore.put(LAST_UPDATED_KEY, JSON.stringify(last_updated))
+		const dataStr = JSON.stringify(last_updated);
+		const newHash = HttpUtils.quickHash(dataStr);
+
+		if (this.lastLastUpdateHash === newHash) {
+			console.log(`${LAST_UPDATED_KEY} unchanged. skip update.`);
+			return;
+		}
+
+		await this.cacheStore.put(LAST_UPDATED_KEY, dataStr, {
+			metadata: { hash: newHash }
+		});
+		this.lastLastUpdateHash = newHash;
 	}
 }

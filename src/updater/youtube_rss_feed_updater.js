@@ -80,10 +80,12 @@ export class YouTubeRssFeedUpdater {
 			}
 
 			// 動画IDをキャッシュ（Durable Object）に追加
-			await this.youtubeNoticesCache.bulkAdd(videoIds);
+			if (videoIds.length > 0) {
+				await this.youtubeNoticesCache.bulkAdd(videoIds);
 
-			// チャンネルごとの最終更新日時を記録
-			lastUpdated[channelId] = currentDate.toISOString();
+				// チャンネルごとの最終更新日時を記録（新着があった場合のみ）
+				lastUpdated[channelId] = currentDate.toISOString();
+			}
 		}
 
 		// KV等へ最終更新日時を保存
@@ -118,7 +120,7 @@ export class YouTubeRssFeedUpdater {
 				const lastUpdatedDate = Date.parse(lastUpdatedStr);
 
 				// 15分以内の再取得はスキップ (15 * 60 * 1000 ms)
-				if (currentDate.getTime() - lastUpdatedDate.getTime() < 15 * 60 * 1000) {
+				if (currentDate - lastUpdatedDate < 15 * 60 * 1000) {
 					continue;
 				}
 
@@ -127,6 +129,7 @@ export class YouTubeRssFeedUpdater {
 				if (!videos || videos.length === 0)
 					continue;
 
+				let hasNewVideo = false;
 				for (const video of videos) {
 					const videoId = video.video_id;
 					const updatedDate = Date.parse(video.updated);
@@ -144,10 +147,13 @@ export class YouTubeRssFeedUpdater {
 					// 動画IDをキャッシュ（Durable Object）に追加
 					console.log(`${streamerName} / ${channelId}: video_id=${videoId} (${video.updated})`);
 					await this.youtubeNoticesCache.add(videoId);
+					hasNewVideo = true;
 				}
 
-				// チャンネルごとの最終更新日時を記録
-				lastUpdated[channelId] = currentDateISO;
+				// チャンネルごとの最終更新日時を記録（新着があった場合のみ）
+				if (hasNewVideo) {
+					lastUpdated[channelId] = currentDateISO;
+				}
 			}
 		}
 
