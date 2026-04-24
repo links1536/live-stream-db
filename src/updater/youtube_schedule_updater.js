@@ -39,12 +39,10 @@ export class YouTubeScheduleUpdater
 			return;
 		}
 
-		const publicData = {
-			updated_at: new Date(currentDate).toISOString(),
-			all_schedules: validSchedules,
-		};
+		const updatedAt = new Date(currentDate).toISOString();
+		const publicDataStr = `{"updated_at":"${updatedAt}","all_schedules":${schedulesStr}}`;
 
-		await this.livesJsonStore.put(OUTPUT_KEY, JSON.stringify(publicData), {
+		await this.livesJsonStore.put(OUTPUT_KEY, publicDataStr, {
 			metadata: { dataHash: newHash }
 		});
 		console.log(`Generated ${OUTPUT_KEY} (${validSchedules.length} streams)`);
@@ -53,7 +51,6 @@ export class YouTubeScheduleUpdater
 	async updateSchedules()
 	{
 		// マスター読み込み
-		const vtubers = await this.vtuberRepository.loadMasterDataAsync();
 		const youtubeIdMap = await this.vtuberRepository.loadYouTubeMapAsync();
 
 		// キャッシュ読み込み
