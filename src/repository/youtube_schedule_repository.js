@@ -76,8 +76,16 @@ export class YouTubeScheduleRepository
 
 		const batch = entries.map(([id, s]) => 
 			stmt.bind(
-				id, s.streamer_name, s.agency, JSON.stringify(s.tags), s.color,
-				s.title, s.thumbnail, s.start_time_iso, s.status, Date.now()
+				id, 
+				s.streamer_name ?? null, 
+				s.agency ?? null, 
+				JSON.stringify(s.tags ?? []), 
+				s.color ?? null,
+				s.title ?? null, 
+				s.thumbnail ?? null, 
+				s.start_time_iso ?? null, 
+				s.status ?? null, 
+				Date.now()
 			)
 		);
 

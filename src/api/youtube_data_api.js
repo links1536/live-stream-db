@@ -70,14 +70,14 @@ export class YouTubeDataAPI
 
 					// オブジェクト作成を1回にまとめて最小化
 					videos[videoId] = {
-						streamer_name: vtuber.Name,
-						color: vtuber.Color,
-						agency: vtuber.Agency,
-						tags: vtuber.Tags,
+						streamer_name: vtuber.Name || null,
+						color: vtuber.Color || null,
+						agency: vtuber.Agency || null,
+						tags: vtuber.Tags || [],
 						video_id: videoId,
-						title: snippet.title,
+						title: snippet.title || null,
 						thumbnail: thumb ? thumb.url : "",
-						start_time_iso: startTimeStr,
+						start_time_iso: startTimeStr || null,
 						status: live.actualEndTime ? "archived" :
 								live.actualStartTime ? "live" : "upcoming"
 					};
