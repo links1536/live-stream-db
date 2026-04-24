@@ -1,5 +1,7 @@
 // repository/youtube_schedule_repository.js
 
+import { HttpUtils } from "../httputils.js";
+
 /**
  * YouTube Data APIを利用するクラス
  */
@@ -11,6 +13,7 @@ export class YouTubeScheduleRepository
 	constructor(kv_cache)
 	{
 		this.cacheStore = kv_cache;
+		this.lastHash = null;
 	}
 
 	/**
@@ -18,9 +21,11 @@ export class YouTubeScheduleRepository
 	 */
 	async loadSchedulesAsync()
 	{
-		const data = await this.cacheStore.get(SCHEDULE_KEY);
-		if (data)
-			return JSON.parse(data);
+		const { value, metadata } = await this.cacheStore.getWithMetadata(SCHEDULE_KEY);
+		this.lastHash = metadata?.hash || null;
+
+		if (value)
+			return JSON.parse(value);
 		return {};
 	}
 
@@ -29,7 +34,18 @@ export class YouTubeScheduleRepository
 	 */
 	async saveSchedulesAsync(schedules)
 	{
-		await this.cacheStore.put(SCHEDULE_KEY, JSON.stringify(schedules));
+		const dataStr = JSON.stringify(schedules);
+		const newHash = HttpUtils.quickHash(dataStr);
+
+		if (this.lastHash === newHash) {
+			console.log(`${SCHEDULE_KEY} unchanged. skip update.`);
+			return;
+		}
+
+		await this.cacheStore.put(SCHEDULE_KEY, dataStr, {
+			metadata: { hash: newHash }
+		});
+		this.lastHash = newHash;
 		console.log(`${SCHEDULE_KEY} updated (${Object.keys(schedules).length} items)`);
 	}
 }
