@@ -3,7 +3,6 @@
 import { YouTubeScheduleRepository } from "../repository/youtube_schedule_repository.js";
 import { VTuberRepository } from "../repository/vtuber_repository.js";
 import { YouTubeDataAPI } from "../api/youtube_data_api.js";
-import { HttpUtils } from "../httputils.js";
 
 // --- 設定 ---
 const BEFORE_DAYS = 1;
@@ -26,27 +25,12 @@ export class YouTubeScheduleUpdater
 
 	async saveDataJson(validSchedules, currentDate)
 	{
-		// 配信データ本体のハッシュを計算
-		const schedulesStr = JSON.stringify(validSchedules);
-		const newHash = HttpUtils.quickHash(schedulesStr);
-
-		// 前回のメタデータを取得してハッシュ比較
-		const { metadata } = await this.livesJsonStore.getWithMetadata(OUTPUT_KEY);
-		const lastHash = metadata?.dataHash || null;
-
-		if (lastHash === newHash) {
-			console.log(`Schedules in ${OUTPUT_KEY} unchanged. Skip generating.`);
-			return;
-		}
-
 		const publicData = {
 			updated_at: new Date(currentDate).toISOString(),
 			all_schedules: validSchedules,
 		};
 
-		await this.livesJsonStore.put(OUTPUT_KEY, JSON.stringify(publicData), {
-			metadata: { dataHash: newHash }
-		});
+		await this.livesJsonStore.put(OUTPUT_KEY, JSON.stringify(publicData));
 		console.log(`Generated ${OUTPUT_KEY} (${validSchedules.length} streams)`);
 	}
 
