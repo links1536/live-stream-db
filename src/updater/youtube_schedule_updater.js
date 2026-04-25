@@ -27,7 +27,7 @@ export class YouTubeScheduleUpdater
 		this.livesJsonStore = env.KV_OUTPUT;
 	}
 
-	async saveDataJson(currentDate)
+	async saveDataJsonAsync(currentDate)
 	{
 		// 期間外クリーンアップ用の現在時刻
 		const startLimit = (currentDate - BEFORE_DAYS);
@@ -76,7 +76,7 @@ export class YouTubeScheduleUpdater
 		for (let i = 0; i < requestTargetIds.length; i += chunkSize) {
 			const chunk = requestTargetIds.slice(i, i + chunkSize);
 			try {
-				const [schedules, foundIds] = this.youtubeDataApi.getVideoInfosAsync(chunk);
+				const [schedules, foundIds] = await this.youtubeDataApi.getVideoInfosAsync(chunk);
 				if (schedules == null || schedules.length <= 0
 				 || foundIds == null || foundIds.size <= 0
 				) {
@@ -94,7 +94,7 @@ export class YouTubeScheduleUpdater
 				}
 
 				// DBに保存
-				this.youtubeRepository.saveSchedulesAsync(schedules);
+				await this.youtubeRepository.saveSchedulesAsync(schedules);
 			}
 			catch (e) {
 				//エラーがあって処理できなかったIDはなにもしない
@@ -105,7 +105,7 @@ export class YouTubeScheduleUpdater
 
 		// レスポンスを受け取りながらも乗っていないデータは非公開や削除がされている
 		if (removedIds.size > 0) {
-			this.youtubeRepository.deleteSchedulesAsync(removedIds);
+			await this.youtubeRepository.deleteSchedulesAsync(removedIds);
 		}
 
 		// 期間外クリーンアップ
@@ -116,7 +116,7 @@ export class YouTubeScheduleUpdater
 		console.log(`Update complete: ${allFoundIds.size} active, ${removedIds.size} removed.`);
 
 		// 公開用 JSON 生成
-		await this.saveDataJson(currentDate);
+		await this.saveDataJsonAsync(currentDate);
 
 		// 処理が成功したので、単体IDキャッシュを削除する
 		const deleteSingleVideoIds = [];
