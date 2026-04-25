@@ -77,8 +77,8 @@ export class YouTubeScheduleRepository
 		const stmt = this.db.prepare(`
 			INSERT OR REPLACE INTO schedules (
 				video_id, streamer_name, agency, tags, color, 
-				title, thumbnail, start_time_iso, status, updated_at
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+				title, thumbnail, start_time_iso, status
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 		`);
 
 		const batch = entries.map(([id, s]) => 
@@ -91,8 +91,7 @@ export class YouTubeScheduleRepository
 				s.title ?? null, 
 				s.thumbnail ?? null, 
 				s.start_time_iso ?? null, 
-				s.status ?? null, 
-				Date.now()
+				s.status ?? null
 			)
 		);
 
