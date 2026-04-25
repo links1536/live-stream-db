@@ -75,6 +75,8 @@ export class YouTubeScheduleUpdater
 			}
 		}
 
+		console.log(`Checking ${requestIds.size} video IDs...`);
+
 		// YouTube Data API 呼び出し
 		const apiResult = await this.youtubeDataApi.getVideoInfosAsync(
 			Array.from(requestIds),
@@ -98,6 +100,8 @@ export class YouTubeScheduleUpdater
 		const msPerDay = 86400000;
 		const startLimitIso = new Date(currentDate - BEFORE_DAYS * msPerDay).toISOString();
 		await this.youtubeRepository.cleanupOldSchedulesAsync(startLimitIso);
+
+		console.log(`Update complete: ${Object.keys(response).length} active, ${ridList.length} removed.`);
 
 		// 公開用 JSON 生成
 		await this.saveDataJson(currentDate);

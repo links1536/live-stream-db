@@ -63,7 +63,8 @@ export class VTuberRepository
 		const stmt = this.db.prepare("INSERT OR REPLACE INTO rss_last_updated (channel_id, last_updated) VALUES (?, ?)");
 		const batch = entries.map(([id, time]) => stmt.bind(id, time ?? null));
 
-		await this.db.batch(batch);
-		console.log(`D1: Updated ${entries.length} items in rss_last_updated table.`);
+		const results = await this.db.batch(batch);
+		const totalChanges = results.reduce((sum, res) => sum + (res.meta?.changes || 0), 0);
+		console.log(`D1: Updated ${totalChanges} / ${entries.length} items in rss_last_updated table.`);
 	}
 }

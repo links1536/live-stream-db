@@ -92,8 +92,9 @@ export class YouTubeScheduleRepository
 			)
 		);
 
-		await this.db.batch(batch);
-		console.log(`D1: Updated ${entries.length} items in schedules table.`);
+		const results = await this.db.batch(batch);
+		const totalChanges = results.reduce((sum, res) => sum + (res.meta?.changes || 0), 0);
+		console.log(`D1: Updated ${totalChanges} / ${entries.length} items in schedules table.`);
 	}
 
 	/**
@@ -103,7 +104,8 @@ export class YouTubeScheduleRepository
 	{
 		if (videoIds.length === 0) return;
 		const placeholders = videoIds.map(() => "?").join(",");
-		await this.db.prepare(`DELETE FROM schedules WHERE video_id IN (${placeholders})`).bind(...videoIds).run();
+		const result = await this.db.prepare(`DELETE FROM schedules WHERE video_id IN (${placeholders})`).bind(...videoIds).run();
+		console.log(`D1: Deleted ${result.meta.changes} items from schedules table.`);
 	}
 
 	/**
@@ -111,6 +113,7 @@ export class YouTubeScheduleRepository
 	 */
 	async cleanupOldSchedulesAsync(limitIso)
 	{
-		await this.db.prepare("DELETE FROM schedules WHERE start_time_iso < ?").bind(limitIso).run();
+		const result = await this.db.prepare("DELETE FROM schedules WHERE start_time_iso < ?").bind(limitIso).run();
+		console.log(`D1: Cleaned up ${result.meta.changes} items from schedules table.`);
 	}
 }
