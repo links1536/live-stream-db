@@ -31,7 +31,7 @@ export class VTuberRepository
 			for (const vtuber of vtubers) {
 				// タグを取得
 				const { results: tagResults } = await this.db.prepare(`
-					SELECT tag FROM tags WHERE vtuber_id = ?
+					SELECT tag FROM vtuber_tags WHERE vtuber_id = ?
 				`).bind(vtuber.id).all();
 				const tags = tagResults.map(r => r.tag).filter(Boolean);
 
