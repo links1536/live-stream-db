@@ -145,7 +145,13 @@ export class VTuberRepository
 		if (entries.length === 0)
 			return;
 
-		const stmt = this.db.prepare("INSERT OR REPLACE INTO rss_last_updated (channel_id, last_updated) VALUES (?, ?)");
+		const stmt = this.db.prepare(`
+			INSERT INTO rss_last_updated (channel_id, last_updated) 
+			VALUES (?, ?)
+			ON CONFLICT(channel_id) DO UPDATE SET
+				last_updated = EXCLUDED.last_updated
+			WHERE last_updated IS NOT EXCLUDED.last_updated
+		`);
 		const batch = entries.map(([id, time]) => stmt.bind(id, time ?? null));
 
 		const results = await this.db.batch(batch);
