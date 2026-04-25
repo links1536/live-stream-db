@@ -15,7 +15,7 @@ export class YouTubeScheduleUpdater
 	constructor(env)
 	{
 		this.youtubeRepository = new YouTubeScheduleRepository(env.DB);
-		this.vtuberRepository = new VTuberRepository(env.KV_MASTER, env.DB);
+		this.vtuberRepository = new VTuberRepository(env.DB);
 		this.youtubeDataApi = new YouTubeDataAPI(env.YOUTUBE_DATA_API_KEY);
 
 		const doId = env.YOUTUBE_NOTICES_CACHE.idFromName("rss-key-cache");
