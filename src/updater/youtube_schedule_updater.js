@@ -41,8 +41,8 @@ export class YouTubeScheduleUpdater
 			all_schedules: displaySchedules,
 		};
 
-		//const publicDataStr = JSON.stringify(publicData);
-		//await this.livesJsonStore.put(OUTPUT_KEY, publicDataStr);
+		const publicDataStr = JSON.stringify(publicData);
+		await this.livesJsonStore.put(OUTPUT_KEY, publicDataStr);
 
 		console.log(`Generated ${OUTPUT_KEY} (${displaySchedules.length} streams)`);
 	}
