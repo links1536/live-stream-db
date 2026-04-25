@@ -70,6 +70,7 @@ export class YouTubeScheduleUpdater
 
 		console.log(`Checking ${requestIds.length} video IDs...`);
 
+		const allFoundIds = new Set();
 		const chunkSize = YouTubeDataAPI.CHUNK_SIZE;
 		for (let i = 0; i < requestIds.length; i += chunkSize) {
 			const chunk = requestIds.slice(i, i + chunkSize);
@@ -85,6 +86,9 @@ export class YouTubeScheduleUpdater
 				for (const videoId of chunk) {
 					if (!foundIds.has(videoId)) {
 						removedIds.add(videoId);
+					}
+					else{
+						allFoundIds.add(videoId);
 					}
 				}
 
@@ -108,7 +112,7 @@ export class YouTubeScheduleUpdater
 		const startLimitIso = new Date(currentDate - BEFORE_DAYS).toISOString();
 		await this.youtubeRepository.cleanupOldSchedulesAsync(startLimitIso);
 
-		console.log(`Update complete: ${foundIds.length} active, ${ridList.length} removed.`);
+		console.log(`Update complete: ${allFoundIds.length} active, ${removedIds.length} removed.`);
 
 		// 公開用 JSON 生成
 		await this.saveDataJson(currentDate);
@@ -117,7 +121,7 @@ export class YouTubeScheduleUpdater
 		const deleteSingleVideoIds = [];
 		if (singleVideoIds?.length) {
 			for (const id of singleVideoIds) {
-				if (removedIds.has(id) || (id in foundIds)) {
+				if (removedIds.has(id)) {
 					deleteSingleVideoIds.push(id);
 				}
 			}
