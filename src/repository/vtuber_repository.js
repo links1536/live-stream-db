@@ -44,7 +44,8 @@ export class VTuberRepository
 				lastUpdated[row.channel_id] = row.last_updated;
 			}
 			return lastUpdated;
-		} catch (e) {
+		}
+		catch (e) {
 			console.error(`Failed to load last updated: ${e.message}`);
 			return {};
 		}
@@ -56,7 +57,8 @@ export class VTuberRepository
 	async saveChannelLastUpdatedAsync(last_updated)
 	{
 		const entries = Object.entries(last_updated);
-		if (entries.length === 0) return;
+		if (entries.length === 0)
+			return;
 
 		const stmt = this.db.prepare("INSERT OR REPLACE INTO rss_last_updated (channel_id, last_updated) VALUES (?, ?)");
 		const batch = entries.map(([id, time]) => stmt.bind(id, time ?? null));

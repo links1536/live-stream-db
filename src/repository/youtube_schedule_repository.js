@@ -26,7 +26,8 @@ export class YouTubeScheduleRepository
 				};
 			}
 			return schedules;
-		} catch (e) {
+		}
+		catch (e) {
 			console.error(`Failed to load schedules: ${e.message}`);
 			return {};
 		}
@@ -53,7 +54,8 @@ export class YouTubeScheduleRepository
 					const startTime = Date.parse(video.start_time_iso);
 					return startTime >= startLimit && startTime <= endLimit;
 				});
-		} catch (e) {
+		}
+		catch (e) {
 			console.error(`Failed to load active schedules: ${e.message}`);
 			return [];
 		}
@@ -65,7 +67,8 @@ export class YouTubeScheduleRepository
 	async saveSchedulesAsync(schedules)
 	{
 		const entries = Object.entries(schedules);
-		if (entries.length === 0) return;
+		if (entries.length === 0)
+			return;
 
 		const stmt = this.db.prepare(`
 			INSERT OR REPLACE INTO schedules (
