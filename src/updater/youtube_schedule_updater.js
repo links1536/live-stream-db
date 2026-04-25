@@ -68,7 +68,6 @@ export class YouTubeScheduleUpdater
 			}
 		}
 
-		const allFoundIds = new Set();
 		const chunkSize = YouTubeDataAPI.CHUNK_SIZE;
 		const requestTargetIds = Array.from(requestIds);
 		console.log(`Checking ${requestTargetIds.length} video IDs...`);
@@ -87,9 +86,6 @@ export class YouTubeScheduleUpdater
 				if (!foundIds.has(videoId)) {
 					removedIds.add(videoId);
 				}
-				else{
-					allFoundIds.add(videoId);
-				}
 			}
 
 			// DBに保存
@@ -102,7 +98,10 @@ export class YouTubeScheduleUpdater
 		const startLimitIso = new Date(currentDate - BEFORE_DAYS).toISOString();
 		await this.youtubeRepository.cleanupSchedulesAsync(removedIds, startLimitIso);
 
-		console.log(`Update complete: ${allFoundIds.size} active, ${removedIds.size} removed.`);
+		// 受け取れた動画IDと削除された動画IDの数をログに出す
+		const removeCount = removedIds.size;
+		const foundCount = requestTargetIds.length - removeCount;
+		console.log(`Update complete: ${foundCount} active, ${removeCount} removed.`);
 
 		// 公開用 JSON 生成
 		await this.saveDataJsonAsync(currentDate);
