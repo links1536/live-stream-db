@@ -57,10 +57,20 @@ export class YouTubeScheduleRepository
 			return;
 
 		const stmt = this.db.prepare(`
-			INSERT OR REPLACE INTO youtube_schedules (
+			INSERT INTO youtube_schedules (
 				video_id, channel_id, 
 				title, thumbnail, start_time_iso, status
 			) VALUES (?, ?, ?, ?, ?, ?)
+			ON CONFLICT(video_id) DO UPDATE SET
+				channel_id = EXCLUDED.channel_id,
+				title = EXCLUDED.title,
+				thumbnail = EXCLUDED.thumbnail,
+				start_time_iso = EXCLUDED.start_time_iso,
+				status = EXCLUDED.status
+			WHERE 
+				title != EXCLUDED.title OR 
+				status != EXCLUDED.status OR
+				start_time_iso != EXCLUDED.start_time_iso
 		`);
 
 		const batch = [];
