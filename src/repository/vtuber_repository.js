@@ -103,9 +103,9 @@ export class VTuberRepository
 			for (const row of results) {
 				youtubeMap[row.channel_id] = {
 					id: row.id,
-					name: row.name,
-					agency: row.agency,
-					color: row.color
+					Name: row.name,
+					Agency: row.agency,
+					Color: row.color
 				};
 			}
 
