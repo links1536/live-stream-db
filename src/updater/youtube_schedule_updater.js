@@ -76,9 +76,7 @@ export class YouTubeScheduleUpdater
 			// チャンク単位でリクエストする
 			const chunk = requestTargetIds.slice(i, i + chunkSize);
 			const [schedules, foundIds] = await this.youtubeDataApi.getVideoInfosAsync(chunk);
-			if (schedules == null || schedules.length <= 0
-				|| foundIds == null || foundIds.size <= 0
-			) {
+			if (schedules == null || foundIds == null) {
 				continue;
 			}
 
@@ -108,16 +106,8 @@ export class YouTubeScheduleUpdater
 		await this.saveDataJsonAsync(currentDate);
 
 		// 処理が成功したので、単体IDキャッシュを削除する
-		const deleteSingleVideoIds = [];
 		if (singleVideoIds?.length) {
-			for (const id of singleVideoIds) {
-				if (removedIds.has(id)) {
-					deleteSingleVideoIds.push(id);
-				}
-			}
-			if (deleteSingleVideoIds.length > 0) {
-				await this.youtubeNoticesCache.deleteListAsync(deleteSingleVideoIds);
-			}
+			await this.youtubeNoticesCache.deleteListAsync(singleVideoIds);
 		}
 	}
 }

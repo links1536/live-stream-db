@@ -28,7 +28,7 @@ export class YouTubeDataAPI
 	{
 		if (!this.apiKey) {
 			console.error("[ERROR] YouTube APIキーが設定されていません");
-			return [{}, new Set()];
+			return [null, null];
 		}
 
 		const ids = targetIds.join(",");
@@ -38,7 +38,7 @@ export class YouTubeDataAPI
 		if (!response.ok) {
 			//エラーがあって処理できなかったIDはなにもしない
 			console.error(`API Error: ${response.status}`);
-			return [{}, new Set()];
+			return [null, null];
 		}
 
 		const schedules = []
