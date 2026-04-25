@@ -108,7 +108,7 @@ export class YouTubeScheduleUpdater
 		const startLimitIso = new Date(currentDate - BEFORE_DAYS).toISOString();
 		await this.youtubeRepository.cleanupOldSchedulesAsync(startLimitIso);
 
-		console.log(`Update complete: ${Object.keys(response).length} active, ${ridList.length} removed.`);
+		console.log(`Update complete: ${foundIds.length} active, ${ridList.length} removed.`);
 
 		// 公開用 JSON 生成
 		await this.saveDataJson(currentDate);
@@ -117,7 +117,7 @@ export class YouTubeScheduleUpdater
 		const deleteSingleVideoIds = [];
 		if (singleVideoIds?.length) {
 			for (const id of singleVideoIds) {
-				if (removedIds.has(id) || (id in response)) {
+				if (removedIds.has(id) || (id in foundIds)) {
 					deleteSingleVideoIds.push(id);
 				}
 			}
