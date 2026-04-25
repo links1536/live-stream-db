@@ -68,39 +68,32 @@ export class YouTubeScheduleUpdater
 			}
 		}
 
-		console.log(`Checking ${requestIds.length} video IDs...`);
-
 		const allFoundIds = new Set();
 		const chunkSize = YouTubeDataAPI.CHUNK_SIZE;
 		const requestTargetIds = Array.from(requestIds);
+		console.log(`Checking ${requestTargetIds.length} video IDs...`);
 		for (let i = 0; i < requestTargetIds.length; i += chunkSize) {
+			// チャンク単位でリクエストする
 			const chunk = requestTargetIds.slice(i, i + chunkSize);
-			try {
-				const [schedules, foundIds] = await this.youtubeDataApi.getVideoInfosAsync(chunk);
-				if (schedules == null || schedules.length <= 0
-				 || foundIds == null || foundIds.size <= 0
-				) {
-					continue;
-				}
-
-				// APIから返ってこなかったIDを削除対象に追加
-				for (const videoId of chunk) {
-					if (!foundIds.has(videoId)) {
-						removedIds.add(videoId);
-					}
-					else{
-						allFoundIds.add(videoId);
-					}
-				}
-
-				// DBに保存
-				await this.youtubeRepository.saveSchedulesAsync(schedules);
-			}
-			catch (e) {
-				//エラーがあって処理できなかったIDはなにもしない
-				console.error(`API Error: ${e}`);
+			const [schedules, foundIds] = await this.youtubeDataApi.getVideoInfosAsync(chunk);
+			if (schedules == null || schedules.length <= 0
+				|| foundIds == null || foundIds.size <= 0
+			) {
 				continue;
 			}
+
+			// APIから返ってこなかったIDを削除対象に追加
+			for (const videoId of chunk) {
+				if (!foundIds.has(videoId)) {
+					removedIds.add(videoId);
+				}
+				else{
+					allFoundIds.add(videoId);
+				}
+			}
+
+			// DBに保存
+			await this.youtubeRepository.saveSchedulesAsync(schedules);
 		}
 
 		// レスポンスを受け取りながらも乗っていないデータは非公開や削除がされている
