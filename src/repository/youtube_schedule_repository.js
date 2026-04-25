@@ -83,23 +83,20 @@ export class YouTubeScheduleRepository
 	}
 
 	/**
-	 * 古いデータを削除する
-	 */
-	async deleteSchedulesAsync(videoIds)
-	{
-		if (videoIds.length === 0)
-			return;
-		const placeholders = videoIds.map(() => "?").join(",");
-		const result = await this.db.prepare(`DELETE FROM youtube_schedules WHERE video_id IN (${placeholders})`).bind(...videoIds).run();
-		console.log(`D1: Deleted ${result.meta.changes} items from schedules table.`);
-	}
-
-	/**
 	 * 期間外の古いデータを一括削除する
 	 */
-	async cleanupOldSchedulesAsync(limitIso)
+	async cleanupSchedulesAsync(videoIds, limitIso)
 	{
-		const result = await this.db.prepare("DELETE FROM youtube_schedules WHERE start_time_iso < ?").bind(limitIso).run();
-		console.log(`D1: Cleaned up ${result.meta.changes} items from schedules table.`);
+		if (videoIds != null && videoIds.length > 0) {
+			const placeholders = videoIds.map(() => "?").join(",");
+			const result = await this.db.prepare(`DELETE FROM youtube_schedules WHERE start_time_iso < ? OR video_id IN (${placeholders})`)
+				.bind(limitIso, ...videoIds).run();
+			console.log(`D1: Cleaned up ${result.meta.changes} items from schedules table.`);
+		}
+		else{
+			const result = await this.db.prepare("DELETE FROM youtube_schedules WHERE start_time_iso < ?")
+				.bind(limitIso).run();
+			console.log(`D1: Cleaned up ${result.meta.changes} items from schedules table.`);
+		}
 	}
 }

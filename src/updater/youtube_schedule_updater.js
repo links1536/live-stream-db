@@ -97,14 +97,10 @@ export class YouTubeScheduleUpdater
 		}
 
 		// レスポンスを受け取りながらも乗っていないデータは非公開や削除がされている
-		if (removedIds.size > 0) {
-			await this.youtubeRepository.deleteSchedulesAsync(removedIds);
-		}
-
 		// 期間外クリーンアップ
 		const currentDate = new Date().getTime();
 		const startLimitIso = new Date(currentDate - BEFORE_DAYS).toISOString();
-		await this.youtubeRepository.cleanupOldSchedulesAsync(startLimitIso);
+		await this.youtubeRepository.cleanupSchedulesAsync(removedIds, startLimitIso);
 
 		console.log(`Update complete: ${allFoundIds.size} active, ${removedIds.size} removed.`);
 
