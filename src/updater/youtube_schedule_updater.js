@@ -67,8 +67,10 @@ export class YouTubeScheduleUpdater
 			}
 		}
 
-		const chunkSize = YouTubeDataAPI.CHUNK_SIZE;
+		//出来るだけ同じ数になるように分割
 		const requestTargetIds = Array.from(requestIds);
+		const chunkCount = Math.ceil(requestTargetIds.length / YouTubeDataAPI.CHUNK_SIZE);
+		const chunkSize = Math.min(YouTubeDataAPI.CHUNK_SIZE, Math.ceil(requestTargetIds.length / chunkCount));
 		console.log(`Checking ${requestTargetIds.length} video IDs...`);
 		for (let i = 0; i < requestTargetIds.length; i += chunkSize) {
 			// チャンク単位でリクエストする
