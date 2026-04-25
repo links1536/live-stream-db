@@ -98,7 +98,7 @@ export class YouTubeScheduleUpdater
 			}
 			catch (e) {
 				//エラーがあって処理できなかったIDはなにもしない
-				console.error(`API Error: ${e.message}`);
+				console.error(`API Error: ${e}`);
 				continue;
 			}
 		}
