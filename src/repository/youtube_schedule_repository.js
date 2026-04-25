@@ -90,6 +90,9 @@ export class YouTubeScheduleRepository
 		const results = await this.db.batch(batch);
 		const totalChanges = results.reduce((sum, res) => sum + (res.meta?.changes || 0), 0);
 		console.log(`D1: Updated ${totalChanges} / ${schedules.length} items in schedules table.`);
+
+		// 変更があったかを返す
+		return totalChanges > 0;
 	}
 
 	/**
@@ -102,11 +105,17 @@ export class YouTubeScheduleRepository
 			const result = await this.db.prepare(`DELETE FROM youtube_schedules WHERE start_time_iso < ? OR video_id IN (${placeholders})`)
 				.bind(limitIso, ...videoIds).run();
 			console.log(`D1: Cleaned up ${result.meta.changes} items from schedules table.`);
+			
+			// 変更があったかを返す
+			return result.meta.changes > 0;
 		}
 		else{
 			const result = await this.db.prepare("DELETE FROM youtube_schedules WHERE start_time_iso < ?")
 				.bind(limitIso).run();
 			console.log(`D1: Cleaned up ${result.meta.changes} items from schedules table.`);
+
+			// 変更があったかを返す
+			return result.meta.changes > 0;
 		}
 	}
 }

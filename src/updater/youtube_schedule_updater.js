@@ -70,7 +70,7 @@ export class YouTubeScheduleUpdater
 		// バッチをまとめて行う
 		const allSchedules = []
 
-		//出来るだけ同じ数になるように分割
+		// 出来るだけ同じ数になるように分割
 		const requestTargetIds = Array.from(requestIds);
 		const chunkCount = Math.ceil(requestTargetIds.length / YouTubeDataAPI.CHUNK_SIZE);
 		const chunkSize = Math.min(YouTubeDataAPI.CHUNK_SIZE, Math.ceil(requestTargetIds.length / chunkCount));
@@ -93,29 +93,35 @@ export class YouTubeScheduleUpdater
 			}
 
 		}
+
+		var modifySchedules = false;
 		
 		// DBに保存
 		if (allSchedules.length > 0) {
-			await this.youtubeRepository.saveSchedulesAsync(allSchedules);
+			modifySchedules |= await this.youtubeRepository.saveSchedulesAsync(allSchedules);
 		}
 
 		// レスポンスを受け取りながらも乗っていないデータは非公開や削除がされている
 		// 期間外クリーンアップ
 		const currentDate = new Date().getTime();
 		const startLimitIso = new Date(currentDate - BEFORE_DAYS).toISOString();
-		await this.youtubeRepository.cleanupSchedulesAsync(removedIds, startLimitIso);
+		modifySchedules |= 	await this.youtubeRepository.cleanupSchedulesAsync(removedIds, startLimitIso);
 
 		// 受け取れた動画IDと削除された動画IDの数をログに出す
 		const removeCount = removedIds.size;
 		const foundCount = requestTargetIds.length - removeCount;
 		console.log(`Update complete: ${foundCount} active, ${removeCount} removed.`);
-
-		// 公開用 JSON 生成
-		await this.saveDataJsonAsync(currentDate);
-
+		
+	
 		// 処理が成功したので、単体IDキャッシュを削除する
 		if (singleVideoIds?.length) {
 			await this.youtubeNoticesCache.deleteListAsync(singleVideoIds);
 		}
+
+		// 更新があればJson書き換え
+		if (!modifySchedules)
+			return;
+		// 公開用 JSON 生成
+		await this.saveDataJsonAsync(currentDate);
 	}
 }
