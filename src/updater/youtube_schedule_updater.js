@@ -2,7 +2,7 @@
 
 import { YouTubeScheduleRepository } from "../repository/youtube_schedule_repository.js";
 import { VTuberRepository } from "../repository/vtuber_repository.js";
-import { YouTubeDataAPI, CHUNK_SIZE } from "../api/youtube_data_api.js";
+import { YouTubeDataAPI } from "../api/youtube_data_api.js";
 import { HttpUtils } from "../httputils.js";
 import { DisplayScheduleQueryService } from "../query_service/diplay_schedule_query.js";
 
@@ -70,8 +70,9 @@ export class YouTubeScheduleUpdater
 
 		console.log(`Checking ${requestIds.length} video IDs...`);
 
-		for (let i = 0; i < requestIds.length; i += CHUNK_SIZE) {
-			const chunk = requestIds.slice(i, i + CHUNK_SIZE);
+		const chunkSize = YouTubeDataAPI.CHUNK_SIZE;
+		for (let i = 0; i < requestIds.length; i += chunkSize) {
+			const chunk = requestIds.slice(i, i + chunkSize);
 			try {
 				const [schedules, foundIds] = youtubeDataApi.getVideoInfosAsync(chunk);
 				if (schedules == null || schedules.length <= 0

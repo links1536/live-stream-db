@@ -2,8 +2,7 @@ import { HttpUtils } from "../httputils.js";
 
 // --- 設定 ---
 const YOUTUBE_API_ENDPOINT = "https://www.googleapis.com/youtube/v3/videos";
-const YOUTUBE_API_PART = "snippet,liveStreamingDetails";
-const CHUNK_SIZE = 50;
+const YOUTUBE_API_PART = "snippet,liveStreamingDetails"
 
 export class YouTubeDataAPI
 {
@@ -15,6 +14,12 @@ export class YouTubeDataAPI
 		this.apiKey = apiKey;
 		this.youtubeDataApiUrlBase = `${YOUTUBE_API_ENDPOINT}?part=${YOUTUBE_API_PART}&maxResults=${CHUNK_SIZE}`;
 	}
+
+	static get CHUNK_SIZE()
+	{
+		return 50;
+	}
+
 
 	/**
 	 * ステータス更新メインロジック
