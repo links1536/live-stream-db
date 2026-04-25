@@ -60,10 +60,14 @@ export class VTuberRepository
 					Color: vtuber.color
 				};
 
-				if (tags.length > 0) entry.Tags = tags;
-				if (youtubeIds.length > 0) entry.YouTubeID = youtubeIds;
-				if (twitchIds.length > 0) entry.TwitchID = twitchIds;
-				if (twitcastingIds.length > 0) entry.TwitCastingID = twitcastingIds;
+				if (tags.length > 0)
+					entry.Tags = tags;
+				if (youtubeIds.length > 0)
+					entry.YouTubeID = youtubeIds;
+				if (twitchIds.length > 0)
+					entry.TwitchID = twitchIds;
+				if (twitcastingIds.length > 0)
+					entry.TwitCastingID = twitcastingIds;
 
 				masterData.push(entry);
 			}
