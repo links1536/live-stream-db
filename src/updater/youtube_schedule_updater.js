@@ -34,7 +34,7 @@ export class YouTubeScheduleUpdater
 		const endLimit = (currentDate + AFTER_DAYS);
 
 		// DBからアクティブな配信（表示期間内）のみを抽出
-		const displaySchedules = await this.diplayScheduleQuery.loadSchedulesAsync(startLimit, endLimit);
+		const displaySchedules = await this.diplayScheduleQuery.loadActiveSchedulesAsync(startLimit, endLimit);
 
 		const publicData = {
 			updated_at: new Date(currentDate).toISOString(),
