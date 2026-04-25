@@ -59,6 +59,8 @@ export class YouTubeScheduleUpdater
 	{
 		// マスター読み込み
 		const youtubeIdMap = await this.vtuberRepository.loadYouTubeMapAsync();
+		if (!youtubeIdMap || youtubeIdMap.length <= 0)
+			return;
 
 		// キャッシュ読み込み
 		let totalSchedules = (await this.youtubeRepository.loadSchedulesAsync()) || {};
