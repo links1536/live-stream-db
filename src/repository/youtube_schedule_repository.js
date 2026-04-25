@@ -64,6 +64,7 @@ export class YouTubeScheduleRepository
 			) VALUES (?, ?, ?, ?, ?, ?)
 		`);
 
+		const batch = [];
 		for (const schedule of schedules) {
 			console.log(`video_id: ${schedule.video_id}`);
 			console.log(`channel_id: ${schedule.channel_id}`);
@@ -72,14 +73,16 @@ export class YouTubeScheduleRepository
 			console.log(`start_time_iso: ${schedule.start_time_iso}`);
 			console.log(`status: ${schedule.status}`);
 	
-			stmt.bind(
-				schedule.video_id,
-				schedule.channel_id ?? null,
-				schedule.title ?? null,
-				schedule.thumbnail ?? null,
-				schedule.start_time_iso ?? null,
-				schedule.status ?? null
-			)
+			batch.push(
+				stmt.bind(
+					schedule.video_id,
+					schedule.channel_id ?? null,
+					schedule.title ?? null,
+					schedule.thumbnail ?? null,
+					schedule.start_time_iso ?? null,
+					schedule.status ?? null
+				)
+			);
 		}
 		console.log(`bind end`);
 
