@@ -72,12 +72,13 @@ export class YouTubeScheduleUpdater
 
 		const allFoundIds = new Set();
 		const chunkSize = YouTubeDataAPI.CHUNK_SIZE;
-		for (let i = 0; i < requestIds.length; i += chunkSize) {
-			const chunk = requestIds.slice(i, i + chunkSize);
+		const targetIds = Array.from(requestIds);
+		for (let i = 0; i < targetIds.length; i += chunkSize) {
+			const chunk = targetIds.slice(i, i + chunkSize);
 			try {
-				const [schedules, foundIds] = youtubeDataApi.getVideoInfosAsync(chunk);
+				const [schedules, foundIds] = this.youtubeDataApi.getVideoInfosAsync(chunk);
 				if (schedules == null || schedules.length <= 0
-				 || foundIds == null || foundIds.length <= 0
+				 || foundIds == null || foundIds.size <= 0
 				) {
 					continue;
 				}
@@ -103,7 +104,7 @@ export class YouTubeScheduleUpdater
 		}
 
 		// レスポンスを受け取りながらも乗っていないデータは非公開や削除がされている
-		if (removedIds.length > 0) {
+		if (removedIds.size > 0) {
 			this.youtubeRepository.deleteSchedulesAsync(removedIds);
 		}
 
@@ -112,7 +113,7 @@ export class YouTubeScheduleUpdater
 		const startLimitIso = new Date(currentDate - BEFORE_DAYS).toISOString();
 		await this.youtubeRepository.cleanupOldSchedulesAsync(startLimitIso);
 
-		console.log(`Update complete: ${allFoundIds.length} active, ${removedIds.length} removed.`);
+		console.log(`Update complete: ${allFoundIds.size} active, ${removedIds.size} removed.`);
 
 		// 公開用 JSON 生成
 		await this.saveDataJson(currentDate);
