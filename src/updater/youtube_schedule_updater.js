@@ -72,9 +72,9 @@ export class YouTubeScheduleUpdater
 
 		const allFoundIds = new Set();
 		const chunkSize = YouTubeDataAPI.CHUNK_SIZE;
-		const targetIds = Array.from(requestIds);
-		for (let i = 0; i < targetIds.length; i += chunkSize) {
-			const chunk = targetIds.slice(i, i + chunkSize);
+		const requestTargetIds = Array.from(requestIds);
+		for (let i = 0; i < requestTargetIds.length; i += chunkSize) {
+			const chunk = requestTargetIds.slice(i, i + chunkSize);
 			try {
 				const [schedules, foundIds] = this.youtubeDataApi.getVideoInfosAsync(chunk);
 				if (schedules == null || schedules.length <= 0
