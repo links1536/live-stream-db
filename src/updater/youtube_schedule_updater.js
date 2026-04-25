@@ -3,7 +3,6 @@
 import { YouTubeScheduleRepository } from "../repository/youtube_schedule_repository.js";
 import { VTuberRepository } from "../repository/vtuber_repository.js";
 import { YouTubeDataAPI } from "../api/youtube_data_api.js";
-import { HttpUtils } from "../httputils.js";
 import { DisplayScheduleQueryService } from "../query_service/diplay_schedule_query.js";
 
 // --- 設定 ---
