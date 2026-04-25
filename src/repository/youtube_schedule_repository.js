@@ -60,7 +60,7 @@ export class YouTubeScheduleRepository
 			INSERT OR REPLACE INTO youtube_schedules (
 				video_id, channel_id, 
 				title, thumbnail, start_time_iso, status
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+			) VALUES (?, ?, ?, ?, ?, ?)
 		`);
 
 		for (const schedule in schedules) {
