@@ -67,6 +67,9 @@ export class YouTubeScheduleUpdater
 			}
 		}
 
+		// バッチをまとめて行う
+		const allSchedules = []
+
 		//出来るだけ同じ数になるように分割
 		const requestTargetIds = Array.from(requestIds);
 		const chunkCount = Math.ceil(requestTargetIds.length / YouTubeDataAPI.CHUNK_SIZE);
@@ -80,6 +83,8 @@ export class YouTubeScheduleUpdater
 				continue;
 			}
 
+			allSchedules.push(...schedules);
+
 			// APIから返ってこなかったIDを削除対象に追加
 			for (const videoId of chunk) {
 				if (!foundIds.has(videoId)) {
@@ -87,8 +92,11 @@ export class YouTubeScheduleUpdater
 				}
 			}
 
-			// DBに保存
-			await this.youtubeRepository.saveSchedulesAsync(schedules);
+		}
+		
+		// DBに保存
+		if (allSchedules.length > 0) {
+			await this.youtubeRepository.saveSchedulesAsync(allSchedules);
 		}
 
 		// レスポンスを受け取りながらも乗っていないデータは非公開や削除がされている
