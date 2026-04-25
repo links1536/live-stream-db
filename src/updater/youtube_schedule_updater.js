@@ -2,12 +2,14 @@
 
 import { YouTubeScheduleRepository } from "../repository/youtube_schedule_repository.js";
 import { VTuberRepository } from "../repository/vtuber_repository.js";
-import { YouTubeDataAPI } from "../api/youtube_data_api.js";
+import { YouTubeDataAPI, CHUNK_SIZE } from "../api/youtube_data_api.js";
 import { HttpUtils } from "../httputils.js";
+import { DisplayScheduleQueryService } from "../query_service/diplay_schedule_query.js";
 
 // --- 設定 ---
-const BEFORE_DAYS = 1;
-const AFTER_DAYS = 7;
+const MS_PER_DAY = 86400000;
+const BEFORE_DAYS = 1 * MS_PER_DAY;
+const AFTER_DAYS = 7 * MS_PER_DAY;
 const OUTPUT_KEY = "lives.json";
 
 export class YouTubeScheduleUpdater
@@ -17,6 +19,7 @@ export class YouTubeScheduleUpdater
 		this.youtubeRepository = new YouTubeScheduleRepository(env.DB);
 		this.vtuberRepository = new VTuberRepository(env.DB);
 		this.youtubeDataApi = new YouTubeDataAPI(env.YOUTUBE_DATA_API_KEY);
+		this.diplayScheduleQuery = new DisplayScheduleQueryService(env.DB);
 
 		const doId = env.YOUTUBE_NOTICES_CACHE.idFromName("rss-key-cache");
 		this.youtubeNoticesCache = env.YOUTUBE_NOTICES_CACHE.get(doId);
@@ -27,80 +30,81 @@ export class YouTubeScheduleUpdater
 	async saveDataJson(currentDate)
 	{
 		// 期間外クリーンアップ用の現在時刻
-		const msPerDay = 86400000;
-		const startLimit = (currentDate - BEFORE_DAYS * msPerDay);
-		const endLimit = (currentDate + AFTER_DAYS * msPerDay);
+		const startLimit = (currentDate - BEFORE_DAYS);
+		const endLimit = (currentDate + AFTER_DAYS);
 
 		// DBからアクティブな配信（表示期間内）のみを抽出
-		const displaySchedules = await this.youtubeRepository.loadActiveSchedulesAsync(startLimit, endLimit);
+		const displaySchedules = await this.diplayScheduleQuery.loadSchedulesAsync(startLimit, endLimit);
 
 		const publicData = {
 			updated_at: new Date(currentDate).toISOString(),
 			all_schedules: displaySchedules,
 		};
 
-		const publicDataStr = JSON.stringify(publicData);
-		const newHash = await HttpUtils.digestHash(publicDataStr);
+		//const publicDataStr = JSON.stringify(publicData);
+		//await this.livesJsonStore.put(OUTPUT_KEY, publicDataStr);
 
-		// 前回のメタデータを取得してハッシュ比較
-		const { metadata } = await this.livesJsonStore.getWithMetadata(OUTPUT_KEY);
-		if (metadata?.dataHash === newHash) {
-			console.log(`Schedules in ${OUTPUT_KEY} unchanged. Skip generating.`);
-			return;
-		}
-
-		await this.livesJsonStore.put(OUTPUT_KEY, publicDataStr, {
-			metadata: { dataHash: newHash }
-		});
 		console.log(`Generated ${OUTPUT_KEY} (${displaySchedules.length} streams)`);
 	}
 
+	/**
+	 * ステータス更新メインロジック
+	 */
 	async updateSchedules()
 	{
-		// マスター読み込み
-		const youtubeIdMap = await this.vtuberRepository.loadYouTubeMapAsync();
-		if (!youtubeIdMap || youtubeIdMap.length <= 0)
-			return;
+		const removedIds = new Set();
 
-		// キャッシュ読み込み
-		let totalSchedules = (await this.youtubeRepository.loadSchedulesAsync()) || {};
+		// キャッシュ済みIDを読み込み
+		const targetIds = await this.youtubeRepository.getScheduleIdsAsync();
 
 		// リクエスト対象ID
-		const requestIds = new Set(Object.keys(totalSchedules));
+		const requestIds = new Set(targetIds);
 
 		// 単体IDキャッシュ
 		const singleVideoIds = await this.youtubeNoticesCache.getAll();
-
-		if (singleVideoIds?.length) {
+		if (singleVideoIds != null && singleVideoIds.length > 0) {
 			for (const id of singleVideoIds) {
 				requestIds.add(id);
 			}
 		}
 
-		console.log(`Checking ${requestIds.size} video IDs...`);
+		console.log(`Checking ${requestIds.length} video IDs...`);
 
-		// YouTube Data API 呼び出し
-		const apiResult = await this.youtubeDataApi.getVideoInfosAsync(
-			Array.from(requestIds),
-			youtubeIdMap
-		);
-		const [response, startTimes, removedIds] = apiResult;
+		for (let i = 0; i < requestIds.length; i += CHUNK_SIZE) {
+			const chunk = requestIds.slice(i, i + CHUNK_SIZE);
+			try {
+				const [schedules, foundIds] = youtubeDataApi.getVideoInfosAsync(chunk);
+				if (schedules == null || schedules.length <= 0
+				 || foundIds == null || foundIds.length <= 0
+				) {
+					continue;
+				}
 
-		// 削除対象をDBから削除
-		const ridList = Array.from(removedIds);
-		if (ridList.length > 0) {
-			await this.youtubeRepository.deleteSchedulesAsync(ridList);
+				// APIから返ってこなかったIDを削除対象に追加
+				for (const videoId of chunk) {
+					if (!foundIds.has(videoId)) {
+						removedIds.add(videoId);
+					}
+				}
+
+				// DBに保存
+				this.youtubeRepository.saveSchedulesAsync(schedules);
+			}
+			catch (e) {
+				//エラーがあって処理できなかったIDはなにもしない
+				console.error(`API Error: ${e.message}`);
+				continue;
+			}
 		}
 
-		// 最新データでDBを更新
-		if (Object.keys(response).length > 0) {
-			await this.youtubeRepository.saveSchedulesAsync(response);
+		// レスポンスを受け取りながらも乗っていないデータは非公開や削除がされている
+		if (removedIds.length > 0) {
+			this.youtubeRepository.deleteSchedulesAsync(removedIds);
 		}
 
 		// 期間外クリーンアップ
 		const currentDate = new Date().getTime();
-		const msPerDay = 86400000;
-		const startLimitIso = new Date(currentDate - BEFORE_DAYS * msPerDay).toISOString();
+		const startLimitIso = new Date(currentDate - BEFORE_DAYS).toISOString();
 		await this.youtubeRepository.cleanupOldSchedulesAsync(startLimitIso);
 
 		console.log(`Update complete: ${Object.keys(response).length} active, ${ridList.length} removed.`);
@@ -116,10 +120,9 @@ export class YouTubeScheduleUpdater
 					deleteSingleVideoIds.push(id);
 				}
 			}
-		}
-
-		if (deleteSingleVideoIds.length > 0) {
-			await this.youtubeNoticesCache.deleteListAsync(deleteSingleVideoIds);
+			if (deleteSingleVideoIds.length > 0) {
+				await this.youtubeNoticesCache.deleteListAsync(deleteSingleVideoIds);
+			}
 		}
 	}
 }

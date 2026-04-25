@@ -1,5 +1,10 @@
 import { HttpUtils } from "../httputils.js";
 
+// --- 設定 ---
+const YOUTUBE_API_ENDPOINT = "https://www.googleapis.com/youtube/v3/videos";
+const YOUTUBE_API_PART = "snippet,liveStreamingDetails";
+const CHUNK_SIZE = 50;
+
 export class YouTubeDataAPI
 {
 	/**
@@ -8,101 +13,62 @@ export class YouTubeDataAPI
 	constructor(apiKey)
 	{
 		this.apiKey = apiKey;
-		this.youtubeUrl = "https://www.googleapis.com/youtube/v3/videos";
+		this.youtubeDataApiUrlBase = `${YOUTUBE_API_ENDPOINT}?part=${YOUTUBE_API_PART}&maxResults=${CHUNK_SIZE}`;
 	}
 
 	/**
 	 * ステータス更新メインロジック
 	 */
-	async getVideoInfosAsync(targetIds, vtuberMap)
+	async getVideoInfosAsync(targetIds)
 	{
 		if (!this.apiKey) {
 			console.error("[ERROR] YouTube APIキーが設定されていません");
-			return [{}, {}, new Set()];
+			return [{}, new Set()];
 		}
 
-		const chunkSize = 50;
-		const videos = {};
-		const removedIds = new Set();
-		const startTimes = {};
+		const ids = targetIds.join(",");
+		const requestUrl = `${this.youtubeDataApiUrlBase}?key=${this.apiKey}`;
 
-		for (let i = 0; i < targetIds.length; i += chunkSize) {
-			const chunk = targetIds.slice(i, i + chunkSize);
-			try {
-				const ids = chunk.join(",");
-				const requestUrl = `${this.youtubeUrl}?key=${this.apiKey}&part=snippet,liveStreamingDetails&id=${ids}&maxResults=${chunkSize}`;
+		const response = await HttpUtils.get(requestUrl);
+		if (!response.ok) {
+			//エラーがあって処理できなかったIDはなにもしない
+			console.error(`API Error: ${response.status}`);
+			return [{}, new Set()];
+		}
 
-				const response = await HttpUtils.get(requestUrl);
-				if (!response.ok) {
-					//エラーがあって処理できなかったIDはなにもしない
-					console.error(`API Error: ${response.status}`);
-					continue;
-				}
+		const schedules = []
+		const foundIds = new Set();
 
-				const data = await response.json();
-				const foundIds = new Set();
-
-				const items = data.items || [];
-				for (const item of items) {
-					const videoId = item.id;
-					foundIds.add(videoId);
-					
-					// 配信情報がない場合は対象外
-					const live = item.liveStreamingDetails;
-					if (!live) {
-						removedIds.add(videoId);
-						continue;
-					}
-
-					const snippet = item.snippet;
-					const vtuber = vtuberMap[snippet.channelId];
-
-					if (!vtuber) {
-						removedIds.add(videoId);
-						continue;
-					}
-
-					const startTimeStr = live.scheduledStartTime || live.actualStartTime;
-
-					// サムネイル選択をインライン化
-					const thumbnails = snippet.thumbnails;
-					const thumb = thumbnails ? (thumbnails.standard || thumbnails.high || thumbnails.medium || thumbnails.default) : null;
-
-					// オブジェクト作成を1回にまとめて最小化
-					videos[videoId] = {
-						streamer_name: vtuber.Name || null,
-						color: vtuber.Color || null,
-						agency: vtuber.Agency || null,
-						tags: vtuber.Tags || [],
-						video_id: videoId,
-						title: snippet.title || null,
-						thumbnail: thumb ? thumb.url : "",
-						start_time_iso: startTimeStr || null,
-						status: live.actualEndTime ? "archived" :
-								live.actualStartTime ? "live" : "upcoming"
-					};
-
-					if (startTimeStr) {
-						// JSのDateオブジェクトはISO 8601形式をそのままパース可能
-						startTimes[videoId] = Date.parse(startTimeStr);
-					}
-				}
-
-				// APIから返ってこなかったIDを削除対象に追加
-				for (const videoId of chunk) {
-					if (!foundIds.has(videoId)) {
-						removedIds.add(videoId);
-					}
-				}
-
-			}
-			catch (e) {
-				//エラーがあって処理できなかったIDはなにもしない
-				console.error(`API Error: ${e.message}`);
+		const data = await response.json();
+		const items = data.items || [];
+		for (const item of items) {
+			const videoId = item.id;
+			foundIds.add(videoId);
+			
+			// 配信情報がない場合は対象外
+			const snippet = item.snippet;
+			const live = item.liveStreamingDetails;
+			if (!live)
 				continue;
-			}
+
+			// サムネイル選択をインライン化
+			const thumbnails = snippet.thumbnails;
+			const thumbnail = thumbnails ? (thumbnails.standard || thumbnails.high || thumbnails.medium || thumbnails.default) : null;
+			// 配信開始時間
+			const startTimeStr = live.scheduledStartTime || live.actualStartTime;
+
+			// オブジェクト作成を1回にまとめて最小化
+			schedules.push({
+				video_id: videoId,
+				channel_id: snippet.channelId,
+				title: snippet.title || null,
+				thumbnail: thumbnail ? thumbnail.url : "",
+				start_time_iso: startTimeStr || null,
+				status: live.actualEndTime ? "archived" :
+						live.actualStartTime ? "live" : "upcoming"
+			});
 		}
 
-		return [videos, startTimes, removedIds];
+		return [schedules, foundIds];
 	}
 }
