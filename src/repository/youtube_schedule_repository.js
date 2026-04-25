@@ -40,20 +40,24 @@ export class YouTubeScheduleRepository
 	{
 		try {
 			// 表示期間内のものを取得
+			const startLimitIso = new Date(startLimit).toISOString();
+			const endLimitIso = new Date(endLimit).toISOString();
 			const { results } = await this.db.prepare(
-				"SELECT * FROM schedules WHERE start_time_iso IS NOT NULL"
-			).all();
+				`
+				SELECT * FROM schedules
+				WHERE start_time_iso IS NOT NULL
+				AND start_time_iso >= ? AND start_time_iso <= ?
+				`
+			)
+			.bind(startLimitIso, endLimitIso)
+			.all();
 			
-			// フィルタリング（本来はSQLのWHEREで行うのが理想的だが、startLimitの比較のためJS側で実施）
+			// プログラムで扱う為の形に整形して返す
 			return results
 				.map(row => ({
 					...row,
 					tags: row.tags ? JSON.parse(row.tags) : []
-				}))
-				.filter(video => {
-					const startTime = Date.parse(video.start_time_iso);
-					return startTime >= startLimit && startTime <= endLimit;
-				});
+				}));
 		}
 		catch (e) {
 			console.error(`Failed to load active schedules: ${e.message}`);
