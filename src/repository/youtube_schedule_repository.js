@@ -64,7 +64,7 @@ export class YouTubeScheduleRepository
 			) VALUES (?, ?, ?, ?, ?, ?)
 		`);
 
-		for (const schedule in schedules) {
+		for (const schedule of schedules) {
 			console.log(`video_id: ${schedule.video_id}`);
 			console.log(`channel_id: ${schedule.channel_id}`);
 			console.log(`title: ${schedule.title}`);
