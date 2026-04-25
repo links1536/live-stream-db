@@ -12,7 +12,7 @@ export class YouTubeDataAPI
 	constructor(apiKey)
 	{
 		this.apiKey = apiKey;
-		this.youtubeDataApiUrlBase = `${YOUTUBE_API_ENDPOINT}?part=${YOUTUBE_API_PART}&maxResults=${YouTubeDataAPI.CHUNK_SIZE}`;
+		this.youtubeDataApiUrlBase = `${YOUTUBE_API_ENDPOINT}?key=${this.apiKey}&part=${YOUTUBE_API_PART}&maxResults=${YouTubeDataAPI.CHUNK_SIZE}`;
 	}
 
 	static get CHUNK_SIZE()
@@ -32,7 +32,7 @@ export class YouTubeDataAPI
 		}
 
 		const ids = targetIds.join(",");
-		const requestUrl = `${this.youtubeDataApiUrlBase}?key=${this.apiKey}`;
+		const requestUrl = `${this.youtubeDataApiUrlBase}&id=${ids}`;
 
 		const response = await HttpUtils.get(requestUrl);
 		if (!response.ok) {
