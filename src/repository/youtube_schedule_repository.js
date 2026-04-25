@@ -56,7 +56,6 @@ export class YouTubeScheduleRepository
 		if (schedules.length === 0)
 			return;
 
-		console.log(`保存: ${schedules.title}`);
 		const stmt = this.db.prepare(`
 			INSERT OR REPLACE INTO youtube_schedules (
 				video_id, channel_id, 
@@ -66,13 +65,6 @@ export class YouTubeScheduleRepository
 
 		const batch = [];
 		for (const schedule of schedules) {
-			console.log(`video_id: ${schedule.video_id}`);
-			console.log(`channel_id: ${schedule.channel_id}`);
-			console.log(`title: ${schedule.title}`);
-			console.log(`thumbnail: ${schedule.thumbnail}`);
-			console.log(`start_time_iso: ${schedule.start_time_iso}`);
-			console.log(`status: ${schedule.status}`);
-	
 			batch.push(
 				stmt.bind(
 					schedule.video_id,
@@ -84,7 +76,6 @@ export class YouTubeScheduleRepository
 				)
 			);
 		}
-		console.log(`bind end`);
 
 		const results = await this.db.batch(batch);
 		const totalChanges = results.reduce((sum, res) => sum + (res.meta?.changes || 0), 0);
