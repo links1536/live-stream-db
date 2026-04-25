@@ -4,32 +4,113 @@ const MASTER_YOUTUBE_MAP_KEY = "streamers_youtube_map.json"
 
 export class VTuberRepository
 {
-	constructor(kv_master, db)
+	constructor(db)
 	{
-		this.masterStore = kv_master;
 		this.db = db;
 	}
 
 	/**
-	 * KVからマスターデータを読み込む
+	 * DBからマスターデータを読み込む
+	 * merge.pyのスキーマに基づいて、VTuberと関連データを統合して返す
 	 */
 	async loadMasterDataAsync()
 	{
-		const data = await this.masterStore.get(MASTER_DATA_KEY);
-		if (data)
-			return JSON.parse(data);
-		return [];
+		try {
+			const { results: vtubers } = await this.db.prepare(`
+				SELECT 
+					v.id,
+					v.name,
+					v.agency,
+					v.color
+				FROM vtubers v
+				ORDER BY v.id
+			`).all();
+
+			const masterData = [];
+
+			for (const vtuber of vtubers) {
+				// タグを取得
+				const { results: tagResults } = await this.db.prepare(`
+					SELECT tag FROM tags WHERE vtuber_id = ?
+				`).bind(vtuber.id).all();
+				const tags = tagResults.map(r => r.tag).filter(Boolean);
+
+				// YouTube チャンネル ID を取得
+				const { results: youtubeResults } = await this.db.prepare(`
+					SELECT channel_id FROM youtube_channels WHERE vtuber_id = ?
+				`).bind(vtuber.id).all();
+				const youtubeIds = youtubeResults.map(r => r.channel_id).filter(Boolean);
+
+				// Twitch ユーザーを取得
+				const { results: twitchResults } = await this.db.prepare(`
+					SELECT user_login FROM twitch_users WHERE vtuber_id = ?
+				`).bind(vtuber.id).all();
+				const twitchIds = twitchResults.map(r => r.user_login).filter(Boolean);
+
+				// TwitCasting ユーザーを取得
+				const { results: twitcastingResults } = await this.db.prepare(`
+					SELECT screen_id FROM twitcasting_users WHERE vtuber_id = ?
+				`).bind(vtuber.id).all();
+				const twitcastingIds = twitcastingResults.map(r => r.screen_id).filter(Boolean);
+
+				// VTuber エントリを構築
+				const entry = {
+					Name: vtuber.name,
+					Agency: vtuber.agency,
+					Color: vtuber.color
+				};
+
+				if (tags.length > 0) entry.Tags = tags;
+				if (youtubeIds.length > 0) entry.YouTubeID = youtubeIds;
+				if (twitchIds.length > 0) entry.TwitchID = twitchIds;
+				if (twitcastingIds.length > 0) entry.TwitCastingID = twitcastingIds;
+
+				masterData.push(entry);
+			}
+
+			return masterData;
+		}
+		catch (e) {
+			console.error(`Failed to load master data: ${e.message}`);
+			return [];
+		}
 	}
 
 	/**
 	 * YouTube ID マップを読み込む
+	 * YouTubeID -> VTuber 情報へのマッピング
 	 */
 	async loadYouTubeMapAsync()
 	{
-		const data = await this.masterStore.get(MASTER_YOUTUBE_MAP_KEY);
-		if (data)
-			return JSON.parse(data);
-		return {};
+		try {
+			const { results } = await this.db.prepare(`
+				SELECT 
+					yc.channel_id,
+					v.id,
+					v.name,
+					v.agency,
+					v.color
+				FROM youtube_channels yc
+				JOIN vtubers v ON yc.vtuber_id = v.id
+			`).all();
+
+			const youtubeMap = {};
+
+			for (const row of results) {
+				youtubeMap[row.channel_id] = {
+					id: row.id,
+					name: row.name,
+					agency: row.agency,
+					color: row.color
+				};
+			}
+
+			return youtubeMap;
+		}
+		catch (e) {
+			console.error(`Failed to load YouTube map: ${e.message}`);
+			return {};
+		}
 	}
 
 	/**
