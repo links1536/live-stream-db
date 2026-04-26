@@ -11,7 +11,12 @@ export class YouTubeDataAPI
 	 */
 	constructor(apiKey)
 	{
-		this.apiKey = apiKey;
+		Object.defineProperty(this, 'apiKey', {
+			value: apiKey,
+			writable: false,
+			enumerable: false,
+			configurable: false
+		});
 		this.youtubeDataApiUrlBase = `${YOUTUBE_API_ENDPOINT}?key=${this.apiKey}&part=${YOUTUBE_API_PART}&maxResults=${YouTubeDataAPI.CHUNK_SIZE}`;
 	}
 

@@ -7,8 +7,19 @@ export class YouTubeWebSub
 {
 	constructor(verifyToken, secret)
 	{
-		this.verifyToken = verifyToken;
-		this.secret = secret;
+		Object.defineProperty(this, 'verifyToken', {
+			value: verifyToken,
+			writable: false,
+			enumerable: false,
+			configurable: false
+		});
+		
+		Object.defineProperty(this, 'secret', {
+			value: secret,
+			writable: false,
+			enumerable: false,
+			configurable: false
+		});
 	}
 
 	/**
