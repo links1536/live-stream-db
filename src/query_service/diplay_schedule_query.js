@@ -76,6 +76,7 @@ export class DisplayScheduleQueryService
 								'color', color,
 								'agency', agency,
 								'tags', IIF(tags IS NULL, json_array(), json_array(tags)),
+								'video_id', video_id,
 								'title', title,
 								'thumbnail', thumbnail,
 								'start_time_iso', start_time_iso,
