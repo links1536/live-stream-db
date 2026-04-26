@@ -14,9 +14,11 @@ export class YouTubeNoticesCache extends DurableObject
 	async bulkAdd(videoIds)
 	{
 		if (videoIds) {
-			for (const videoId of videoIds) {
-				await this.ctx.storage.put(videoId, true);
+			const entries = {};
+			for (const id of videoIds) {
+				entries[id] = true;
 			}
+			await this.ctx.storage.put(entries);
 		}
 	}
 
@@ -29,9 +31,7 @@ export class YouTubeNoticesCache extends DurableObject
 	async deleteListAsync(videoIds)
 	{
 		if (videoIds) {
-			for (const videoId of videoIds) {
-				await this.ctx.storage.delete(videoId);
-			}
+			await this.ctx.storage.delete(Array.from(videoIds));
 		}
 	}
 }
