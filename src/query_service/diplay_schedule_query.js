@@ -67,7 +67,7 @@ export class DisplayScheduleQueryService
 		const { results } = await this.db.prepare(`
 			SELECT 
 				json_object(
-					'updated_at', ?,
+					'updated_at', ?1,
 					'all_schedules', 
 					COALESCE(
 						json_group_array(
@@ -89,8 +89,8 @@ export class DisplayScheduleQueryService
 				COUNT(*) AS schedule_count 
 			FROM display_schedules
 			WHERE start_time_iso IS NOT NULL
-			AND start_time_iso >= ?
-			AND start_time_iso <= ?
+				AND start_time_iso >= ?2
+				AND start_time_iso <= ?3
 		`)
 		.bind(new Date(currentDate).toISOString(), startLimitIso, endLimitIso)
 		.raw();
