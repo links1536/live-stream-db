@@ -100,7 +100,6 @@ export class DisplayScheduleQueryService
 		const count = queryResult?.schedule_count ?? 0;
 
 		console.log('results:', queryResult);
-		console.log(`row: ${row}`)
 		console.log(`json: ${publicDataJsonStr}`)
 		console.log(`count: ${count}`)
 		return [publicDataJsonStr, count];
