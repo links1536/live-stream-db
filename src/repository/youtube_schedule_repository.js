@@ -107,7 +107,7 @@ export class YouTubeScheduleRepository
 			console.log(`D1: Cleaned up ${result.meta.changes} items from schedules table.`);
 			
 			// 変更があったかを返す
-			return result.meta.changes > 0;
+			return result.meta.changes;
 		}
 		else{
 			const result = await this.db.prepare("DELETE FROM youtube_schedules WHERE start_time_iso < ?")
@@ -115,7 +115,7 @@ export class YouTubeScheduleRepository
 			console.log(`D1: Cleaned up ${result.meta.changes} items from schedules table.`);
 
 			// 変更があったかを返す
-			return result.meta.changes > 0;
+			return result.meta.changes;
 		}
 	}
 }

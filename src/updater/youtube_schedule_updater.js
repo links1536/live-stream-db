@@ -97,12 +97,13 @@ export class YouTubeScheduleUpdater
 		// 期間外クリーンアップ
 		const currentDate = new Date().getTime();
 		const startLimitIso = new Date(currentDate - BEFORE_DAYS).toISOString();
-		modifySchedules |= 	await this.youtubeRepository.cleanupSchedulesAsync(removedIds, startLimitIso);
+		const cleanupCount = await this.youtubeRepository.cleanupSchedulesAsync(removedIds, startLimitIso);
+		modifySchedules |= cleanupCount > 0;
 
 		// 受け取れた動画IDと削除された動画IDの数をログに出す
 		const removeCount = removedIds.size;
 		const foundCount = requestTargetIds.length - removeCount;
-		console.log(`Update complete: ${foundCount} active, ${removeCount} removed.`);
+		console.log(`Update complete: ${foundCount} active, ${removeCount} removed, ${cleanupCount} cleaned.`);
 		
 	
 		// 処理が成功したので、単体IDキャッシュを削除する
