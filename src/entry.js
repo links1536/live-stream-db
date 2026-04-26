@@ -119,16 +119,30 @@ export default {
 			case env.QUEUE_NAME_YOUTUBE_RSS_FEED:
 				const rssUpdater = new YouTubeRssFeedUpdater(env);
 
-				var channelIds = [];
+				const channelIds = [];
 				for (const msg of batch.messages) {
-					channelIds.push(msg.body);
-					msg.ack();
+					const channelId = msg.body?.trim();
+					if (channelId)
+						channelIds.push(channelId);
+					else {
+						console.warn("[WARN] Empty channel ID in queue message");
+						msg.ack();
+					}
 				}
 
-				await rssUpdater.fetchNewSchedulesByTargets(channelIds);
+				if (channelIds.length > 0) {
+					await rssUpdater.fetchNewSchedulesByTargets(channelIds);
+					
+					// 処理成功後に全ackを送信
+					for (const msg of batch.messages) {
+						msg.ack();
+					}
+					console.info(`[INFO] Processed ${channelIds.length} channels`);
+				}
 				break;
 			default:
 				console.error(`Unknown queue: ${batch.queue}`);
+				break;
 		}
 	},
 };
