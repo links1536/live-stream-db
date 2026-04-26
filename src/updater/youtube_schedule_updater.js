@@ -32,6 +32,7 @@ export class YouTubeScheduleUpdater
 		const startLimit = (currentDate - BEFORE_DAYS);
 		const endLimit = (currentDate + AFTER_DAYS);
 
+		/*
 		// DBからアクティブな配信（表示期間内）のみを抽出
 		const displaySchedules = await this.diplayScheduleQuery.loadActiveSchedulesAsync(startLimit, endLimit);
 
@@ -41,6 +42,11 @@ export class YouTubeScheduleUpdater
 		};
 
 		const publicDataStr = JSON.stringify(publicData);
+		await this.livesJsonStore.put(OUTPUT_KEY, publicDataStr);
+		*/
+		
+		// DBからアクティブな配信（表示期間内）のみをJson形式で抽出
+		const publicDataStr = await this.diplayScheduleQuery.loadActiveSchedulesJsonAsyncsAsync(currentDate, startLimit, endLimit);
 		await this.livesJsonStore.put(OUTPUT_KEY, publicDataStr);
 
 		console.log(`Generated ${OUTPUT_KEY} (${displaySchedules.length} streams)`);
