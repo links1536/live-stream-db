@@ -68,7 +68,7 @@ export class YouTubeWebSubUpdater
 
 		if (videoIds && videoIds.length > 0) {
 			for (const videoId of videoIds) {
-				await this.youtubeNoticesCache.add(videoId);
+				await this.youtubeNoticesCache.addAsync(videoId);
 			}
 			console.log(`✅ Received ${videoIds.length} new video(s) from WebSub`);
 		}

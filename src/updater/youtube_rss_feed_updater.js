@@ -81,7 +81,7 @@ export class YouTubeRssFeedUpdater {
 
 			// 動画IDをキャッシュ（Durable Object）に追加
 			if (videoIds.length > 0) {
-				await this.youtubeNoticesCache.bulkAdd(videoIds);
+				await this.youtubeNoticesCache.bulkAddAsync(videoIds);
 
 				// チャンネルごとの最終更新日時を記録（新着があった場合のみ）
 				lastUpdated[channelId] = currentDate.toISOString();

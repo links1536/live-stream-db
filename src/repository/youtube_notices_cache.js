@@ -6,12 +6,12 @@ export class YouTubeNoticesCache extends DurableObject
 		super(ctx, env);
 	}
 
-	async add(videoId)
+	async addAsync(videoId)
 	{
 		await this.ctx.storage.put(videoId, true);
 	}
 
-	async bulkAdd(videoIds)
+	async bulkAddAsync(videoIds)
 	{
 		if (videoIds) {
 			const entries = {};
@@ -22,13 +22,13 @@ export class YouTubeNoticesCache extends DurableObject
 		}
 	}
 
-	async getAll()
+	async getAllAsync()
 	{
 		const keysMap = await this.ctx.storage.list();
 		return Array.from(keysMap.keys());
 	}
 
-	async deleteListAsync(videoIds)
+	async bulkDeleteAsync(videoIds)
 	{
 		if (videoIds) {
 			await this.ctx.storage.delete(Array.from(videoIds));
