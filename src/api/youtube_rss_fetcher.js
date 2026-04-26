@@ -20,7 +20,7 @@ export class YouTubeRSSFetcher
 			const response = await HttpUtils.get(url);
 
 			if (!response.ok) {
-				console.log(`❌ RSS Error ${channel_id} - {response.status}`);
+				console.log(`❌ RSS Error ${channelId} - {response.status}`);
 				return null;
 			}
 
