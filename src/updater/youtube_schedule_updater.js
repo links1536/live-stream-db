@@ -50,6 +50,7 @@ export class YouTubeScheduleUpdater
 		await this.livesJsonStore.put(OUTPUT_KEY, publicDataStr);
 
 		console.log(`Generated ${OUTPUT_KEY} (${count} streams)`);
+		console.log(publicDataStr);
 	}
 
 	/**
