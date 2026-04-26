@@ -47,7 +47,7 @@ export class YouTubeScheduleUpdater
 		
 		// DBからアクティブな配信（表示期間内）のみをJson形式で抽出
 		const  [publicDataStr, count] = await this.diplayScheduleQuery.loadActiveSchedulesJsonAsync(currentDate, startLimit, endLimit);
-		await this.livesJsonStore.put(OUTPUT_KEY, publicDataStr);
+		//await this.livesJsonStore.put(OUTPUT_KEY, publicDataStr);
 
 		console.log(`Generated ${OUTPUT_KEY} (${count} streams)`);
 		console.log(publicDataStr);
