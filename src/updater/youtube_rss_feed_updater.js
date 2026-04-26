@@ -44,6 +44,7 @@ export class YouTubeRssFeedUpdater {
 		const rssFetcher = new YouTubeRSSFetcher();
 		
 		const currentTime = DateTimeUtils.getCurrentTime();
+		const currentDateIso = new Date(currentTime).toISOString();
 		const [beforeTime, afterTime] = DateTimeUtils.getLimitTime(currentTime);
 
 		for (const channelId of channelIds) {
@@ -83,7 +84,7 @@ export class YouTubeRssFeedUpdater {
 				await this.youtubeNoticesCache.bulkAddAsync(videoIds);
 
 				// チャンネルごとの最終更新日時を記録（新着があった場合のみ）
-				lastUpdated[channelId] = currentDate.toISOString();
+				lastUpdated[channelId] = currentDateIso;
 			}
 		}
 
