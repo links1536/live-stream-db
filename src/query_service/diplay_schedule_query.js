@@ -75,7 +75,7 @@ export class DisplayScheduleQueryService
 								'streamer_name', streamer_name,
 								'color', color,
 								'agency', agency,
-								'tags', IIF(tags IS NULL, json_array(), json_array(tags)) 
+								'tags', IIF(tags IS NULL, json_array(), json_array(tags)),
 								'title', title,
 								'thumbnail', tithumbnailtle,
 								'start_time_iso', start_time_iso,
