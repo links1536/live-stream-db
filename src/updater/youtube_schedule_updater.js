@@ -5,6 +5,7 @@ import { VTuberRepository } from "../repository/vtuber_repository.js";
 import { YouTubeDataAPI } from "../api/youtube_data_api.js";
 import { DisplayScheduleQueryService } from "../query_service/diplay_schedule_query.js";
 import { DateTimeUtils } from "../datetime_utils.js";
+import { Log } from "../log.js";
 
 // --- 設定 ---
 const OUTPUT_KEY = "lives.json";
@@ -29,7 +30,7 @@ export class YouTubeScheduleUpdater
 		// DBからアクティブな配信（表示期間内）のみをJson形式で抽出
 		const  [publicDataStr, count] = await this.diplayScheduleQuery.loadActiveSchedulesJsonAsync(currentDateIso, startLimitIso, endLimitIso);
 		await this.livesJsonStore.put(OUTPUT_KEY, publicDataStr);
-		console.log(`Generated ${OUTPUT_KEY} (${count} streams)`);
+		Log.info("YouTubeScheduleUpdater", `Generated ${OUTPUT_KEY} (${count} streams)`);
 	}
 
 	/**
@@ -60,7 +61,7 @@ export class YouTubeScheduleUpdater
 		const requestTargetIds = Array.from(requestIds);
 		const chunkCount = Math.ceil(requestTargetIds.length / YouTubeDataAPI.CHUNK_SIZE);
 		const chunkSize = Math.min(YouTubeDataAPI.CHUNK_SIZE, Math.ceil(requestTargetIds.length / chunkCount));
-		console.log(`Checking ${requestTargetIds.length} video IDs...`);
+		Log.info("YouTubeScheduleUpdater", `Checking ${requestTargetIds.length} video IDs...`);
 		for (let i = 0; i < requestTargetIds.length; i += chunkSize) {
 			// チャンク単位でリクエストする
 			const chunk = requestTargetIds.slice(i, i + chunkSize);
@@ -98,7 +99,7 @@ export class YouTubeScheduleUpdater
 		// 受け取れた動画IDと削除された動画IDの数をログに出す
 		const removeCount = removedIds.size;
 		const foundCount = requestTargetIds.length - removeCount;
-		console.log(`Update complete: ${foundCount} active, ${removeCount} removed, ${cleanupCount} cleaned.`);
+		Log.info("YouTubeScheduleUpdater", `Update complete: ${foundCount} active, ${removeCount} removed, ${cleanupCount} cleaned.`);
 
 		// 処理が成功したので、単体IDキャッシュを削除する
 		if (singleVideoIds?.length) {

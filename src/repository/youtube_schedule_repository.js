@@ -1,4 +1,5 @@
 // repository/youtube_schedule_repository.js
+import { Log } from "../log.js";
 
 /**
  * YouTube Data APIを利用するクラス
@@ -21,7 +22,7 @@ export class YouTubeScheduleRepository
 			return results.map(r => r.video_id);
 		}
 		catch (e) {
-			console.error(`Failed to get schedule IDs: ${e.message}`);
+			Log.error("YouTubeScheduleRepository", `Failed to get schedule IDs: ${e.message}`);
 			return [];
 		}
 	}
@@ -43,7 +44,7 @@ export class YouTubeScheduleRepository
 			return schedules;
 		}
 		catch (e) {
-			console.error(`Failed to load schedules: ${e.message}`);
+			Log.error("YouTubeScheduleRepository", `Failed to load schedules: ${e.message}`);
 			return {};
 		}
 	}
@@ -89,7 +90,7 @@ export class YouTubeScheduleRepository
 
 		const results = await this.db.batch(batch);
 		const totalChanges = results.reduce((sum, res) => sum + (res.meta?.changes || 0), 0);
-		console.log(`D1: Updated ${totalChanges} / ${schedules.length} items in schedules table.`);
+		Log.info("YouTubeScheduleRepository", `D1: Updated ${totalChanges} / ${schedules.length} items in schedules table.`);
 
 		// 変更があったかを返す
 		return totalChanges > 0;
@@ -104,7 +105,7 @@ export class YouTubeScheduleRepository
 			const placeholders = videoIds.map(() => "?").join(",");
 			const result = await this.db.prepare(`DELETE FROM youtube_schedules WHERE start_time_iso < ? OR video_id IN (${placeholders})`)
 				.bind(startLimitIso, ...videoIds).run();
-			console.log(`D1: Cleaned up ${result.meta.changes} items from schedules table.`);
+			Log.info("YouTubeScheduleRepository", `D1: Cleaned up ${result.meta.changes} items from schedules table.`);
 			
 			// 変更があったかを返す
 			return result.meta.changes;
@@ -112,7 +113,7 @@ export class YouTubeScheduleRepository
 		else{
 			const result = await this.db.prepare("DELETE FROM youtube_schedules WHERE start_time_iso < ?")
 				.bind(startLimitIso).run();
-			console.log(`D1: Cleaned up ${result.meta.changes} items from schedules table.`);
+			Log.info("YouTubeScheduleRepository", `D1: Cleaned up ${result.meta.changes} items from schedules table.`);
 
 			// 変更があったかを返す
 			return result.meta.changes;

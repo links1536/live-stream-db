@@ -1,6 +1,7 @@
 import { YouTubeRSSFetcher } from "../api/youtube_rss_fetcher.js";
 import { VTuberRepository } from "../repository/vtuber_repository.js";
 import { DateTimeUtils } from "../datetime_utils.js";
+import { Log } from "../log.js";
 
 // --- 設定 ---
 export class YouTubeRssFeedUpdater {
@@ -32,7 +33,7 @@ export class YouTubeRssFeedUpdater {
 				if (!channelId)
 					continue;
 				await this.rssFeedTargetQueue.send(channelId);
-				console.log(`${streamerName} / ${channelId}: enqueue`);
+				Log.info("YouTubeRssFeedUpdater", `${streamerName} / ${channelId}: enqueue`);
 			}
 		}
 	}

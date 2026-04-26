@@ -1,4 +1,5 @@
 import { HttpUtils } from "../httputils.js";
+import { Log } from "../log.js";
 
 // --- 設定 ---
 const YOUTUBE_API_ENDPOINT = "https://www.googleapis.com/youtube/v3/videos";
@@ -42,7 +43,7 @@ export class YouTubeDataAPI
 	async getVideoInfosAsync(targetIds)
 	{
 		if (!this.apiKey) {
-			console.error("[ERROR] YouTube APIキーが設定されていません");
+			Log.error("YouTubeDataAPI", "YouTube APIキーが設定されていません");
 			return [null, null];
 		}
 
@@ -53,7 +54,7 @@ export class YouTubeDataAPI
 		if (!response.ok) {
 			// エラーがあって処理できなかったIDはなにもしない
 			// いろいろエラーに種類はあるけど、Workersの性質上細かくハンドリングするCPU時間はない
-			console.error(`API Error: ${response.status}`);
+			Log.error("YouTubeDataAPI", `API Error: ${response.status}`);
 			return [null, null];
 		}
 

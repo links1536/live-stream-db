@@ -1,4 +1,5 @@
 // repository/youtube_schedule_repository.js
+import { Log } from "../log.js";
 
 /**
  * YouTube Data APIを利用するクラス
@@ -38,7 +39,7 @@ export class DisplayScheduleQueryService
 				}));
 		}
 		catch (e) {
-			console.error(`Failed to load active schedules: ${e.message}`);
+			Log.error("DisplayScheduleQueryService", `Failed to load active schedules: ${e.message}`);
 			return [];
 		}
 	}

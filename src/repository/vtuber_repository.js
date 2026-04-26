@@ -1,3 +1,6 @@
+
+import { Log } from "../log.js";
+
 // --- 設定定数 ---
 const MASTER_DATA_KEY = "streamers.json"
 const MASTER_YOUTUBE_MAP_KEY = "streamers_youtube_map.json"
@@ -63,7 +66,7 @@ export class VTuberRepository
 			return masterData;
 		}
 		catch (e) {
-			console.error(`Failed to load master data: ${e.message}`);
+			Log.error("VTuberRepository", `Failed to load master data: ${e.message}`);
 			return [];
 		}
 	}
@@ -100,7 +103,7 @@ export class VTuberRepository
 			return youtubeMap;
 		}
 		catch (e) {
-			console.error(`Failed to load YouTube map: ${e.message}`);
+			Log.error("VTuberRepository", `Failed to load YouTube map: ${e.message}`);
 			return {};
 		}
 	}
@@ -119,7 +122,7 @@ export class VTuberRepository
 			return lastUpdated;
 		}
 		catch (e) {
-			console.error(`Failed to load last updated: ${e.message}`);
+			Log.error("VTuberRepository", `Failed to load last updated: ${e.message}`);
 			return {};
 		}
 	}
@@ -144,6 +147,6 @@ export class VTuberRepository
 
 		const results = await this.db.batch(batch);
 		const totalChanges = results.reduce((sum, res) => sum + (res.meta?.changes || 0), 0);
-		console.log(`D1: Updated ${totalChanges} / ${entries.length} items in rss_last_updated table.`);
+		Log.info("VTuberRepository", `D1: Updated ${totalChanges} / ${entries.length} items in rss_last_updated table.`);
 	}
 }

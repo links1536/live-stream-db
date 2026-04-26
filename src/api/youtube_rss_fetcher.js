@@ -1,4 +1,5 @@
 import { HttpUtils } from "../httputils.js";
+import { Log } from "../log.js";
 import { YouTubeDataAPI } from './youtube_data_api.js';
 
 export class YouTubeRSSFetcher
@@ -10,7 +11,7 @@ export class YouTubeRSSFetcher
 	{
 		// チャンネルID検証
 		if (!YouTubeDataAPI.validateChannelId(channelId)) {
-			console.error(`[YouTube RSS Fetcher] 無効なチャンネルIDです: ${channelId}`);
+			Log.error("YouTubeRSSFetcher", `無効なチャンネルIDです: ${channelId}`);
 			return;
 		}
 
@@ -20,7 +21,7 @@ export class YouTubeRSSFetcher
 			const response = await HttpUtils.get(url);
 
 			if (!response.ok) {
-				console.log(`❌ RSS Error ${channelId} - {response.status}`);
+				Log.error("YouTubeRSSFetcher", `❌ RSS Error ${channelId} - ${response.status}`);
 				return null;
 			}
 
@@ -45,7 +46,7 @@ export class YouTubeRSSFetcher
 			}
 		}
 		catch (e) {
-			console.error(`❌ RSS Error: ${e}`);
+			Log.error("YouTubeRSSFetcher", `❌ RSS Error ${channelId} - ${e}`);
 		}
 		return videoInfo;
 	}
