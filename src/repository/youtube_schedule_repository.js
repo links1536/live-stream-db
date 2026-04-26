@@ -47,9 +47,10 @@ export class YouTubeScheduleRepository
 				start_time_iso = EXCLUDED.start_time_iso,
 				status = EXCLUDED.status
 			WHERE 
-				title != EXCLUDED.title OR 
-				status != EXCLUDED.status OR
-				start_time_iso != EXCLUDED.start_time_iso
+				title IS NOT EXCLUDED.title OR 
+				thumbnail IS NOT EXCLUDED.thumbnail OR
+				start_time_iso IS NOT EXCLUDED.start_time_iso OR
+				status IS NOT EXCLUDED.status
 		`);
 
 		const batch = [];
