@@ -28,7 +28,7 @@ export class YouTubeScheduleUpdater
 	async saveDataJsonAsync(currentDateIso, startLimitIso, endLimitIso)
 	{
 		// DBからアクティブな配信（表示期間内）のみをJson形式で抽出
-		const  [publicDataStr, count] = await this.diplayScheduleQuery.loadActiveSchedulesJsonAsync(currentDateIso, startLimitIso, endLimitIso);
+		const [publicDataStr, count] = await this.diplayScheduleQuery.loadActiveSchedulesJsonAsync(currentDateIso, startLimitIso, endLimitIso);
 		await this.livesJsonStore.put(OUTPUT_KEY, publicDataStr);
 		Log.info("YouTubeScheduleUpdater", `Generated ${OUTPUT_KEY} (${count} streams)`);
 	}
