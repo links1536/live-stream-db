@@ -1,15 +1,17 @@
 // repository/youtube_schedule_repository.js
 import { Log } from "../log.js";
 
+const YOUTUBE_VIDEO_ID_KEY = "youtube_video_ids.json"
+
 /**
  * YouTube Data APIを利用するクラス
  */
-
 export class YouTubeScheduleRepository
 {
-	constructor(db)
+	constructor(db, kvCache)
 	{
 		this.db = db;
+		this.kvCache = kvCache;
 	}
 
 	/**
@@ -18,8 +20,12 @@ export class YouTubeScheduleRepository
 	async getScheduleIdsAsync()
 	{
 		try {
-			const { results } = await this.db.prepare("SELECT video_id FROM youtube_schedules").all();
-			return results.map(r => r.video_id);
+			//const { results } = await this.db.prepare("SELECT video_id FROM youtube_schedules").all();
+			//return results.map(r => r.video_id);
+
+			// KVからIDリストを取得する
+			var json = await this.kvCache.get(YOUTUBE_VIDEO_ID_KEY);
+			return JSON.parse(json);
 		}
 		catch (e) {
 			Log.error("YouTubeScheduleRepository", `Failed to get schedule IDs: ${e.message}`);
@@ -70,6 +76,12 @@ export class YouTubeScheduleRepository
 		const results = await this.db.batch(batch);
 		const totalChanges = results.reduce((sum, res) => sum + (res.meta?.changes || 0), 0);
 		Log.info("YouTubeScheduleRepository", `D1: Updated ${totalChanges} / ${schedules.length} items in schedules table.`);
+
+		// データ更新があるなら、KVのIDリストを更新する
+		if (totalChanges > 0) {
+			const videoIds = schedules.map(s => s.video_id);
+			await this.kvCache.put(YOUTUBE_VIDEO_ID_KEY, JSON.stringify(videoIds));
+		}
 
 		// 変更があったかを返す
 		return totalChanges > 0;

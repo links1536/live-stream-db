@@ -14,7 +14,7 @@ export class YouTubeScheduleUpdater
 {
 	constructor(env)
 	{
-		this.youtubeRepository = new YouTubeScheduleRepository(env.DB);
+		this.youtubeRepository = new YouTubeScheduleRepository(env.DB, env.KV_CACHE);
 		this.vtuberRepository = new VTuberRepository(env.DB);
 		this.youtubeDataApi = new YouTubeDataAPI(env.YOUTUBE_DATA_API_KEY);
 		this.diplayScheduleQuery = new DisplayScheduleQueryService(env.DB);
