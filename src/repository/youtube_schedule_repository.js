@@ -80,11 +80,11 @@ export class YouTubeScheduleRepository
 	 */
 	async cleanupSchedulesAsync(removeVideoIds, startLimitIso)
 	{
-		if (removeVideoIds != null && removeVideoIds.size > 0) {
+		if (removeVideoIds != null && removeVideoIds.length > 0) {
 			const placeholders = removeVideoIds.map(() => "?").join(",");
 			const result = await this.db.prepare(`DELETE FROM youtube_schedules WHERE start_time_iso < ? OR video_id IN (${placeholders})`)
 				.bind(startLimitIso, ...removeVideoIds).run();
-			Log.info("YouTubeScheduleRepository", `D1: Cleaned up ${result.meta.changes} (${removeVideoIds.size}) items from schedules table.`);
+			Log.info("YouTubeScheduleRepository", `D1: Cleaned up ${result.meta.changes} (${removeVideoIds.length}) items from schedules table.`);
 			
 			// 変更があったかを返す
 			return result.meta.changes;
