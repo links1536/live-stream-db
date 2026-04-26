@@ -98,12 +98,12 @@ export class YouTubeScheduleRepository
 	/**
 	 * 期間外の古いデータを一括削除する
 	 */
-	async cleanupSchedulesAsync(videoIds, limitIso)
+	async cleanupSchedulesAsync(videoIds, startLimitIso)
 	{
 		if (videoIds != null && videoIds.length > 0) {
 			const placeholders = videoIds.map(() => "?").join(",");
 			const result = await this.db.prepare(`DELETE FROM youtube_schedules WHERE start_time_iso < ? OR video_id IN (${placeholders})`)
-				.bind(limitIso, ...videoIds).run();
+				.bind(startLimitIso, ...videoIds).run();
 			console.log(`D1: Cleaned up ${result.meta.changes} items from schedules table.`);
 			
 			// 変更があったかを返す
@@ -111,7 +111,7 @@ export class YouTubeScheduleRepository
 		}
 		else{
 			const result = await this.db.prepare("DELETE FROM youtube_schedules WHERE start_time_iso < ?")
-				.bind(limitIso).run();
+				.bind(startLimitIso).run();
 			console.log(`D1: Cleaned up ${result.meta.changes} items from schedules table.`);
 
 			// 変更があったかを返す

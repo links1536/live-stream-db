@@ -4,11 +4,9 @@ import { YouTubeScheduleRepository } from "../repository/youtube_schedule_reposi
 import { VTuberRepository } from "../repository/vtuber_repository.js";
 import { YouTubeDataAPI } from "../api/youtube_data_api.js";
 import { DisplayScheduleQueryService } from "../query_service/diplay_schedule_query.js";
+import { DateTimeUtils } from "../datetime_utils.js";
 
 // --- 設定 ---
-const MS_PER_DAY = 86400000;
-const BEFORE_DAYS = 1 * MS_PER_DAY;
-const AFTER_DAYS = 7 * MS_PER_DAY;
 const OUTPUT_KEY = "lives.json";
 
 export class YouTubeScheduleUpdater
@@ -26,14 +24,10 @@ export class YouTubeScheduleUpdater
 		this.livesJsonStore = env.KV_OUTPUT;
 	}
 
-	async saveDataJsonAsync(currentDate)
+	async saveDataJsonAsync(currentDateIso, startLimitIso, endLimitIso)
 	{
-		// 期間外クリーンアップ用の現在時刻
-		const startLimit = (currentDate - BEFORE_DAYS);
-		const endLimit = (currentDate + AFTER_DAYS);
-
 		// DBからアクティブな配信（表示期間内）のみをJson形式で抽出
-		const  [publicDataStr, count] = await this.diplayScheduleQuery.loadActiveSchedulesJsonAsync(currentDate, startLimit, endLimit);
+		const  [publicDataStr, count] = await this.diplayScheduleQuery.loadActiveSchedulesJsonAsync(currentDateIso, startLimitIso, endLimitIso);
 		await this.livesJsonStore.put(OUTPUT_KEY, publicDataStr);
 		console.log(`Generated ${OUTPUT_KEY} (${count} streams)`);
 	}
@@ -95,8 +89,9 @@ export class YouTubeScheduleUpdater
 
 		// レスポンスを受け取りながらも乗っていないデータは非公開や削除がされている
 		// 期間外クリーンアップ
-		const currentDate = new Date().getTime();
-		const startLimitIso = new Date(currentDate - BEFORE_DAYS).toISOString();
+		const currentDate = DateTimeUtils.getCurrentDate();
+		const [startLimit, endLimit] = DateTimeUtils.getLimitDate(currentDate);
+		const startLimitIso = startLimit.toISOString();
 		const cleanupCount = await this.youtubeRepository.cleanupSchedulesAsync(removedIds, startLimitIso);
 		modifySchedules |= cleanupCount > 0;
 
@@ -104,8 +99,7 @@ export class YouTubeScheduleUpdater
 		const removeCount = removedIds.size;
 		const foundCount = requestTargetIds.length - removeCount;
 		console.log(`Update complete: ${foundCount} active, ${removeCount} removed, ${cleanupCount} cleaned.`);
-		
-	
+
 		// 処理が成功したので、単体IDキャッシュを削除する
 		if (singleVideoIds?.length) {
 			await this.youtubeNoticesCache.bulkDeleteAsync(singleVideoIds);
@@ -114,7 +108,10 @@ export class YouTubeScheduleUpdater
 		// 更新があればJson書き換え
 		if (!modifySchedules)
 			return;
+
 		// 公開用 JSON 生成
-		await this.saveDataJsonAsync(currentDate);
+		const currentDateIso = currentDate.toISOString();
+		const endLimitIso = endLimit.toISOString();
+		await this.saveDataJsonAsync(currentDateIso, startLimitIso, endLimitIso);
 	}
 }

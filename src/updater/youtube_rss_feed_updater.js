@@ -1,9 +1,8 @@
 import { YouTubeRSSFetcher } from "../api/youtube_rss_fetcher.js";
 import { VTuberRepository } from "../repository/vtuber_repository.js";
+import { DateTimeUtils } from "../datetime_utils.js";
 
 // --- 設定 ---
-const BEFORE_DAYS = 1;
-
 export class YouTubeRssFeedUpdater {
 	/**
 	 * ステータス更新メインロジック
@@ -44,14 +43,14 @@ export class YouTubeRssFeedUpdater {
 
 		const rssFetcher = new YouTubeRSSFetcher();
 		
-		const currentDate = new Date();
-		const limitDate = new Date(currentDate.getTime() - BEFORE_DAYS * 24 * 60 * 60 * 1000);
+		const currentTime = DateTimeUtils.getCurrentTime();
+		const [beforeTime, afterTime] = DateTimeUtils.getLimitTime(currentTime);
 
 		for (const channelId of channelIds) {
 		
 			// 前回の更新日時を取得 (デフォルトは1970年)
 			const lastUpdatedStr = lastUpdated[channelId] || "1970-01-01T00:00:00Z";
-			const lastUpdatedDate = new Date(lastUpdatedStr);
+			const lastUpdatedTime = new Date(lastUpdatedStr).getTime();
 
 			// RSS取得
 			const videos = await rssFetcher.getVideoInfo(channelId);
@@ -63,15 +62,15 @@ export class YouTubeRssFeedUpdater {
 
 			for (const video of videos) {
 				const videoId = video.video_id;
-				const updatedDate = new Date(video.updated);
+				const updatedTime = new Date(video.updated).getTime();
 
 				// BEFORE_DAYS(1日)より古い動画はスキップ
-				if (updatedDate < limitDate) {
+				if (updatedTime < beforeTime) {
 					continue;
 				}
 
 				// 前回更新日時(lastUpdatedDate)以下のものは飛ばす
-				if (updatedDate.getTime() <= lastUpdatedDate.getTime()) {
+				if (updatedTime <= lastUpdatedTime) {
 					continue;
 				}
 

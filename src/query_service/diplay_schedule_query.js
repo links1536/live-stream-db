@@ -43,10 +43,8 @@ export class DisplayScheduleQueryService
 		}
 	}
 
-	async loadActiveSchedulesJsonAsync(currentDate, startLimit, endLimit)
+	async loadActiveSchedulesJsonAsync(currentDateIso, startLimitIso, endLimitIso)
 	{
-		const startLimitIso = new Date(startLimit).toISOString();
-		const endLimitIso = new Date(endLimit).toISOString();
 
 		/*
 			{
@@ -92,7 +90,7 @@ export class DisplayScheduleQueryService
 				AND start_time_iso >= ?2
 				AND start_time_iso <= ?3
 		`)
-		.bind(new Date(currentDate).toISOString(), startLimitIso, endLimitIso)
+		.bind(currentDateIso, startLimitIso, endLimitIso)
 		.first();
 
 		// first() はオブジェクトを返すため、カラム名を指定して取得する
