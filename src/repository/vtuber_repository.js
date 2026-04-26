@@ -16,49 +16,38 @@ export class VTuberRepository
 	async loadMasterDataAsync()
 	{
 		try {
-			const { results: vtubers } = await this.db.prepare(`
-				SELECT 
-					v.id,
-					v.name,
-					v.agency,
-					v.color
-				FROM vtubers v
-				ORDER BY v.id
+			// JSON集約関数を使用して1回のクエリで全データを取得
+			const { results: allData } = await this.db.prepare(`
+			SELECT 
+				v.id,
+				v.name,
+				v.agency,
+				v.color,
+				json_group_array(DISTINCT vt.tag) FILTER (WHERE vt.tag IS NOT NULL) as tags,
+				json_group_array(DISTINCT yc.channel_id) FILTER (WHERE yc.channel_id IS NOT NULL) as youtube_ids,
+				json_group_array(DISTINCT tu.user_login) FILTER (WHERE tu.user_login IS NOT NULL) as twitch_ids,
+				json_group_array(DISTINCT tc.screen_id) FILTER (WHERE tc.screen_id IS NOT NULL) as twitcasting_ids
+			FROM vtubers v
+			LEFT JOIN vtuber_tags vt ON v.id = vt.vtuber_id
+			LEFT JOIN youtube_channels yc ON v.id = yc.vtuber_id
+			LEFT JOIN twitch_users tu ON v.id = tu.vtuber_id
+			LEFT JOIN twitcasting_users tc ON v.id = tc.vtuber_id
+			GROUP BY v.id
+			ORDER BY v.id
 			`).all();
 
 			const masterData = [];
-
-			for (const vtuber of vtubers) {
-				// タグを取得
-				const { results: tagResults } = await this.db.prepare(`
-					SELECT tag FROM vtuber_tags WHERE vtuber_id = ?
-				`).bind(vtuber.id).all();
-				const tags = tagResults.map(r => r.tag).filter(Boolean);
-
-				// YouTube チャンネル ID を取得
-				const { results: youtubeResults } = await this.db.prepare(`
-					SELECT channel_id FROM youtube_channels WHERE vtuber_id = ?
-				`).bind(vtuber.id).all();
-				const youtubeIds = youtubeResults.map(r => r.channel_id).filter(Boolean);
-
-				// Twitch ユーザーを取得
-				const { results: twitchResults } = await this.db.prepare(`
-					SELECT user_login FROM twitch_users WHERE vtuber_id = ?
-				`).bind(vtuber.id).all();
-				const twitchIds = twitchResults.map(r => r.user_login).filter(Boolean);
-
-				// TwitCasting ユーザーを取得
-				const { results: twitcastingResults } = await this.db.prepare(`
-					SELECT screen_id FROM twitcasting_users WHERE vtuber_id = ?
-				`).bind(vtuber.id).all();
-				const twitcastingIds = twitcastingResults.map(r => r.screen_id).filter(Boolean);
-
-				// VTuber エントリを構築
+			for (const row of allData) {
 				const entry = {
-					Name: vtuber.name,
-					Agency: vtuber.agency,
-					Color: vtuber.color
+					Name: row.name,
+					Agency: row.agency,
+					Color: row.color
 				};
+
+				const tags = row.tags ? JSON.parse(row.tags).filter(Boolean) : [];
+				const youtubeIds = row.youtube_ids ? JSON.parse(row.youtube_ids).filter(Boolean) : [];
+				const twitchIds = row.twitch_ids ? JSON.parse(row.twitch_ids).filter(Boolean) : [];
+				const twitcastingIds = row.twitcasting_ids ? JSON.parse(row.twitcasting_ids).filter(Boolean) : [];
 
 				if (tags.length > 0)
 					entry.Tags = tags;
@@ -71,7 +60,6 @@ export class VTuberRepository
 
 				masterData.push(entry);
 			}
-
 			return masterData;
 		}
 		catch (e) {
