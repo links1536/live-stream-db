@@ -64,7 +64,7 @@ export class DisplayScheduleQueryService
 			},
 		 */
 
-		const { results } = await this.db.prepare(`
+		const queryResult = await this.db.prepare(`
 			SELECT 
 				json_object(
 					'updated_at', ?1,
@@ -94,6 +94,9 @@ export class DisplayScheduleQueryService
 		`)
 		.bind(new Date(currentDate).toISOString(), startLimitIso, endLimitIso)
 		.raw();
+
+		console.log(queryResult);
+		const { results } = queryResult;
 
 		// results[0][0] に JSON文字列が入っている
 		const row = results?.[0] || [];
