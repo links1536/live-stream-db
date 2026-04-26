@@ -28,7 +28,7 @@ export class YouTubeDataAPI
 	/**
 	 * チャンネルID検証
 	 */
-	validateChannelId(channelId) {
+	static validateChannelId(channelId) {
 		// YouTube チャンネルID: 24文字の英数字とハイフン・アンダースコア
 		if (!/^UC[a-zA-Z0-9\-_]{22}$/.test(channelId)) {
 			throw new Error(`Invalid channel ID format: ${channelId}`);
