@@ -51,7 +51,8 @@ export class YouTubeDataAPI
 
 		const response = await HttpUtils.get(requestUrl);
 		if (!response.ok) {
-			//エラーがあって処理できなかったIDはなにもしない
+			// エラーがあって処理できなかったIDはなにもしない
+			// いろいろエラーに種類はあるけど、Workersの性質上細かくハンドリングするCPU時間はない
 			console.error(`API Error: ${response.status}`);
 			return [null, null];
 		}
