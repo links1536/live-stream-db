@@ -111,8 +111,8 @@ export class YouTubeScheduleUpdater
 		}
 
 		// 更新があればJson書き換え
-		//if (!modifySchedules)
-		//	return;
+		if (!modifySchedules)
+			return;
 		// 公開用 JSON 生成
 		await this.saveDataJsonAsync(currentDate);
 	}
