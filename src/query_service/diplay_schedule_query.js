@@ -93,16 +93,13 @@ export class DisplayScheduleQueryService
 				AND start_time_iso <= ?3
 		`)
 		.bind(new Date(currentDate).toISOString(), startLimitIso, endLimitIso)
-		.raw();
+		.first();
 
-		console.log(queryResult);
-		const { results } = queryResult;
+		// first() はオブジェクトを返すため、カラム名を指定して取得する
+		const publicDataJsonStr = queryResult?.schedules_json ?? '{"updated_at":"", "all_schedules":[]}';
+		const count = queryResult?.schedule_count ?? 0;
 
-		// results[0][0] に JSON文字列が入っている
-		const row = results?.[0] || [];
-		const publicDataJsonStr = row[0] || '{"updated_at":"", "all_schedules":[]}';
-		const count = row[1] || 0;
-		console.log(`results: ${results}`)
+		console.log('results:', queryResult);
 		console.log(`row: ${row}`)
 		console.log(`json: ${publicDataJsonStr}`)
 		console.log(`count: ${count}`)
