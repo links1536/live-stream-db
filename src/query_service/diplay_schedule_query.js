@@ -96,8 +96,12 @@ export class DisplayScheduleQueryService
 		.raw();
 
 		// results[0][0] に JSON文字列が入っている
-		const publicDataJsonStr = results?.[0]?.[0] || '{"updated_at":"", "all_schedules":[]}';
-		const count = results?.[0]?.[1] || 0;
+		const row = results?.[0] || [];
+		const publicDataJsonStr = row[0] || '{"updated_at":"", "all_schedules":[]}';
+		const count = row[1] || 0;
+		console.log(`row: ${row}`)
+		console.log(`json: ${publicDataJsonStr}`)
+		console.log(`count: ${count}`)
 		return [publicDataJsonStr, count];
 	}
 }
