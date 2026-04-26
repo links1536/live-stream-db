@@ -85,7 +85,8 @@ export class DisplayScheduleQueryService
 						json_array()
 					)
 				)
-			) AS schedules_json
+			) AS schedules_json,
+			COUNT(*) AS schedule_count 
 			FROM display_schedules
 			WHERE start_time_iso IS NOT NULL
 			AND start_time_iso >= ?
@@ -96,6 +97,7 @@ export class DisplayScheduleQueryService
 
 		// results[0][0] に JSON文字列が入っている
 		const publicDataJsonStr = results?.[0]?.[0] || '{"updated_at":"", "all_schedules":[]}';
-		return publicDataJsonStr;
+		const count = results?.[0]?.[1] || 0;
+		return [publicDataJsonStr, count];
 	}
 }
