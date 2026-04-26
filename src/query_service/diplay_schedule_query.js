@@ -99,9 +99,6 @@ export class DisplayScheduleQueryService
 		const publicDataJsonStr = queryResult?.schedules_json ?? '{"updated_at":"", "all_schedules":[]}';
 		const count = queryResult?.schedule_count ?? 0;
 
-		console.log('results:', queryResult);
-		console.log(`json: ${publicDataJsonStr}`)
-		console.log(`count: ${count}`)
 		return [publicDataJsonStr, count];
 	}
 }
