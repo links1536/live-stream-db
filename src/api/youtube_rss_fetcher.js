@@ -1,4 +1,5 @@
 import { HttpUtils } from "../httputils.js";
+import { YouTubeDataAPI } from './youtube_data_api.js';
 
 export class YouTubeRSSFetcher
 {
@@ -7,6 +8,12 @@ export class YouTubeRSSFetcher
 	 */
 	async getVideoInfo(channelId)
 	{
+		// チャンネルID検証
+		if (!YouTubeDataAPI.validateChannelId(channelId)) {
+			console.error(`[YouTube RSS Fetcher] 無効なチャンネルIDです: ${channelId}`);
+			return;
+		}
+
 		const videoInfo = [];
 		try {
 			const url = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;

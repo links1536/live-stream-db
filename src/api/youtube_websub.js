@@ -1,4 +1,5 @@
 import { HttpUtils } from '../httputils.js'
+import { YouTubeDataAPI } from './youtube_data_api.js';
 
 /**
  * YouTube WebSub (PubSubHubbub) の通知を解析するクラス
@@ -27,6 +28,13 @@ export class YouTubeWebSub
 	 */
 	async registerWebSub(callbackUrl, channelId)
 	{
+		// チャンネルID検証
+		if (!YouTubeDataAPI.validateChannelId(channelId)) {
+			console.error(`[WebSub] 無効なチャンネルIDです: ${channelId}`);
+			return;
+		}
+
+		// 検証用の情報チェック
 		let error = false;
 		if (!this.verifyToken) {
 			console.error("[WebSub] VerifyToken が設定されていません");
