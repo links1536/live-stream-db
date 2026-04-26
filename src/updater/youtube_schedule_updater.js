@@ -75,6 +75,7 @@ export class YouTubeScheduleUpdater
 			// APIから返ってこなかったIDを削除対象に追加
 			for (const videoId of chunk) {
 				if (!foundIds.has(videoId)) {
+					Log.info("YouTubeScheduleUpdater", `Missing Video ID: ${videoId}`);
 					removedIds.add(videoId);
 				}
 			}
