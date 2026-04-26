@@ -28,28 +28,6 @@ export class YouTubeScheduleRepository
 	}
 
 	/**
-	 * DBからキャッシュを読み込む
-	 */
-	async loadSchedulesAsync()
-	{
-		try {
-			const { results } = await this.db.prepare("SELECT * FROM youtube_schedules").all();
-			const schedules = {};
-			for (const row of results) {
-				schedules[row.video_id] = {
-					...row,
-					tags: row.tags ? JSON.parse(row.tags) : []
-				};
-			}
-			return schedules;
-		}
-		catch (e) {
-			Log.error("YouTubeScheduleRepository", `Failed to load schedules: ${e.message}`);
-			return {};
-		}
-	}
-
-	/**
 	 * DBにキャッシュを保存する
 	 */
 	async saveSchedulesAsync(schedules)
