@@ -27,6 +27,18 @@ export class YouTubeWebSub
 	 */
 	async registerWebSub(callbackUrl, channelId)
 	{
+		let error = false;
+		if (!this.verifyToken) {
+			console.error("[WebSub] VerifyToken が設定されていません");
+			error = true;
+		}
+		if (!this.secret) {
+			console.error("[WebSub] Secret が設定されていません");
+			error = true;
+		}
+		if (error)
+			return;
+
 		const hubUrl = "https://pubsubhubbub.appspot.com/subscribe";
 		const topicUrl = `https://www.youtube.com/xml/feeds/videos.xml?channel_id=${channelId}`;
 
@@ -117,8 +129,10 @@ export class YouTubeWebSub
 	async verifySignature(body, signature)
 	{
 		// Secretが設定されていない場合は検証スキップ
-		if (!this.secret)
-			return true;
+		if (!this.secret) {
+			console.error("[WebSub] Secretが設定されていません");
+			return false;
+		}
 
 		const encoder = new TextEncoder();
 		const keyData = encoder.encode(this.secret);
