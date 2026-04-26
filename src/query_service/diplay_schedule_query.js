@@ -65,7 +65,7 @@ export class DisplayScheduleQueryService
 		 */
 
 		const { results } = await this.db.prepare(`
-			SELECT json_group_array(
+			SELECT 
 				json_object(
 					'updated_at', ?,
 					'all_schedules', 
@@ -77,16 +77,15 @@ export class DisplayScheduleQueryService
 								'agency', agency,
 								'tags', IIF(tags IS NULL, json_array(), json_array(tags)),
 								'title', title,
-								'thumbnail', tithumbnailtle,
+								'thumbnail', thumbnail,
 								'start_time_iso', start_time_iso,
 								'status', status
 							)
 						),
 						json_array()
 					)
-				)
-			) AS schedules_json,
-			COUNT(*) AS schedule_count 
+				) AS schedules_json,
+				COUNT(*) AS schedule_count 
 			FROM display_schedules
 			WHERE start_time_iso IS NOT NULL
 			AND start_time_iso >= ?
