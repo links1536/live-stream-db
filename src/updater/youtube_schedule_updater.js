@@ -38,8 +38,6 @@ export class YouTubeScheduleUpdater
 	 */
 	async updateSchedules()
 	{
-		const removedIds = new Set();
-
 		// キャッシュ済みIDを読み込み
 		const targetIds = await this.youtubeRepository.getScheduleIdsAsync();
 
@@ -55,7 +53,10 @@ export class YouTubeScheduleUpdater
 		}
 
 		// バッチをまとめて行う
-		const allSchedules = []
+		const allSchedules = [];
+
+		// APIに乗ってこないなどで消すID
+		const removedIds = [];
 
 		// 出来るだけ同じ数になるように分割
 		const requestTargetIds = Array.from(requestIds);
@@ -76,7 +77,7 @@ export class YouTubeScheduleUpdater
 			for (const videoId of chunk) {
 				if (!foundIds.has(videoId)) {
 					Log.info("YouTubeScheduleUpdater", `Missing Video ID: ${videoId}`);
-					removedIds.add(videoId);
+					removedIds.push(videoId);
 				}
 			}
 
@@ -94,11 +95,11 @@ export class YouTubeScheduleUpdater
 		const currentDate = DateTimeUtils.getCurrentDate();
 		const [startLimit, endLimit] = DateTimeUtils.getLimitDate(currentDate);
 		const startLimitIso = startLimit.toISOString();
-		const cleanupCount = await this.youtubeRepository.cleanupSchedulesAsync(Array.from(removedIds), startLimitIso);
+		const cleanupCount = await this.youtubeRepository.cleanupSchedulesAsync(removedIds, startLimitIso);
 		modifySchedules |= cleanupCount > 0;
 
 		// 受け取れた動画IDと削除された動画IDの数をログに出す
-		const removeCount = removedIds.size;
+		const removeCount = removedIds.length;
 		const foundCount = requestTargetIds.length - removeCount;
 		Log.info("YouTubeScheduleUpdater", `Update complete: ${foundCount} active, ${removeCount} removed, ${cleanupCount} cleaned.`);
 
