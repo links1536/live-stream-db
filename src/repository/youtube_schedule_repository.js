@@ -117,7 +117,8 @@ export class YouTubeScheduleRepository
 		const changes = result.meta?.changes || 0;
 
 		// ログに出す
-		Log.info(removeVideoIds?.length > 0
+		Log.info("YouTubeScheduleRepository",
+			removeVideoIds?.length > 0
 			? `D1: Cleaned up ${result.meta.changes} (${removeVideoIds.length}) items from schedules table.`
 			: `D1: Cleaned up ${result.meta.changes} items from schedules table.`
 		);
