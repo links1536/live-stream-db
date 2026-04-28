@@ -13,8 +13,12 @@ CREATE TABLE rss_last_updated (
 )
 
 -- インデックス作成
+
 DROP INDEX IF EXISTS idx_youtube_schedules_filter;
 CREATE INDEX IF NOT EXISTS idx_youtube_schedules_filter ON youtube_schedules (status, start_time_iso);
+
+DROP INDEX IF EXISTS idx_youtube_schedules_start_time;
+CREATE INDEX IF NOT EXISTS idx_youtube_schedules_start_time ON youtube_schedules (start_time_iso);
 
 -- 表示用のビュー
 CREATE VIEW display_schedules AS
