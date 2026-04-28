@@ -36,7 +36,7 @@ export class YouTubeScheduleUpdater
 	/**
 	 * ステータス更新メインロジック
 	 */
-	async updateSchedules()
+	async updateSchedulesAll()
 	{
 		// キャッシュ済みIDを読み込み
 		const targetIds = await this.youtubeRepository.getScheduleIdsAsync();

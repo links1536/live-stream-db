@@ -76,7 +76,7 @@ export default {
 			else {
 				// その他（デフォルト） - スケジュール更新
 				const updater = new YouTubeScheduleUpdater(env);
-				await updater.updateSchedules();
+				await updater.updateSchedulesAll();
 				console.log("✅ Schedule update completed (scheduled)");
 			}
 		}
