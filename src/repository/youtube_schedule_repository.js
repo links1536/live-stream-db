@@ -125,4 +125,89 @@ export class YouTubeScheduleRepository
 
 		return changes;
 	}
+
+	/**
+	 * DBのデータを更新する
+	 */
+	async saveAndCleanupSchedulesAsync(schedules, removeVideoIds, startLimitIso)
+	{
+		const batch = [];
+
+		// 更新
+		if (schedules?.length) {
+			const stmt = this.db.prepare(`
+				INSERT INTO youtube_schedules (
+					video_id, channel_id, 
+					title, thumbnail, start_time_iso, status
+					) VALUES (?, ?, ?, ?, ?, ?)
+				ON CONFLICT(video_id) DO UPDATE SET
+					channel_id = EXCLUDED.channel_id,
+					title = EXCLUDED.title,
+					thumbnail = EXCLUDED.thumbnail,
+					start_time_iso = EXCLUDED.start_time_iso,
+					status = EXCLUDED.status
+					WHERE 
+					title IS NOT EXCLUDED.title OR 
+					thumbnail IS NOT EXCLUDED.thumbnail OR
+					start_time_iso IS NOT EXCLUDED.start_time_iso OR
+					status IS NOT EXCLUDED.status
+			`);
+			for (const schedule of schedules) {
+				batch.push(
+					stmt.bind(
+						schedule.video_id,
+						schedule.channel_id ?? null,
+						schedule.title ?? null,
+						schedule.thumbnail ?? null,
+						schedule.start_time_iso ?? null,
+						schedule.status ?? null
+					)
+				);
+			}
+		}
+
+		// クリーンアップ
+		if (removeVideoIds && removeVideoIds.length > 0) {
+			const placeholders = removeVideoIds.map(() => "?").join(",");
+			const deleteStmt = this.db.prepare(`DELETE FROM youtube_schedules WHERE start_time_iso < ? OR video_id IN (${placeholders})`);
+			batch.push(deleteStmt.bind(startLimitIso, ...removeVideoIds));
+		}
+		else if (startLimitIso) {
+			const deleteStmt = this.db.prepare(`DELETE FROM youtube_schedules WHERE start_time_iso < ?`);
+			params = [startLimitIso];
+			batch.push(deleteStmt.bind(startLimitIso));
+		}
+
+		if (batch.length === 0)
+			return;
+
+		// 実行
+		const results = await this.db.batch(batch);
+		
+		// 結果の集計
+		let totalSavedChanges = 0;
+		let cleanedChanges = 0;
+
+		// 最後の結果がcleanupの可能性が高いので、後ろから処理
+		if (results.length > 0) {
+			const lastResult = results[results.length - 1];
+			cleanedChanges = lastResult.meta?.changes || 0;
+
+			// 保存分のchangesを集計
+			for (let i = 0; i < results.length - (cleanedChanges > 0 ? 1 : 0); i++) {
+				totalSavedChanges += results[i].meta?.changes || 0;
+			}
+		}
+
+		Log.info("YouTubeScheduleRepository", `D1: Updated ${totalSavedChanges} / ${schedules.length} schedules, Cleaned ${cleanedChanges} items (1 request)`);
+
+		// 変更があればKVを更新
+		if (totalSavedChanges > 0) {
+			const videoIds = schedules.map(s => s.video_id);
+			await this.kvCache.put(YOUTUBE_VIDEO_ID_KEY, JSON.stringify(videoIds));
+		}
+
+		// 変更があったかを返す
+		return [ totalSavedChanges, cleanedChanges, (totalSavedChanges > 0 || cleanedChanges > 0) ];
+	}
 }

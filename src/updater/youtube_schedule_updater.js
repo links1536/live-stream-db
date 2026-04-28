@@ -83,20 +83,13 @@ export class YouTubeScheduleUpdater
 
 		}
 
-		var modifySchedules = false;
-		
 		// DBに保存
-		if (allSchedules.length > 0) {
-			modifySchedules |= await this.youtubeRepository.saveSchedulesAsync(allSchedules);
-		}
-
 		// レスポンスを受け取りながらも乗っていないデータは非公開や削除がされている
 		// 期間外クリーンアップ
 		const currentDate = DateTimeUtils.getCurrentDate();
 		const [startLimit, endLimit] = DateTimeUtils.getLimitDate(currentDate);
 		const startLimitIso = startLimit.toISOString();
-		const cleanupCount = await this.youtubeRepository.cleanupSchedulesAsync(removedIds, startLimitIso);
-		modifySchedules |= cleanupCount > 0;
+		const [ updateCount, cleanupCount, modifySchedules ] = await this.youtubeRepository.saveAndCleanupSchedulesAsync(allSchedules, removedIds, startLimitIso);
 
 		// 受け取れた動画IDと削除された動画IDの数をログに出す
 		const removeCount = removedIds.length;
