@@ -72,7 +72,7 @@ export class YouTubeScheduleUpdater
 		// チャンク単位でリクエストする
 		const [schedules, foundIds] = await this.youtubeDataApi.getVideoInfosAsync(requestTargetIds);
 		if (schedules == null || foundIds == null) {
-			continue;
+			return;
 		}
 
 		// APIから返ってこなかったIDを削除対象に追加
