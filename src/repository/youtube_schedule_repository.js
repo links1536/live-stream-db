@@ -146,7 +146,7 @@ export class YouTubeScheduleRepository
 					thumbnail = EXCLUDED.thumbnail,
 					start_time_iso = EXCLUDED.start_time_iso,
 					status = EXCLUDED.status
-					WHERE 
+				WHERE
 					title IS NOT EXCLUDED.title OR 
 					thumbnail IS NOT EXCLUDED.thumbnail OR
 					start_time_iso IS NOT EXCLUDED.start_time_iso OR
