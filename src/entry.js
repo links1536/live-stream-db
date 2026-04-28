@@ -124,6 +124,9 @@ export default {
 				for (const msg of batch.messages) {
 					const videoId = msg.body?.trim();
 					updateLast = videoId === "update_last";
+					if(updateLast == true)
+						continue;
+
 					if (videoId)
 						videoIds.push(videoId);
 					else {
