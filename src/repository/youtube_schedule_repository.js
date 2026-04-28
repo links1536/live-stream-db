@@ -174,7 +174,6 @@ export class YouTubeScheduleRepository
 		}
 		else if (startLimitIso) {
 			const deleteStmt = this.db.prepare(`DELETE FROM youtube_schedules WHERE start_time_iso < ?`);
-			params = [startLimitIso];
 			batch.push(deleteStmt.bind(startLimitIso));
 		}
 
