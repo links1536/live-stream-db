@@ -5,6 +5,7 @@ import { YouTubeWebSubUpdater } from "./updater/youtube_websub_updater.js";
 import { YouTubeRssFeedUpdater } from "./updater/youtube_rss_feed_updater.js";
 import { YouTubeScheduleUpdater } from "./updater/youtube_schedule_updater.js";
 import { YouTubeWebSub } from "./api/youtube_websub.js";
+import { AdminService } from "./admin_service.js";
 
 // Durable Object のエクスポート（必須）
 export { YouTubeNoticesCache } from "./repository/youtube_notices_cache.js";
@@ -29,25 +30,45 @@ export default {
 			return await updater.handleYoutubeWebhook(request);
 		}
 
-		// WebSub 登録（手動トリガー）
-		if (path === "/youtube-websub-resister") {
-			const updater = new YouTubeWebSubUpdater(env);
-			await updater.registerWebsub();
-			return new Response("WebSub registration triggered");
-		}
+		// 管理機能
+		if (path.startsWith("/admin")) {
+			// AdminService の認証ロジックを使用
+			const authHeader = request.headers.get("Authorization");
+			if (!authHeader || !AdminService.checkAuth(authHeader, env)) {
+				return new Response("Unauthorized", {
+					status: 401,
+					headers: {
+						"WWW-Authenticate": 'Basic realm="Admin Dashboard", charset="UTF-8"',
+						"Content-Type": "text/plain; charset=utf-8"
+					}
+				});
+			}
 
-		// RSS フィード取得（手動トリガー）
-		if (path === "/youtube-fetch-rss") {
-			const updater = new YouTubeRssFeedUpdater(env);
-			await updater.scheduleTrigger();
-			return new Response("RSS feed fetch triggered");
-		}
+			// 管理画面
+			if (path === "/admin") {
+				return await AdminService.handleRequest(request, env);
+			}
 
-		// スケジュール更新（手動トリガー）
-		if (path === "/youtube-update") {
-			const updater = new YouTubeScheduleUpdater(env);
-			await updater.scheduleTrigger();
-			return new Response("Schedule update triggered");
+			// WebSub 登録（手動トリガー）
+			if (path === "/admin/youtube-websub-resister") {
+				const updater = new YouTubeWebSubUpdater(env);
+				await updater.registerWebsub();
+				return new Response("WebSub registration triggered");
+			}
+
+			// RSS フィード取得（手動トリガー）
+			if (path === "/admin/youtube-fetch-rss") {
+				const updater = new YouTubeRssFeedUpdater(env);
+				await updater.scheduleTrigger();
+				return new Response("RSS feed fetch triggered");
+			}
+
+			// スケジュール更新（手動トリガー）
+			if (path === "/admin/youtube-update") {
+				const updater = new YouTubeScheduleUpdater(env);
+				await updater.updateSchedules();
+				return new Response("Schedule update triggered");
+			}
 		}
 
 		// 該当なしの場合
