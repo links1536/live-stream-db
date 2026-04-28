@@ -19,24 +19,3 @@ CREATE INDEX IF NOT EXISTS idx_youtube_schedules_filter ON youtube_schedules (st
 
 DROP INDEX IF EXISTS idx_youtube_schedules_start_time;
 CREATE INDEX IF NOT EXISTS idx_youtube_schedules_start_time ON youtube_schedules (start_time_iso);
-
--- 表示用のビュー
-CREATE VIEW display_schedules AS
-SELECT 
-	vr.video_id,
-	v.name AS streamer_name,
-	v.agency,
-	(
-		SELECT GROUP_CONCAT(tag, ', ') 
-		FROM vtuber_tags 
-		WHERE vtuber_id = v.id
-	) AS tags,
-	v.color,
-	vr.title,
-	vr.thumbnail,
-	vr.start_time_iso,
-	vr.status,
-	'youtube' AS platform
-FROM youtube_schedules vr
-JOIN youtube_channels yc ON vr.channel_id = yc.channel_id
-JOIN vtubers v ON yc.vtuber_id = v.id
