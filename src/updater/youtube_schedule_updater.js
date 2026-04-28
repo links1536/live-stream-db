@@ -109,7 +109,10 @@ export class YouTubeScheduleUpdater
 		await this.youtubeRepository.updateScheduleIdsAsync();
 
 		// 公開用 JSON 生成
+		const currentDate = DateTimeUtils.getCurrentDate();
 		const currentDateIso = currentDate.toISOString();
+		const [startLimit, endLimit] = DateTimeUtils.getLimitDate(currentDate);
+		const startLimitIso = startLimit.toISOString();
 		const endLimitIso = endLimit.toISOString();
 		await this.saveDataJsonAsync(currentDateIso, startLimitIso, endLimitIso);
 	}
