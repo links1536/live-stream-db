@@ -90,12 +90,6 @@ export class YouTubeScheduleRepository
 		const totalChanges = results.reduce((sum, res) => sum + (res.meta?.changes || 0), 0);
 		Log.info("YouTubeScheduleRepository", `D1: Updated ${totalChanges} / ${schedules.length} items in schedules table.`);
 
-		// データ更新があるなら、KVのIDリストを更新する
-		if (totalChanges > 0) {
-			const videoIds = schedules.map(s => s.video_id);
-			await this.kvCache.put(YOUTUBE_VIDEO_ID_KEY, JSON.stringify(videoIds));
-		}
-
 		// 変更があったかを返す
 		return totalChanges > 0;
 	}
