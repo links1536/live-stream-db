@@ -200,12 +200,6 @@ export class YouTubeScheduleRepository
 
 		Log.info("YouTubeScheduleRepository", `D1: Updated ${totalSavedChanges} / ${schedules.length} schedules, Cleaned ${cleanedChanges} items (1 request)`);
 
-		// 変更があればKVを更新
-		if (totalSavedChanges > 0) {
-			const videoIds = schedules.map(s => s.video_id);
-			await this.kvCache.put(YOUTUBE_VIDEO_ID_KEY, JSON.stringify(videoIds));
-		}
-
 		// 変更があったかを返す
 		return [ totalSavedChanges, cleanedChanges, (totalSavedChanges > 0 || cleanedChanges > 0) ];
 	}
