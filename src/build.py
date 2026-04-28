@@ -34,6 +34,7 @@ compatibility_date = "2026-04-09"
 # 変数
 [vars]
 QUEUE_NAME_YOUTUBE_WEBSUB_RESISTER = "{yt_register_websub_queue}"
+QUEUE_NAME_YOUTUBE_SCHDULE_UPDATE = "{yr_schedule_update_queue}"
 QUEUE_NAME_YOUTUBE_RSS_FEED = "{yr_rss_feed_queue}"
 
 # ログ設定

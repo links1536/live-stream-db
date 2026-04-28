@@ -116,7 +116,7 @@ export default {
 					}
 				}
 				break;
-			case env.QUEUE_NAME_YOUTUBE_UPDATE_TARGET:
+			case env.QUEUE_NAME_YOUTUBE_SCHDULE_UPDATE:
 				const scheduleUpdater = new YouTubeScheduleUpdater(env);
 
 				let updateLast = false;
