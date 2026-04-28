@@ -123,16 +123,13 @@ export default {
 				const videoIds = [];
 				for (const msg of batch.messages) {
 					const videoId = msg.body?.trim();
-					updateLast = videoId === "update_last";
-					if(updateLast == true)
+					if (!videoId)
 						continue;
 
-					if (videoId)
-						videoIds.push(videoId);
-					else {
-						console.warn("[WARN] Empty video ID in queue message");
-						msg.ack();
-					}
+					updateLast = videoId === "update_last";
+					if (updateLast == true)
+						continue;
+					videoIds.push(JSON.parse(videoId));
 				}
 
 				if (videoIds.length > 0) {
