@@ -34,6 +34,19 @@ export class YouTubeScheduleRepository
 	}
 
 	/**
+	 * キャッシュを更新する
+	 */
+	async updateScheduleIdsAsync()
+	{
+		const { results } = await this.db.prepare("SELECT video_id FROM youtube_schedules").all();
+		const videoIds = results.map(r => r.video_id);
+		
+		// KVからIDリストを取得する
+		const json = JSON.stringify(videoIds);
+		await this.kvCache.put(YOUTUBE_VIDEO_ID_KEY, json);
+	}
+
+	/**
 	 * DBにキャッシュを保存する
 	 */
 	async saveSchedulesAsync(schedules)

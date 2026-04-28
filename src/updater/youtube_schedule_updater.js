@@ -112,6 +112,9 @@ export class YouTubeScheduleUpdater
 		if (!modifySchedules)
 			return;
 
+		// IDのキャッシュを更新する
+		await this.youtubeRepository.updateScheduleIdsAsync();
+
 		// 公開用 JSON 生成
 		const currentDateIso = currentDate.toISOString();
 		const endLimitIso = endLimit.toISOString();
