@@ -58,7 +58,7 @@ export class YouTubeScheduleUpdater
 		const chunkSize = Math.min(YouTubeDataAPI.CHUNK_SIZE, Math.ceil(requestTargetIds.length / chunkCount));
 		Log.info("YouTubeScheduleUpdater", `Checking ${requestTargetIds.length} video IDs...`);
 		await this.updateSchedulesQueue.sendBatch(requestTargetIds.map(id => ({ body: id })));
-		await this.updateSchedulesQueue.send({ body: "update_last" });
+		await this.updateSchedulesQueue.send("update_last");
 		
 		// 処理が成功したので、単体IDキャッシュを削除する
 		//await this.youtubeNoticesCache.bulkDeleteAsync(singleVideoIds);
