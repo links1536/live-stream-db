@@ -139,9 +139,7 @@ export default {
 					await scheduleUpdater.updateSchedules(videoIds);
 					
 					// 処理成功後に全ackを送信
-					for (const msg of batch.messages) {
-						msg.ack();
-					}
+					batch.ackAll();
 					console.info(`[INFO] Processed ${videoIds.length} channels`);
 				}
 
