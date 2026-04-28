@@ -80,29 +80,24 @@ export default {
 	 */
 	async scheduled(controller, env, ctx)
 	{
-		try {
-			if (controller.cron === "0 19 * * *") {
-				// 毎日 UTC19:00 - WebSub 再登録
-				const updater = new YouTubeWebSubUpdater(env);
-				await updater.registerWebsub(env.YOUTUBE_WEBSUB_CALLBACK_URL);
-				console.log("✅ WebSub registration completed (scheduled)");
+		if (controller.cron === "0 19 * * *") {
+			// 毎日 UTC19:00 - WebSub 再登録
+			const updater = new YouTubeWebSubUpdater(env);
+			await updater.registerWebsub(env.YOUTUBE_WEBSUB_CALLBACK_URL);
+			console.log("✅ WebSub registration completed (scheduled)");
 
-			}
-			else if (controller.cron === "45 * * * *") {
-				// 毎時45分 - RSS フィード取得
-				const updater = new YouTubeRssFeedUpdater(env);
-				await updater.scheduleTrigger();
-				console.log("✅ RSS feed fetch completed (scheduled)");
-			}
-			else {
-				// その他（デフォルト） - スケジュール更新
-				const updater = new YouTubeScheduleUpdater(env);
-				await updater.scheduleTrigger();
-				console.log("✅ Schedule update completed (scheduled)");
-			}
 		}
-		catch (err) {
-			console.error("❌ Scheduled task failed:", err);
+		else if (controller.cron === "45 * * * *") {
+			// 毎時45分 - RSS フィード取得
+			const updater = new YouTubeRssFeedUpdater(env);
+			await updater.scheduleTrigger();
+			console.log("✅ RSS feed fetch completed (scheduled)");
+		}
+		else {
+			// その他（デフォルト） - スケジュール更新
+			const updater = new YouTubeScheduleUpdater(env);
+			await updater.scheduleTrigger();
+			console.log("✅ Schedule update completed (scheduled)");
 		}
 	},
 
