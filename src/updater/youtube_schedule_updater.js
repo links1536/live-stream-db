@@ -60,8 +60,8 @@ export class YouTubeScheduleUpdater
 		await this.updateSchedulesQueue.sendBatch(requestTargetIds.map(id => ({ body: id })));
 		await this.updateSchedulesQueue.send("update_last");
 		
-		// 処理が成功したので、単体IDキャッシュを削除する
-		//await this.youtubeNoticesCache.bulkDeleteAsync(singleVideoIds);
+		// リクエストを投げたので単体IDキャッシュを削除する
+		await this.youtubeNoticesCache.bulkDeleteAsync(singleVideoIds);
 	}
 
 	/**
