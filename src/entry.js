@@ -46,7 +46,7 @@ export default {
 		// スケジュール更新（手動トリガー）
 		if (path === "/youtube-update") {
 			const updater = new YouTubeScheduleUpdater(env);
-			await updater.updateSchedules();
+			await updater.scheduleTrigger();
 			return new Response("Schedule update triggered");
 		}
 
