@@ -116,6 +116,38 @@ export default {
 					}
 				}
 				break;
+			case env.QUEUE_NAME_YOUTUBE_UPDATE_TARGET:
+				const scheduleUpdater = new YouTubeScheduleUpdater(env);
+
+				let updateLast = false;
+				const videoIds = [];
+				for (const msg of batch.messages) {
+					const videoId = msg.body?.trim();
+					updateLast = videoId === "update_last";
+					if (videoId)
+						videoIds.push(videoId);
+					else {
+						console.warn("[WARN] Empty video ID in queue message");
+						msg.ack();
+					}
+				}
+
+				if (videoIds.length > 0) {
+					await scheduleUpdater.updateSchedules(videoIds);
+					
+					// 処理成功後に全ackを送信
+					for (const msg of batch.messages) {
+						msg.ack();
+					}
+					console.info(`[INFO] Processed ${videoIds.length} channels`);
+				}
+
+				if(updateLast)
+				{
+					await scheduleUpdater.updateSchedulesLast();
+				}
+
+				break;
 			case env.QUEUE_NAME_YOUTUBE_RSS_FEED:
 				const rssUpdater = new YouTubeRssFeedUpdater(env);
 

@@ -16,6 +16,7 @@ def generate_wrangler_toml():
 	kv_cache_id = get_secret("VAR_KV_CACHE_ID")
 	kv_output_id = get_secret("VAR_KV_OUTPUT_ID")
 	yt_register_websub_queue = get_secret("VAR_QUEUE_YOUTUBE_WEBSUB_RESISTER")
+	yr_schedule_update_queue = get_secret("VAR_QUEUE_YOUTUBE_SCHDULE_UPDATE")
 	yr_rss_feed_queue = get_secret("VAR_QUEUE_YOUTUBE_RSS_FEED")
 	d1_database_name = get_secret("VAR_D1_DATABASE_NAME")
 	d1_database_id = get_secret("VAR_D1_DATABASE_ID")
@@ -81,6 +82,8 @@ binding = "DB"
 database_name = "{d1_database_name}"
 database_id = "{d1_database_id}"
 
+
+# WebSub登録用キュー
 [[queues.producers]]
 binding = "QUEUE_YOUTUBE_WEBHOOK_RESISTER"
 queue = "{yt_register_websub_queue}"
@@ -90,6 +93,20 @@ delivery_delay = 60
 queue = "{yt_register_websub_queue}"
 retry_delay = 300
 
+
+# スケジュール情報更新用キュー
+[[queues.producers]]
+binding = "QUEUE_YOUTUBE_UPDATE_TARGET"
+queue = "{yr_schedule_update_queue}"
+delivery_delay = 60
+
+[[queues.consumers]]
+queue = "{yr_schedule_update_queue}"
+retry_delay = 300
+max_batch_size = 50
+max_concurrency = 1
+
+# RSS更新用キュー
 [[queues.producers]]
 binding = "QUEUE_YOUTUBE_RSS_FEED_TARGET"
 queue = "{yr_rss_feed_queue}"

@@ -19,6 +19,9 @@ export class YouTubeScheduleUpdater
 		this.youtubeDataApi = new YouTubeDataAPI(env.YOUTUBE_DATA_API_KEY);
 		this.diplayScheduleQuery = new DisplayScheduleQueryService(env.DB);
 
+		this.updateSchedulesQueue = env.QUEUE_YOUTUBE_UPDATE_TARGET;
+		this.updateSchedulesLastQueue = env.QUEUE_YOUTUBE_UPDATE_TARGET_LAST;
+
 		const doId = env.YOUTUBE_NOTICES_CACHE.idFromName("rss-key-cache");
 		this.youtubeNoticesCache = env.YOUTUBE_NOTICES_CACHE.get(doId);
 
@@ -31,6 +34,84 @@ export class YouTubeScheduleUpdater
 		const [publicDataStr, count] = await this.diplayScheduleQuery.loadActiveSchedulesJsonAsync(currentDateIso, startLimitIso, endLimitIso);
 		await this.livesJsonStore.put(OUTPUT_KEY, publicDataStr);
 		Log.info("YouTubeScheduleUpdater", `Generated ${OUTPUT_KEY} (${count} streams)`);
+	}
+
+	async scheduleTrigger()
+	{
+		// キャッシュ済みIDを読み込み
+		const targetIds = await this.youtubeRepository.getScheduleIdsAsync();
+		
+		// リクエスト対象ID
+		const requestIds = new Set(targetIds);
+
+		// 単体IDキャッシュ
+		const singleVideoIds = await this.youtubeNoticesCache.getAllAsync();
+		if (singleVideoIds != null && singleVideoIds.length > 0) {
+			for (const id of singleVideoIds) {
+				requestIds.add(id);
+			}
+		}
+
+		// 出来るだけ同じ数になるように分割
+		const requestTargetIds = Array.from(requestIds);
+		const chunkCount = Math.ceil(requestTargetIds.length / YouTubeDataAPI.CHUNK_SIZE);
+		const chunkSize = Math.min(YouTubeDataAPI.CHUNK_SIZE, Math.ceil(requestTargetIds.length / chunkCount));
+		Log.info("YouTubeScheduleUpdater", `Checking ${requestTargetIds.length} video IDs...`);
+		await this.updateSchedulesQueue.sendBatch(requestTargetIds.map(id => ({ body: id })));
+		await this.updateSchedulesQueue.send({ body: "update_last" });
+		
+		// 処理が成功したので、単体IDキャッシュを削除する
+		//await this.youtubeNoticesCache.bulkDeleteAsync(singleVideoIds);
+	}
+
+	/**
+	 * ステータス更新メインロジック
+	 */
+	async updateSchedules(requestTargetIds)
+	{
+		// チャンク単位でリクエストする
+		const [schedules, foundIds] = await this.youtubeDataApi.getVideoInfosAsync(requestTargetIds);
+		if (schedules == null || foundIds == null) {
+			continue;
+		}
+
+		// APIから返ってこなかったIDを削除対象に追加
+		const removedIds = []
+		for (const videoId of requestTargetIds) {
+			if (!foundIds.has(videoId)) {
+				Log.info("YouTubeScheduleUpdater", `Missing Video ID: ${videoId}`);
+				removedIds.push(videoId);
+			}
+		}
+
+		// DBに保存
+		// レスポンスを受け取りながらも乗っていないデータは非公開や削除がされている
+		// 期間外クリーンアップ
+		const currentDate = DateTimeUtils.getCurrentDate();
+		const [startLimit, endLimit] = DateTimeUtils.getLimitDate(currentDate);
+		const startLimitIso = startLimit.toISOString();
+		const [ updateCount, cleanupCount, modifySchedules ] = await this.youtubeRepository.saveAndCleanupSchedulesAsync(schedules, removedIds, startLimitIso);
+
+		// 受け取れた動画IDと削除された動画IDの数をログに出す
+		const removeCount = removedIds.length;
+		const foundCount = requestTargetIds.length - removeCount;
+		Log.info("YouTubeScheduleUpdater", `Update complete: ${foundCount} active, ${removeCount} removed, ${cleanupCount} cleaned.`);
+
+		// 処理が成功したので、単体IDキャッシュを削除する
+		if (foundIds?.size) {
+			await this.youtubeNoticesCache.bulkDeleteAsync(Array.from(foundIds));
+		}
+	}
+
+	async updateSchedulesLast()
+	{
+		// IDのキャッシュを更新する
+		await this.youtubeRepository.updateScheduleIdsAsync();
+
+		// 公開用 JSON 生成
+		const currentDateIso = currentDate.toISOString();
+		const endLimitIso = endLimit.toISOString();
+		await this.saveDataJsonAsync(currentDateIso, startLimitIso, endLimitIso);
 	}
 
 	/**
