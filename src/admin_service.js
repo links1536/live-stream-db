@@ -75,160 +75,136 @@ export class AdminService {
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>live-stream-db 管理コンソール</title>
 	<style>
-		/* デザインシステム: 配色とフォントの定義 */
 		:root {
-			--bg: #0a0a0c;
-			--surface: #16161e;
-			--surface-hover: #1f1f28;
-			--primary: #7aa2f7;
-			--secondary: #bb9af7;
-			--success: #9ece6a;
-			--error: #f7768e;
-			--warning: #e0af68;
-			--text: #c0caf5;
-			--text-muted: #565f89;
-			--border: rgba(255, 255, 255, 0.05);
-			--font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+			--text: #1a1a1a;
+			--text-muted: #666;
+			--bg: #f8f9fa;
+			--surface: #ffffff;
+			--border: #e0e0e0;
+			--primary: #0066cc;
+			--success: #28a745;
+			--font-mono: 'Monaco', 'Courier New', monospace;
 		}
 
 		* { box-sizing: border-box; }
 		body {
 			background-color: var(--bg);
-			/* 背景にモダンなグラデーションのアクセントを追加 */
-			background-image: radial-gradient(circle at top right, rgba(122, 162, 247, 0.05), transparent),
-			                  radial-gradient(circle at bottom left, rgba(187, 154, 247, 0.05), transparent);
 			color: var(--text);
-			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 			margin: 0;
-			display: flex;
-			justify-content: center;
-			padding: 40px 20px;
+			padding: 32px 16px;
 			min-height: 100vh;
 		}
 
 		.app-container {
-			width: 100%;
-			max-width: 800px;
-			display: flex;
-			flex-direction: column;
-			gap: 24px;
+			max-width: 900px;
+			margin: 0 auto;
 		}
 
 		header {
+			margin-bottom: 32px;
+			border-bottom: 1px solid var(--border);
+			padding-bottom: 16px;
 			display: flex;
 			justify-content: space-between;
-			align-items: center;
-			padding-bottom: 8px;
+			align-items: flex-start;
 		}
 
-		/* タイトル部分: グラデーションテキスト */
 		.title-area h1 {
-			margin: 0;
-			font-size: 24px;
-			font-weight: 800;
-			letter-spacing: -0.5px;
-			background: linear-gradient(to right, var(--primary), var(--secondary));
-			-webkit-background-clip: text;
-			-webkit-text-fill-color: transparent;
+			margin: 0 0 4px 0;
+			font-size: 28px;
+			font-weight: 600;
+			color: var(--text);
 		}
 
 		.title-area p {
-			margin: 4px 0 0 0;
-			font-size: 13px;
+			margin: 0;
+			font-size: 14px;
 			color: var(--text-muted);
 		}
 
-		/* ステータスバー: サーバー情報等の表示 */
 		.stats-bar {
 			display: grid;
-			grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-			gap: 16px;
+			grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+			gap: 12px;
+			margin-bottom: 32px;
 		}
 
 		.stat-card {
 			background: var(--surface);
 			border: 1px solid var(--border);
-			padding: 16px;
-			border-radius: 12px;
-			display: flex;
-			flex-direction: column;
-			gap: 4px;
+			padding: 12px 16px;
+			border-radius: 4px;
 		}
 
-		.stat-label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; }
-		.stat-value { font-size: 18px; font-weight: 700; color: var(--primary); }
+		.stat-label { 
+			font-size: 11px;
+			text-transform: uppercase;
+			color: var(--text-muted);
+			margin-bottom: 4px;
+		}
+		.stat-value { 
+			font-size: 16px;
+			font-weight: 600;
+			color: var(--text);
+		}
 
-		/* アクションカード: 各機能のトリガーボタンを内包 */
 		.actions-grid {
 			display: grid;
-			grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+			grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 			gap: 16px;
+			margin-bottom: 32px;
 		}
 
 		.action-card {
 			background: var(--surface);
 			border: 1px solid var(--border);
-			border-radius: 16px;
-			padding: 24px;
-			transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-			display: flex;
-			flex-direction: column;
-			gap: 16px;
-			position: relative;
+			border-radius: 4px;
+			padding: 16px;
+			transition: border-color 0.2s;
 		}
 
 		.action-card:hover {
-			border-color: rgba(122, 162, 247, 0.3);
-			transform: translateY(-2px);
-			background: var(--surface-hover);
+			border-color: var(--primary);
 		}
 
-		.action-header {
-			display: flex;
-			align-items: flex-start;
-			justify-content: space-between;
+		.action-info h3 { 
+			margin: 0 0 8px 0;
+			font-size: 15px;
+			font-weight: 600;
 		}
-
-		.icon-box {
-			width: 40px;
-			height: 40px;
-			border-radius: 10px;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			background: rgba(122, 162, 247, 0.1);
-			color: var(--primary);
+		.action-info p { 
+			margin: 0 0 12px 0;
+			font-size: 13px;
+			color: var(--text-muted);
 		}
-
-		.action-info h3 { margin: 0; font-size: 16px; font-weight: 600; }
-		.action-info p { margin: 4px 0 0 0; font-size: 13px; color: var(--text-muted); line-height: 1.4; }
 
 		.btn-trigger {
 			background: var(--primary);
-			color: #000;
+			color: white;
 			border: none;
-			padding: 12px;
-			border-radius: 10px;
-			font-size: 14px;
-			font-weight: 700;
+			padding: 8px 16px;
+			border-radius: 4px;
+			font-size: 13px;
+			font-weight: 500;
 			cursor: pointer;
-			transition: all 0.1s;
+			transition: background 0.2s;
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			gap: 8px;
+			gap: 6px;
+			width: 100%;
 		}
 
-		.btn-trigger:hover { filter: brightness(1.1); }
+		.btn-trigger:hover { background: #0052a3; }
 		.btn-trigger:active { transform: scale(0.98); }
-		.btn-trigger:disabled { background: var(--text-muted); cursor: not-allowed; }
+		.btn-trigger:disabled { background: var(--border); cursor: not-allowed; }
 
-		/* 実行中を示すスピンアニメーション */
 		.spinner {
-			width: 16px;
-			height: 16px;
-			border: 2px solid rgba(0,0,0,0.1);
-			border-top-color: #000;
+			width: 14px;
+			height: 14px;
+			border: 2px solid rgba(255,255,255,0.3);
+			border-top-color: white;
 			border-radius: 50%;
 			animation: spin 0.6s linear infinite;
 			display: none;
@@ -236,67 +212,54 @@ export class AdminService {
 
 		@keyframes spin { to { transform: rotate(360deg); } }
 
-		/* 実行中状態のスタイル制御 */
 		.executing .spinner { display: block; }
 		.executing .btn-text { display: none; }
 
-		/* ターミナル風ログセクション */
 		.terminal-container {
-			background: #000;
+			background: var(--surface);
 			border: 1px solid var(--border);
-			border-radius: 16px;
+			border-radius: 4px;
 			overflow: hidden;
-			display: flex;
-			flex-direction: column;
 		}
 
 		.terminal-header {
-			background: #111;
-			padding: 10px 16px;
+			background: #fafbfc;
+			padding: 12px 16px;
+			border-bottom: 1px solid var(--border);
+			font-size: 11px;
+			font-weight: 600;
+			text-transform: uppercase;
+			color: var(--text-muted);
 			display: flex;
 			justify-content: space-between;
-			align-items: center;
-			border-bottom: 1px solid var(--border);
 		}
 
-		.terminal-dots { display: flex; gap: 6px; }
-		.dot { width: 8px; height: 8px; border-radius: 50%; }
-		.dot-r { background: #ff5f56; }
-		.dot-y { background: #ffbd2e; }
-		.dot-g { background: #27c93f; }
-
 		.terminal-body {
-			height: 250px;
+			height: 200px;
 			padding: 16px;
 			overflow-y: auto;
 			font-family: var(--font-mono);
-			font-size: 13px;
-			line-height: 1.6;
-			display: flex;
-			flex-direction: column-reverse; /* 新しいログを上にするために反転 */
+			font-size: 12px;
+			line-height: 1.5;
+			color: var(--text);
+			white-space: pre-wrap;
+			word-wrap: break-word;
 		}
 
-		.log-item { display: flex; gap: 12px; margin-bottom: 6px; }
-		.log-ts { color: var(--text-muted); min-width: 80px; }
-		.log-msg-info { color: var(--text); }
-		.log-msg-success { color: var(--success); }
-		.log-msg-error { color: var(--error); }
-		.log-msg-warn { color: var(--warning); }
+		.log-item { display: none; }
 
 		.clear-log {
 			background: none;
 			border: none;
 			color: var(--text-muted);
-			font-size: 11px;
+			font-size: 12px;
 			cursor: pointer;
-			text-transform: uppercase;
-			letter-spacing: 0.5px;
+			transition: color 0.2s;
 		}
 
 		.clear-log:hover { color: var(--text); }
 
 		@media (max-width: 600px) {
-			body { padding: 20px 12px; }
 			.actions-grid { grid-template-columns: 1fr; }
 		}
 	</style>
@@ -326,7 +289,7 @@ export class AdminService {
 			</div>
 			<div class="stat-card">
 				<span class="stat-label">Security</span>
-				<span class="stat-value" style="color:var(--secondary)">Basic Auth</span>
+				<span class="stat-value" style="color:var(--primary)">Basic Auth</span>
 			</div>
 		</div>
 
@@ -334,11 +297,6 @@ export class AdminService {
 		<main class="actions-grid">
 			<!-- WebSub再登録 -->
 			<div class="action-card">
-				<div class="action-header">
-					<div class="icon-box">
-						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg>
-					</div>
-				</div>
 				<div class="action-info">
 					<h3>WebSub Re-register</h3>
 					<p>YouTubeのリアルタイム通知(PubSubHubbub)を全件強制登録します</p>
@@ -351,16 +309,11 @@ export class AdminService {
 
 			<!-- RSS手動フェッチ -->
 			<div class="action-card">
-				<div class="action-header">
-					<div class="icon-box">
-						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-					</div>
-				</div>
 				<div class="action-info">
 					<h3>Manual RSS Fetch</h3>
 					<p>最新のRSSフィードを即座にフェッチし、新着動画をキューへ投入します</p>
 				</div>
-				<button class="btn-trigger" onclick="runTask(this, '/admin/youtube-fetch-rss')" style="background:var(--secondary)">
+				<button class="btn-trigger" onclick="runTask(this, '/admin/youtube-fetch-rss')">
 					<div class="spinner"></div>
 					<span class="btn-text">Check Feeds</span>
 				</button>
@@ -368,16 +321,11 @@ export class AdminService {
 
 			<!-- スケジュール同期 -->
 			<div class="action-card">
-				<div class="action-header">
-					<div class="icon-box">
-						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg>
-					</div>
-				</div>
 				<div class="action-info">
 					<h3>Full Sync Update</h3>
 					<p>YouTube Data APIを使用して、全動画のステータスとJSONを最新化します</p>
 				</div>
-				<button class="btn-trigger" onclick="runTask(this, '/admin/youtube-update')" style="background:var(--success)">
+				<button class="btn-trigger" onclick="runTask(this, '/admin/youtube-update')">
 					<div class="spinner"></div>
 					<span class="btn-text">Sync Schedules</span>
 				</button>
@@ -387,16 +335,11 @@ export class AdminService {
 		<!-- ログ表示セクション -->
 		<section class="terminal-container">
 			<div class="terminal-header">
-				<div class="terminal-dots">
-					<div class="dot dot-r"></div>
-					<div class="dot dot-y"></div>
-					<div class="dot dot-g"></div>
-				</div>
-				<span style="font-size:11px; font-weight:700; color:var(--text-muted); font-family:var(--font-mono)">ADMIN@VTUBER-UPDATER: ~</span>
+				<span>API Response</span>
+				<button class="clear-log" onclick="clearLogs()">Clear</button>
 			</div>
 			<div class="terminal-body" id="logs">
-				<!-- ここにJavaScriptでログが追加されます -->
-				<div class="log-item"><span class="log-ts">[SYSTEM]</span><span class="log-msg-info">Waiting for commands...</span></div>
+				<!-- ここにAPIレスポンスが表示されます -->
 			</div>
 		</section>
 	</div>
@@ -421,20 +364,11 @@ export class AdminService {
 		 * @param {string} msg - 表示するメッセージ
 		 * @param {string} type - info, success, error, warn
 		 */
-		function appendLog(msg, type = 'info') {
-			const item = document.createElement('div');
-			item.className = 'log-item';
-			const ts = new Date().toLocaleTimeString('ja-JP', { hour12: false });
-			item.innerHTML = \`<span class="log-ts">[\${ts}]</span><span class="log-msg-\${type}">\${msg}</span>\`;
-			logContainer.prepend(item);
-		}
-
 		/**
 		 * ログ履歴をクリアします
 		 */
 		function clearLogs() {
 			logContainer.innerHTML = '';
-			appendLog('Logs cleared.', 'warn');
 		}
 
 		/**
@@ -450,7 +384,7 @@ export class AdminService {
 			btn.disabled = true;
 			btn.classList.add('executing');
 			
-			appendLog(\`Starting task: \${taskName}...\`, 'info');
+			logContainer.innerHTML = \`Executing: \${taskName}\\n\`;
 
 			try {
 				// APIリクエストの送信
@@ -460,13 +394,13 @@ export class AdminService {
 				const result = await response.text();
 
 				if (response.ok) {
-					appendLog(\`SUCCESS: \${result}\`, 'success');
+					logContainer.innerHTML = \`✓ Success (HTTP \${response.status})\\n\\n\${result}\`;
 				} else {
-					appendLog(\`FAILED (\${response.status}): \${result}\`, 'error');
+					logContainer.innerHTML = \`✗ Failed (HTTP \${response.status})\\n\\n\${result}\`;
 				}
 			}
 			catch (err) {
-				appendLog(\`NETWORK ERROR: \${err.message}\`, 'error');
+				logContainer.innerHTML = \`✗ Error: \${err.message}\`;
 			}
 			finally {
 				// 状態のリセット
