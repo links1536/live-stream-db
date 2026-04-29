@@ -146,14 +146,11 @@ export default {
 					if (updateLast == true)
 						continue;
 
-					Log.info("YouTubeScheduleUpdater", `Queue: ${bodyText}`);
 					await scheduleUpdater.updateSchedules(JSON.parse(bodyText));
 
 					// 成功時は ack
 					msg.ack();
 				}
-
-				console.info(`[INFO] Processed ${videoIds.length} channels`);
 
 				if (updateLast)
 				{
