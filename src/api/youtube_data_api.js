@@ -47,6 +47,11 @@ export class YouTubeDataAPI
 			return [null, null];
 		}
 
+		if (targetIds.length === 0) {
+			Log.error("YouTubeDataAPI", "動画IDが指定されていません");
+			return [null, null];
+		}
+
 		const ids = targetIds.join(",");
 		const requestUrl = `${this.youtubeDataApiUrlBase}&id=${ids}`;
 
