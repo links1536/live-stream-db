@@ -14,10 +14,10 @@ VTuberの配信予定を収集し、JSON形式で出力するクローラー兼A
 - **Runtime**: Cloudflare Workers (Python)
 - **Storage**: 
   - **KV**: 
-    - `KV_MASTER`: VTuberのマスターデータ
     - `KV_CACHE`: 配信情報の内部キャッシュ
     - `KV_OUTPUT`: 公開用 `lives.json` の保存先
   - **Durable Objects**: `YouTubeNoticesCache` (新着動画IDの一時保持)
+  - **D1**: マスターデータ・配信情報をまとめたSQLデータベース
 - **Messaging**: Cloudflare Queues (WebSubの登録処理を非同期に実行)
 
 ## 環境変数 (Environment Variables)
@@ -30,12 +30,17 @@ VTuberの配信予定を収集し、JSON形式で出力するクローラー兼A
 | `VAR_KV_MASTER_ID` | マスターデータ用KVのID |
 | `VAR_KV_CACHE_ID` | キャッシュ用KVのID |
 | `VAR_KV_OUTPUT_ID` | 公開データ用KVのID |
-| `VAR_QUEUE_YOUTUBE_WEBSUB_RESISTER` | WebSub登録用Queue名 |
-| `VAR_QUEUE_YOUTUBE_RSS_FEED` | RSSフィード用Queue名 |
+| `VAR_QUEUE_YOUTUBE_WEBSUB_RESISTER` | YouTubeのWebSub登録用Queue名 |
+| `VAR_QUEUE_YOUTUBE_SCHDULE_UPDATE` | YouTubeのスケジュール更新用Queue名 |
+| `VAR_QUEUE_YOUTUBE_RSS_FEED` | YouTubeのRSSフィード用Queue名 |
+| `VAR_D1_DATABASE_NAME` | データ保存用D1のデータベース名 |
+| `VAR_D1_DATABASE_ID` | データ保存用D1のデータベースUUID |
 
 ### 実行時に必要なシークレット (`wrangler secret put`等)
 | 変数名 | 内容 |
 |---|---|
+| `ADMIN_USERNAME` | 管理画面用ユーザー名 |
+| `ADMIN_PASSWORD` | 管理画面用パスワード |
 | `YOUTUBE_DATA_API_KEY` | YouTube Data API v3 キー |
 | `YOUTUBE_WEBSUB_CALLBACK_URL` | 通知受取用URL |
 | `YOUTUBE_WEBSUB_VERIFY_TOKEN` | WebSub検証トークン |
