@@ -104,7 +104,7 @@ delivery_delay = 60
 [[queues.consumers]]
 queue = "{yr_schedule_update_queue}"
 retry_delay = 300
-max_batch_size = 50
+max_batch_size = 1 #先にまとめるので、1個ずつ処理する
 max_concurrency = 1
 
 # RSS更新用キュー
