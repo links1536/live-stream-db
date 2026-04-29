@@ -152,7 +152,6 @@ export default {
 				}
 
 				if (videoIds.length > 0) {
-					Log.info("YouTubeScheduleUpdater", `UpdateSchedules: ${videoId}`);
 					await scheduleUpdater.updateSchedules(videoIds);
 					
 					// 処理成功後に全ackを送信
