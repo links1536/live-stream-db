@@ -338,9 +338,7 @@ export class AdminService {
 				<span>API Response</span>
 				<button class="clear-log" onclick="clearLogs()">Clear</button>
 			</div>
-			<div class="terminal-body" id="logs">
-				<!-- ここにAPIレスポンスが表示されます -->
-			</div>
+			<div class="terminal-body" id="logs"><!-- ここにAPIレスポンスが表示されます --></div>
 		</section>
 	</div>
 
