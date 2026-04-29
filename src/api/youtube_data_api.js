@@ -60,7 +60,7 @@ export class YouTubeDataAPI
 		if (!response.ok) {
 			// エラーがあって処理できなかったIDはなにもしない
 			// いろいろエラーに種類はあるけど、Workersの性質上細かくハンドリングするCPU時間はない
-			Log.error("YouTubeDataAPI", `API Error: ${response.status}`);
+			Log.error("YouTubeDataAPI", `API Error: ${response.status} ${await response.text()}`);
 			return [null, null];
 		}
 
