@@ -59,6 +59,7 @@ export class YouTubeScheduleUpdater
 		Log.info("YouTubeScheduleUpdater", `Checking ${requestTargetIds.length} video IDs...`);
 		for (let i = 0; i < requestTargetIds.length; i += chunkSize) {
 			const chunk = requestTargetIds.slice(i, i + chunkSize);
+			Log.info("YouTubeScheduleUpdater", `Chunk: ${chunkSize} Id: ${chunk.join(",")}`);
 			const ids = JSON.stringify(chunk);
 			await this.updateSchedulesQueue.send(ids);
 		}

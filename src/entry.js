@@ -137,27 +137,23 @@ export default {
 				const scheduleUpdater = new YouTubeScheduleUpdater(env);
 
 				let updateLast = false;
-				const videoIds = [];
 				for (const msg of batch.messages) {
-					const videoId = msg.body?.trim();
-					if (!videoId)
+					const bodyText = msg.body?.trim();
+					if (!bodyText)
 						continue;
 
-					updateLast = videoId === "update_last";
+					updateLast = bodyText === "update_last";
 					if (updateLast == true)
 						continue;
 
-					Log.info("YouTubeScheduleUpdater", `Queue: ${videoId}`);
-					videoIds.push(JSON.parse(videoId));
+					Log.info("YouTubeScheduleUpdater", `Queue: ${bodyText}`);
+					await scheduleUpdater.updateSchedules(JSON.parse(bodyText));
+
+					// 成功時は ack
+					msg.ack();
 				}
 
-				if (videoIds.length > 0) {
-					await scheduleUpdater.updateSchedules(videoIds);
-					
-					// 処理成功後に全ackを送信
-					batch.ackAll();
-					console.info(`[INFO] Processed ${videoIds.length} channels`);
-				}
+				console.info(`[INFO] Processed ${videoIds.length} channels`);
 
 				if (updateLast)
 				{

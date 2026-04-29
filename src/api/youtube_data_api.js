@@ -52,6 +52,11 @@ export class YouTubeDataAPI
 			return [null, null];
 		}
 
+		if (targetIds.length > YouTubeDataAPI.CHUNK_SIZE) {
+			Log.error("YouTubeDataAPI", `動画IDが50件を超えています (${targetIds.length})`);
+			return [null, null];
+		}
+
 		const ids = targetIds.join(",");
 		const requestUrl = `${this.youtubeDataApiUrlBase}&id=${ids}`;
 		Log.info("YouTubeDataAPI", `リクエストID: ${ids}`);
