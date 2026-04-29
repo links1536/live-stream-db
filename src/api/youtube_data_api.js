@@ -54,6 +54,7 @@ export class YouTubeDataAPI
 
 		const ids = targetIds.join(",");
 		const requestUrl = `${this.youtubeDataApiUrlBase}&id=${ids}`;
+		Log.info("YouTubeDataAPI", `リクエストID: ${ids}`);
 
 		const response = await HttpUtils.get(requestUrl);
 		if (!response.ok) {
