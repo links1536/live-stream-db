@@ -156,7 +156,7 @@ export default {
 					console.info(`[INFO] Processed ${videoIds.length} channels`);
 				}
 
-				if(updateLast)
+				if (updateLast)
 				{
 					await scheduleUpdater.updateSchedulesLast();
 				}
