@@ -6,6 +6,7 @@ import { YouTubeRssFeedUpdater } from "./updater/youtube_rss_feed_updater.js";
 import { YouTubeScheduleUpdater } from "./updater/youtube_schedule_updater.js";
 import { YouTubeWebSub } from "./api/youtube_websub.js";
 import { AdminService } from "./admin_service.js";
+import { Log } from "./log.js";
 
 // Durable Object のエクスポート（必須）
 export { YouTubeNoticesCache } from "./repository/youtube_notices_cache.js";
@@ -145,10 +146,13 @@ export default {
 					updateLast = videoId === "update_last";
 					if (updateLast == true)
 						continue;
+
+					Log.info("YouTubeScheduleUpdater", `Queue: ${videoId}`);
 					videoIds.push(JSON.parse(videoId));
 				}
 
 				if (videoIds.length > 0) {
+					Log.info("YouTubeScheduleUpdater", `UpdateSchedules: ${videoId}`);
 					await scheduleUpdater.updateSchedules(videoIds);
 					
 					// 処理成功後に全ackを送信
