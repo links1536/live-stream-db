@@ -148,14 +148,15 @@ export default {
 
 					await scheduleUpdater.updateSchedules(JSON.parse(bodyText));
 
-					// 成功時は ack
-					msg.ack();
 				}
 
 				if (updateLast)
 				{
 					await scheduleUpdater.updateSchedulesLast();
 				}
+
+				// 成功時は ack
+				batch.ack();
 
 				break;
 			case env.QUEUE_NAME_YOUTUBE_RSS_FEED:
