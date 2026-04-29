@@ -156,7 +156,7 @@ export default {
 				}
 
 				// 成功時は ack
-				batch.ack();
+				batch.ackAll();
 
 				break;
 			case env.QUEUE_NAME_YOUTUBE_RSS_FEED:
