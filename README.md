@@ -80,6 +80,11 @@ Cloudflare ダッシュボードで次を開きます
 
 管理画面または `wrangler d1 execute` で投入できます
 
+確認する項目:
+
+- D1 の `Database ID`
+- D1 の `Database name`
+
 ### 2. KV を作成する
 
 Cloudflare ダッシュボードで次を開きます
@@ -92,6 +97,10 @@ Cloudflare ダッシュボードで次を開きます
 - 動画 ID キャッシュ用 KV
 - 公開用 `lives.json` 保存用 KV
 
+確認する項目:
+
+- `KV_CACHE` に使う Namespace ID
+- `KV_OUTPUT` に使う Namespace ID
 
 ### 3. Queue を作成する
 
@@ -107,6 +116,11 @@ Cloudflare ダッシュボードで次を開きます
 - スケジュール更新用 Queue
 - RSS 取得用 Queue
 
+確認する項目:
+
+- 各 Queue の名前
+- `build.py` に渡す文字列が Queue 名と一致していること
+
 ### 4. Durable Object を使う Worker をデプロイする
 
 `YOUTUBE_NOTICES_CACHE` は Worker 側の Durable Object バインドです
@@ -117,11 +131,29 @@ Cloudflare ダッシュボードで次を開きます
 
 ローカルまたは CI で `src/build.py` 実行前に環境変数を設定します
 
+例:
+
+```powershell
+$env:VAR_KV_CACHE_ID="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+$env:VAR_KV_OUTPUT_ID="yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+$env:VAR_QUEUE_YOUTUBE_WEBSUB_REGISTER="youtube-websub-register"
+$env:VAR_QUEUE_YOUTUBE_SCHEDULE_UPDATE="youtube-schedule-update"
+$env:VAR_QUEUE_YOUTUBE_RSS_FEED="youtube-rss-feed"
+$env:VAR_D1_DATABASE_NAME="live-stream-db"
+$env:VAR_D1_DATABASE_ID="zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz"
+```
+
 ```powershell
 python src/build.py
 ```
 
 これで `wrangler.toml` が生成されます
+
+生成後に確認する項目:
+
+- `KV_CACHE` と `KV_OUTPUT` の Namespace ID が想定通り入っていること
+- Queue 名が想定通り入っていること
+- `DB` の `database_id` が想定通り入っていること
 
 ### 6. シークレットを設定する
 
@@ -141,6 +173,17 @@ Cloudflare ダッシュボードで次を開きます
 - `YOUTUBE_WEBSUB_VERIFY_TOKEN`
 - `YOUTUBE_WEBSUB_SECRETS`
 
+CLI を使う場合の例:
+
+```powershell
+wrangler secret put ADMIN_USERNAME
+wrangler secret put ADMIN_PASSWORD
+wrangler secret put YOUTUBE_DATA_API_KEY
+wrangler secret put YOUTUBE_WEBSUB_CALLBACK_URL
+wrangler secret put YOUTUBE_WEBSUB_VERIFY_TOKEN
+wrangler secret put YOUTUBE_WEBSUB_SECRETS
+```
+
 ### 7. デプロイする
 
 ```powershell
@@ -153,6 +196,13 @@ wrangler deploy
 - `Triggers` に Cron が入っていること
 - `/admin` に Basic 認証でアクセスできること
 - `/webhooks/youtube` が公開されていること
+
+初回動作確認の順番:
+
+1. `/admin` に Basic 認証で入れることを確認します
+2. `/admin/youtube-websub-register` を叩いて Queue に流せることを確認します
+3. `/admin/youtube-fetch-rss` を叩いて RSS 取得を起動できることを確認します
+4. `/admin/youtube-update` を叩いて `KV_OUTPUT` に `lives.json` が生成されることを確認します
 
 ## 運用フロー
 
