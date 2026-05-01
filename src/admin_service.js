@@ -387,6 +387,7 @@ export class AdminService {
 			try {
 				// APIリクエストの送信
 				const response = await fetch(endpoint, {
+					method: 'POST',
 					headers: { 'X-Requested-With': 'XMLHttpRequest' }
 				});
 				const result = await response.text();

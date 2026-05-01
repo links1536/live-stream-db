@@ -46,29 +46,43 @@ export default {
 			}
 
 			// 管理画面
-			if (path === "/admin") {
+			if (path === "/admin" && request.method === "GET") {
 				return await AdminService.handleRequest(request, env);
 			}
 
 			// WebSub 登録（手動トリガー）
-			if (path === "/admin/youtube-websub-register") {
+			if (path === "/admin/youtube-websub-register" && request.method === "POST") {
 				const updater = new YouTubeWebSubUpdater(env);
 				await updater.registerWebsub();
 				return new Response("WebSub registration triggered");
 			}
 
 			// RSS フィード取得（手動トリガー）
-			if (path === "/admin/youtube-fetch-rss") {
+			if (path === "/admin/youtube-fetch-rss" && request.method === "POST") {
 				const updater = new YouTubeRssFeedUpdater(env);
 				await updater.scheduleTrigger();
 				return new Response("RSS feed fetch triggered");
 			}
 
 			// スケジュール更新（手動トリガー）
-			if (path === "/admin/youtube-update") {
+			if (path === "/admin/youtube-update" && request.method === "POST") {
 				const updater = new YouTubeScheduleUpdater(env);
 				await updater.scheduleTrigger();
 				return new Response("Schedule update triggered");
+			}
+
+			if (
+				path === "/admin/youtube-websub-register" ||
+				path === "/admin/youtube-fetch-rss" ||
+				path === "/admin/youtube-update"
+			) {
+				return new Response("Method Not Allowed", {
+					status: 405,
+					headers: {
+						"Allow": "POST",
+						"Content-Type": "text/plain; charset=utf-8"
+					}
+				});
 			}
 		}
 
