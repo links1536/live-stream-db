@@ -224,9 +224,9 @@ wrangler deploy
 初回動作確認の順番:
 
 1. `/admin` に Basic 認証で入れることを確認します
-2. `/admin/youtube-websub-register` を叩いて Queue に流せることを確認します
-3. `/admin/youtube-fetch-rss` を叩いて RSS 取得を起動できることを確認します
-4. `/admin/youtube-update` を叩いて `KV_OUTPUT` に `lives.json` が生成されることを確認します
+2. 管理画面から WebSub 再登録を実行し、Queue に流せることを確認します
+3. 管理画面から RSS 取得を実行し、起動できることを確認します
+4. 管理画面からスケジュール更新を実行し、`KV_OUTPUT` に `lives.json` が生成されることを確認します
 
 ## 運用フロー
 
@@ -237,12 +237,12 @@ wrangler deploy
 
 ## 管理用エンドポイント
 
-Basic 認証つきで次を実行できます
+Basic 認証つきで次を利用できます
 
-- `/admin`: 管理画面
-- `/admin/youtube-websub-register`: WebSub 再登録
-- `/admin/youtube-fetch-rss`: RSS 手動取得
-- `/admin/youtube-update`: スケジュール更新
+- `GET /admin`: 管理画面
+- `POST /admin/youtube-websub-register`: WebSub 再登録
+- `POST /admin/youtube-fetch-rss`: RSS 手動取得
+- `POST /admin/youtube-update`: スケジュール更新
 
 ## 補足
 
