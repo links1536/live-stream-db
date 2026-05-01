@@ -8,6 +8,18 @@ YouTube Data API、WebSub、RSS を使って動画情報を収集し、Cloudflar
 
 `live-stream-db-pages` はこの `KV_OUTPUT` を参照して公開画面を表示します
 
+## 関連リポジトリ
+
+- `live-stream-db-data`: D1 に投入する配信者マスターデータを生成します
+- `live-stream-db-pages`: このリポジトリが生成した `lives.json` を表示するフロントエンドです
+
+## 前提環境
+
+- Python 3.12 以上
+- Wrangler CLI 4 系
+- Cloudflare D1 / KV / Queues / Durable Objects が利用できるアカウント
+- YouTube Data API v3 キー
+
 ## 構成
 
 - Runtime: Cloudflare Workers
@@ -26,6 +38,14 @@ YouTube Data API、WebSub、RSS を使って動画情報を収集し、Cloudflar
 - `src/api/`: YouTube API / RSS / WebSub
 - `src/repository/`: D1 / KV / Durable Object アクセス
 - `setup-d1.sql`: D1 初期セットアップ SQL
+
+## セットアップ概要
+
+1. `setup-d1.sql` と `live-stream-db-data` で生成した `master.sql` を D1 に適用します
+3. KV、Queue、Durable Object を作成します
+4. 環境変数を設定して `python src/build.py` を実行します
+5. Secrets を投入して `wrangler deploy` します
+6. `/admin` と `/webhooks/youtube` を確認します
 
 ## ストレージ種別
 
@@ -76,7 +96,10 @@ Cloudflare ダッシュボードで次を開きます
 - `D1`
 - `Create database`
 
-作成後、`setup-d1.sql` の内容を適用します
+作成後、`setup-d1.sql` と `live-stream-db-data` 側で生成した `output/master.sql` の両方を適用してください
+
+- `setup-d1.sql`: D1 のテーブル構成を初期化します
+- `output/master.sql`: マスターデータを投入または差し換えます
 
 管理画面または `wrangler d1 execute` で投入できます
 
@@ -84,6 +107,7 @@ Cloudflare ダッシュボードで次を開きます
 
 - D1 の `Database ID`
 - D1 の `Database name`
+- `setup-d1.sql` と `output/master.sql` の両方が適用済みであること
 
 ### 2. KV を作成する
 
@@ -219,3 +243,8 @@ Basic 認証つきで次を実行できます
 - `/admin/youtube-websub-register`: WebSub 再登録
 - `/admin/youtube-fetch-rss`: RSS 手動取得
 - `/admin/youtube-update`: スケジュール更新
+
+## 補足
+
+- `wrangler.toml` は `src/build.py` で生成します。生成物は `.gitignore` 対象です
+- Queue は分割更新のために利用しており、実行時間制限に収まるよう設計しています
