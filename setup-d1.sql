@@ -6,11 +6,11 @@ CREATE TABLE youtube_schedules (
 	thumbnail TEXT,
 	start_time_iso TEXT,
 	status TEXT
-)
+);
 CREATE TABLE rss_last_updated (
 	channel_id TEXT PRIMARY KEY,
 	last_updated TEXT
-)
+);
 
 -- インデックス作成
 
