@@ -47,11 +47,10 @@ YouTube Data API、WebSub、RSS を使って動画情報を収集し、Cloudflar
 
 | 変数名 | 内容 |
 |---|---|
-| `VAR_KV_MASTER_ID` | マスターデータ用 KV ID |
 | `VAR_KV_CACHE_ID` | 動画 ID キャッシュ用 KV ID |
 | `VAR_KV_OUTPUT_ID` | 公開用 `lives.json` を保存する KV ID |
-| `VAR_QUEUE_YOUTUBE_WEBSUB_RESISTER` | WebSub 登録用 Queue 名 |
-| `VAR_QUEUE_YOUTUBE_SCHDULE_UPDATE` | スケジュール更新用 Queue 名 |
+| `VAR_QUEUE_YOUTUBE_WEBSUB_REGISTER` | WebSub 登録用 Queue 名 |
+| `VAR_QUEUE_YOUTUBE_SCHEDULE_UPDATE` | スケジュール更新用 Queue 名 |
 | `VAR_QUEUE_YOUTUBE_RSS_FEED` | RSS 取得用 Queue 名 |
 | `VAR_D1_DATABASE_NAME` | D1 データベース名 |
 | `VAR_D1_DATABASE_ID` | D1 データベース ID |
@@ -93,7 +92,6 @@ Cloudflare ダッシュボードで次を開きます
 - 動画 ID キャッシュ用 KV
 - 公開用 `lives.json` 保存用 KV
 
-`build.py` には `VAR_KV_MASTER_ID` もありますが、現在の Worker 実装で直接使っているのは `KV_CACHE` と `KV_OUTPUT` です
 
 ### 3. Queue を作成する
 
@@ -168,6 +166,6 @@ wrangler deploy
 Basic 認証つきで次を実行できます
 
 - `/admin`: 管理画面
-- `/admin/youtube-websub-resister`: WebSub 再登録
+- `/admin/youtube-websub-register`: WebSub 再登録
 - `/admin/youtube-fetch-rss`: RSS 手動取得
 - `/admin/youtube-update`: スケジュール更新

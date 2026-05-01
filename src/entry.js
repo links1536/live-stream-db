@@ -51,7 +51,7 @@ export default {
 			}
 
 			// WebSub 登録（手動トリガー）
-			if (path === "/admin/youtube-websub-resister") {
+			if (path === "/admin/youtube-websub-register") {
 				const updater = new YouTubeWebSubUpdater(env);
 				await updater.registerWebsub();
 				return new Response("WebSub registration triggered");
@@ -110,7 +110,7 @@ export default {
 		console.log(`Processing queue: ${batch.queue}`);
 
 		switch (batch.queue) {
-			case env.QUEUE_NAME_YOUTUBE_WEBSUB_RESISTER:
+			case env.QUEUE_NAME_YOUTUBE_WEBSUB_REGISTER:
 				const youtube_websub = new YouTubeWebSub(
 					env.YOUTUBE_WEBSUB_VERIFY_TOKEN,
 					env.YOUTUBE_WEBSUB_SECRETS
@@ -133,7 +133,7 @@ export default {
 					}
 				}
 				break;
-			case env.QUEUE_NAME_YOUTUBE_SCHDULE_UPDATE:
+			case env.QUEUE_NAME_YOUTUBE_SCHEDULE_UPDATE:
 				const scheduleUpdater = new YouTubeScheduleUpdater(env);
 
 				let updateLast = false;

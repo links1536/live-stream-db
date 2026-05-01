@@ -12,18 +12,17 @@ def get_secret(secret_name):
 def generate_wrangler_toml():
 	"""wrangler.tomlを生成"""
 	# シークレットからKV IDを取得
-	kv_master_id = get_secret("VAR_KV_MASTER_ID")
 	kv_cache_id = get_secret("VAR_KV_CACHE_ID")
 	kv_output_id = get_secret("VAR_KV_OUTPUT_ID")
-	yt_register_websub_queue = get_secret("VAR_QUEUE_YOUTUBE_WEBSUB_RESISTER")
-	yr_schedule_update_queue = get_secret("VAR_QUEUE_YOUTUBE_SCHDULE_UPDATE")
+	yt_register_websub_queue = get_secret("VAR_QUEUE_YOUTUBE_WEBSUB_REGISTER")
+	yr_schedule_update_queue = get_secret("VAR_QUEUE_YOUTUBE_SCHEDULE_UPDATE")
 	yr_rss_feed_queue = get_secret("VAR_QUEUE_YOUTUBE_RSS_FEED")
 	d1_database_name = get_secret("VAR_D1_DATABASE_NAME")
 	d1_database_id = get_secret("VAR_D1_DATABASE_ID")
 
 	
-	if not all([kv_master_id, kv_cache_id, kv_output_id, d1_database_name, d1_database_id]):
-		print("Error: All KV IDs and D1 configuration must be set as secrets")
+	if not all([kv_cache_id, kv_output_id, d1_database_name, d1_database_id]):
+		print("Error: KV_CACHE, KV_OUTPUT, and D1 configuration must be set as secrets")
 		return False
 	
 	# wrangler.tomlの内容
@@ -33,8 +32,8 @@ compatibility_date = "2026-04-09"
 
 # 変数
 [vars]
-QUEUE_NAME_YOUTUBE_WEBSUB_RESISTER = "{yt_register_websub_queue}"
-QUEUE_NAME_YOUTUBE_SCHDULE_UPDATE = "{yr_schedule_update_queue}"
+QUEUE_NAME_YOUTUBE_WEBSUB_REGISTER = "{yt_register_websub_queue}"
+QUEUE_NAME_YOUTUBE_SCHEDULE_UPDATE = "{yr_schedule_update_queue}"
 QUEUE_NAME_YOUTUBE_RSS_FEED = "{yr_rss_feed_queue}"
 
 # ログ設定
@@ -63,11 +62,6 @@ class_name = "YouTubeNoticesCache"
 tag = "v1"
 new_sqlite_classes = [ "YouTubeNoticesCache" ]
 
-# マスター用KV
-[[kv_namespaces]]
-binding = "KV_MASTER"
-id = "{kv_master_id}"
-
 # キャッシュ用KV
 [[kv_namespaces]]
 binding = "KV_CACHE"
@@ -86,7 +80,7 @@ database_id = "{d1_database_id}"
 
 # WebSub登録用キュー
 [[queues.producers]]
-binding = "QUEUE_YOUTUBE_WEBHOOK_RESISTER"
+binding = "QUEUE_YOUTUBE_WEBSUB_REGISTER"
 queue = "{yt_register_websub_queue}"
 delivery_delay = 60
 

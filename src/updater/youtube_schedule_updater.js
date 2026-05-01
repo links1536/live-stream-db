@@ -3,7 +3,7 @@
 import { YouTubeScheduleRepository } from "../repository/youtube_schedule_repository.js";
 import { VTuberRepository } from "../repository/vtuber_repository.js";
 import { YouTubeDataAPI } from "../api/youtube_data_api.js";
-import { DisplayScheduleQueryService } from "../query_service/diplay_schedule_query.js";
+import { DisplayScheduleQueryService } from "../query_service/display_schedule_query.js";
 import { DateTimeUtils } from "../datetime_utils.js";
 import { Log } from "../log.js";
 
@@ -17,7 +17,7 @@ export class YouTubeScheduleUpdater
 		this.youtubeRepository = new YouTubeScheduleRepository(env.DB, env.KV_CACHE);
 		this.vtuberRepository = new VTuberRepository(env.DB);
 		this.youtubeDataApi = new YouTubeDataAPI(env.YOUTUBE_DATA_API_KEY);
-		this.diplayScheduleQuery = new DisplayScheduleQueryService(env.DB);
+		this.displayScheduleQuery = new DisplayScheduleQueryService(env.DB);
 
 		this.updateSchedulesQueue = env.QUEUE_YOUTUBE_UPDATE_TARGET;
 		this.updateSchedulesLastQueue = env.QUEUE_YOUTUBE_UPDATE_TARGET_LAST;
@@ -31,7 +31,7 @@ export class YouTubeScheduleUpdater
 	async saveDataJsonAsync(currentDateIso, startLimitIso, endLimitIso)
 	{
 		// DBからアクティブな配信（表示期間内）のみをJson形式で抽出
-		const [publicDataStr, count] = await this.diplayScheduleQuery.loadActiveSchedulesJsonAsync(currentDateIso, startLimitIso, endLimitIso);
+		const [publicDataStr, count] = await this.displayScheduleQuery.loadActiveSchedulesJsonAsync(currentDateIso, startLimitIso, endLimitIso);
 		await this.livesJsonStore.put(OUTPUT_KEY, publicDataStr);
 		Log.info("YouTubeScheduleUpdater", `Generated ${OUTPUT_KEY} (${count} streams)`);
 	}

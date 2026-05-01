@@ -301,7 +301,7 @@ export class AdminService {
 					<h3>WebSub Re-register</h3>
 					<p>YouTubeのリアルタイム通知(PubSubHubbub)を全件強制登録します</p>
 				</div>
-				<button class="btn-trigger" onclick="runTask(this, '/admin/youtube-websub-resister')">
+				<button class="btn-trigger" onclick="runTask(this, '/admin/youtube-websub-register')">
 					<div class="spinner"></div>
 					<span class="btn-text">Execute Now</span>
 				</button>
