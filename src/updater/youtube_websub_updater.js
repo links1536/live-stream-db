@@ -74,9 +74,6 @@ export class YouTubeWebSubUpdater
 		}
 
 		// 成功レスポンス
-		return HttpUtils.response("", {
-			"Status": 200,
-			"Content-Type": "text/plain",
-		});
+		return HttpUtils.response(200, "", { "Content-Type": "text/plain" });
 	}
 }

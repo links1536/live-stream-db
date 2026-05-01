@@ -89,20 +89,20 @@ export class YouTubeWebSub
 				const verifyToken = searchParams.get("hub.verify_token");
 				if (verifyToken !== this.verifyToken) {
 					console.error(`[WebSub] Invalid verify token: topic=${topic}`);
-					return HttpUtils.response("Forbidden", { "Status": 403 });
+					return HttpUtils.response(403, "Forbidden");
 				}
 
 				console.log(`[WebSub] Subscribe request: topic=${topic}`);
-				return HttpUtils.response(challenge, { "Content-Type": "text/plain" });
+				return HttpUtils.response(200, challenge, { "Content-Type": "text/plain" });
 			}
 		}
 		else if (mode === "unsubscribe") {
 			console.log(`[WebSub] Unsubscribe request: topic=${topic}`);
-			return HttpUtils.response("OK", { "Content-Type": "text/plain" });
+			return HttpUtils.response(200, "OK", { "Content-Type": "text/plain" });
 		}
 
 		console.error(`[WebSub] Unknown mode: mode=${mode}`);
-		return HttpUtils.response("Not Found", { "Status": 404 });
+		return HttpUtils.response(404, "Not Found");
 	}
 
 	/**

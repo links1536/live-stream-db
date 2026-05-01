@@ -30,9 +30,10 @@ export class HttpUtils
 	/**
 	* レスポンスオブジェクトを簡単に作成する
 	*/
-	static response(body, headers = {})
+	static response(status, body = "", headers = {})
 	{
 		return new Response(body, {
+			status: status,
 			headers: headers,
 		});
 	}
