@@ -16,17 +16,20 @@ export class TwitchStreamUpdater
 		this.streamUpdateCoordinator = env.STREAM_UPDATE_COORDINATOR.get(doId);
 	}
 
-	async scheduleTrigger()
+	async scheduleTrigger(outputRunId = null)
 	{
 		const twitchMap = await this.vtuberRepository.loadTwitchMapAsync();
 		const userLogins = Object.keys(twitchMap);
 		if (userLogins.length === 0) {
-			await this.updateStreamsQueue.send(JSON.stringify({ type: "clear_all" }));
+			await this.updateStreamsQueue.send(JSON.stringify({
+				type: "clear_all",
+				output_run_id: outputRunId
+			}));
 			return;
 		}
 
 		const runId = crypto.randomUUID();
-		await this.streamUpdateCoordinator.initializeRunAsync(runId, userLogins.length);
+		await this.streamUpdateCoordinator.initializeRunAsync(runId, userLogins.length, "twitch", outputRunId);
 		Log.info("TwitchStreamUpdater", `Checking ${userLogins.length} Twitch users...`);
 		for (const userLogin of userLogins) {
 			Log.info("TwitchStreamUpdater", `Enqueue Twitch user: ${userLogin}`);
@@ -64,7 +67,7 @@ export class TwitchStreamUpdater
 			return;
 		}
 
-		await this.twitchStreamRepository.replaceStreamsByUserLoginsAsync(userLogins, [
+		return await this.twitchStreamRepository.replaceStreamsByUserLoginsAsync(userLogins, [
 			...liveStreams,
 			...archivedStreams
 		]);

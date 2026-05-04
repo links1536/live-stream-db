@@ -16,9 +16,11 @@ export class YouTubeScheduleUpdater
 
 		const doId = env.YOUTUBE_NOTICES_CACHE.idFromName("rss-key-cache");
 		this.youtubeNoticesCache = env.YOUTUBE_NOTICES_CACHE.get(doId);
+		const streamCoordinatorId = env.STREAM_UPDATE_COORDINATOR.idFromName("stream-update-coordinator");
+		this.streamUpdateCoordinator = env.STREAM_UPDATE_COORDINATOR.get(streamCoordinatorId);
 	}
 
-	async scheduleTrigger()
+	async scheduleTrigger(outputRunId = null)
 	{
 		// キャッシュ済みIDを読み込み
 		const targetIds = await this.youtubeRepository.getScheduleIdsAsync();
@@ -36,16 +38,26 @@ export class YouTubeScheduleUpdater
 
 		// 出来るだけ同じ数になるように分割
 		const requestTargetIds = Array.from(requestIds);
+		if (requestTargetIds.length === 0) {
+			if (outputRunId)
+				await this.streamUpdateCoordinator.completeOutputSourceAsync(outputRunId, "youtube", false);
+			return;
+		}
+
+		const runId = crypto.randomUUID();
+		await this.streamUpdateCoordinator.initializeRunAsync(runId, Math.ceil(requestTargetIds.length / YouTubeDataAPI.CHUNK_SIZE), "youtube", outputRunId);
 		const chunkCount = Math.ceil(requestTargetIds.length / YouTubeDataAPI.CHUNK_SIZE);
 		const chunkSize = Math.min(YouTubeDataAPI.CHUNK_SIZE, Math.ceil(requestTargetIds.length / chunkCount));
 		Log.info("YouTubeScheduleUpdater", `Checking ${requestTargetIds.length} video IDs...`);
 		for (let i = 0; i < requestTargetIds.length; i += chunkSize) {
 			const chunk = requestTargetIds.slice(i, i + chunkSize);
 			Log.info("YouTubeScheduleUpdater", `Chunk: ${chunkSize} Id: ${chunk.join(",")}`);
-			const ids = JSON.stringify(chunk);
-			await this.updateSchedulesQueue.send(ids);
+			await this.updateSchedulesQueue.send(JSON.stringify({
+				type: "youtube_chunk",
+				run_id: runId,
+				video_ids: chunk
+			}));
 		}
-		await this.updateSchedulesQueue.send("update_last");
 		
 		// リクエストを投げたので単体IDキャッシュを削除する
 		await this.youtubeNoticesCache.bulkDeleteAsync(singleVideoIds);
@@ -88,12 +100,8 @@ export class YouTubeScheduleUpdater
 		if (foundIds?.size) {
 			await this.youtubeNoticesCache.bulkDeleteAsync(Array.from(foundIds));
 		}
-	}
 
-	async updateSchedulesLast()
-	{
-		// IDのキャッシュを更新する
-		await this.youtubeRepository.updateScheduleIdsAsync();
+		return modifySchedules;
 	}
 
 	/**

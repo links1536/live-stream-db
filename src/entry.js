@@ -24,6 +24,26 @@ function methodNotAllowed(allow)
 	});
 }
 
+async function initializeOutputRunAsync(env, sources)
+{
+	const doId = env.STREAM_UPDATE_COORDINATOR.idFromName("stream-update-coordinator");
+	const outputCoordinator = env.STREAM_UPDATE_COORDINATOR.get(doId);
+	const outputRunId = crypto.randomUUID();
+	await outputCoordinator.initializeOutputRunAsync(outputRunId, sources);
+	return { outputCoordinator, outputRunId };
+}
+
+async function completeOutputSourceAsync(env, outputRunId, source, dirty)
+{
+	if (!outputRunId)
+		return false;
+
+	const doId = env.STREAM_UPDATE_COORDINATOR.idFromName("stream-update-coordinator");
+	const outputCoordinator = env.STREAM_UPDATE_COORDINATOR.get(doId);
+	const completion = await outputCoordinator.completeOutputSourceAsync(outputRunId, source, dirty);
+	return completion?.should_update === true;
+}
+
 export default {
 	/**
 	 * HTTP リクエスト処理
@@ -59,13 +79,15 @@ export default {
 					return new Response("RSS feed fetch triggered");
 				},
 				"/youtube-update": async () => {
+					const { outputRunId } = await initializeOutputRunAsync(env, [ "youtube" ]);
 					const updater = new YouTubeScheduleUpdater(env);
-					await updater.scheduleTrigger();
+					await updater.scheduleTrigger(outputRunId);
 					return new Response("Schedule update triggered");
 				},
 				"/twitch-update": async () => {
+					const { outputRunId } = await initializeOutputRunAsync(env, [ "twitch" ]);
 					const updater = new TwitchStreamUpdater(env);
-					await updater.scheduleTrigger();
+					await updater.scheduleTrigger(outputRunId);
 					return new Response("Twitch update triggered");
 				}
 			};
@@ -119,10 +141,11 @@ export default {
 		}
 		else {
 			// その他（デフォルト） - スケジュール更新
+			const { outputRunId } = await initializeOutputRunAsync(env, [ "youtube", "twitch" ]);
 			const youtubeUpdater = new YouTubeScheduleUpdater(env);
-			await youtubeUpdater.scheduleTrigger();
+			await youtubeUpdater.scheduleTrigger(outputRunId);
 			const twitchUpdater = new TwitchStreamUpdater(env);
-			await twitchUpdater.scheduleTrigger();
+			await twitchUpdater.scheduleTrigger(outputRunId);
 			console.log("✅ Schedule update completed (scheduled)");
 		}
 	},
@@ -160,24 +183,28 @@ export default {
 				break;
 			case env.QUEUE_NAME_YOUTUBE_SCHEDULE_UPDATE:
 				const scheduleUpdater = new YouTubeScheduleUpdater(env);
+				const scheduleLivesJsonUpdater = new LivesJsonUpdater(env);
 
-				let updateLast = false;
 				for (const msg of batch.messages) {
 					const bodyText = msg.body?.trim();
 					if (!bodyText)
 						continue;
 
-					updateLast = bodyText === "update_last";
-					if (updateLast == true)
+					const body = JSON.parse(bodyText);
+					if (body.type !== "youtube_chunk" || !body.run_id || !Array.isArray(body.video_ids))
 						continue;
 
-					await scheduleUpdater.updateSchedules(JSON.parse(bodyText));
-
-				}
-
-				if (updateLast)
-				{
-					await scheduleUpdater.updateSchedulesLast();
+					const dirty = await scheduleUpdater.updateSchedules(body.video_ids);
+					const runState = await scheduleUpdater.streamUpdateCoordinator.completeRunItemAsync(body.run_id, dirty);
+					if (runState?.is_last) {
+						if (runState.dirty) {
+							await scheduleUpdater.youtubeRepository.updateScheduleIdsAsync();
+						}
+						const shouldUpdateOutput = await completeOutputSourceAsync(env, runState.output_run_id, runState.source, runState.dirty);
+						if (shouldUpdateOutput) {
+							await scheduleLivesJsonUpdater.saveDataJsonAsync();
+						}
+					}
 				}
 
 				// 成功時は ack
@@ -195,18 +222,23 @@ export default {
 
 					const body = JSON.parse(bodyText);
 					if (body.type === "clear_all") {
-						await twitchUpdater.twitchStreamRepository.clearAllAsync();
-						await livesJsonUpdater.saveDataJsonAsync();
+						const dirty = await twitchUpdater.twitchStreamRepository.clearAllAsync();
+						const shouldUpdateOutput = await completeOutputSourceAsync(env, body.output_run_id, "twitch", dirty);
+						if (shouldUpdateOutput)
+							await livesJsonUpdater.saveDataJsonAsync();
 						continue;
 					}
 
 					if (body.type !== "user_update" || !body.user_login || !body.run_id)
 						continue;
 
-					await twitchUpdater.updateStreamByUserLogin(body.user_login);
-					const pendingCount = await twitchUpdater.streamUpdateCoordinator.completeRunItemAsync(body.run_id);
-					if (pendingCount === 0)
-						await livesJsonUpdater.saveDataJsonAsync();
+					const dirty = await twitchUpdater.updateStreamByUserLogin(body.user_login);
+					const runState = await twitchUpdater.streamUpdateCoordinator.completeRunItemAsync(body.run_id, dirty);
+					if (runState?.is_last) {
+						const shouldUpdateOutput = await completeOutputSourceAsync(env, runState.output_run_id, runState.source, runState.dirty);
+						if (shouldUpdateOutput)
+							await livesJsonUpdater.saveDataJsonAsync();
+					}
 				}
 
 				batch.ackAll();
