@@ -5,6 +5,7 @@ CREATE TABLE youtube_schedules (
 	title TEXT,
 	thumbnail TEXT,
 	start_time_iso TEXT,
+	published_at_iso TEXT,
 	status TEXT
 );
 CREATE TABLE rss_last_updated (
@@ -19,3 +20,6 @@ CREATE INDEX IF NOT EXISTS idx_youtube_schedules_filter ON youtube_schedules (st
 
 DROP INDEX IF EXISTS idx_youtube_schedules_start_time;
 CREATE INDEX IF NOT EXISTS idx_youtube_schedules_start_time ON youtube_schedules (start_time_iso);
+
+DROP INDEX IF EXISTS idx_youtube_schedules_published_at;
+CREATE INDEX IF NOT EXISTS idx_youtube_schedules_published_at ON youtube_schedules (published_at_iso);
