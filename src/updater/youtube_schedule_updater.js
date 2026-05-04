@@ -1,39 +1,21 @@
 // youtube_schedule_updater.js
 
 import { YouTubeScheduleRepository } from "../repository/youtube_schedule_repository.js";
-import { VTuberRepository } from "../repository/vtuber_repository.js";
 import { YouTubeDataAPI } from "../api/youtube_data_api.js";
-import { DisplayScheduleQueryService } from "../query_service/display_schedule_query.js";
 import { DateTimeUtils } from "../datetime_utils.js";
 import { Log } from "../log.js";
-
-// --- 設定 ---
-const OUTPUT_KEY = "lives.json";
 
 export class YouTubeScheduleUpdater
 {
 	constructor(env)
 	{
 		this.youtubeRepository = new YouTubeScheduleRepository(env.DB, env.KV_CACHE);
-		this.vtuberRepository = new VTuberRepository(env.DB);
 		this.youtubeDataApi = new YouTubeDataAPI(env.YOUTUBE_DATA_API_KEY);
-		this.displayScheduleQuery = new DisplayScheduleQueryService(env.DB);
 
 		this.updateSchedulesQueue = env.QUEUE_YOUTUBE_UPDATE_TARGET;
-		this.updateSchedulesLastQueue = env.QUEUE_YOUTUBE_UPDATE_TARGET_LAST;
 
 		const doId = env.YOUTUBE_NOTICES_CACHE.idFromName("rss-key-cache");
 		this.youtubeNoticesCache = env.YOUTUBE_NOTICES_CACHE.get(doId);
-
-		this.livesJsonStore = env.KV_OUTPUT;
-	}
-
-	async saveDataJsonAsync(currentDateIso, startLimitIso, endLimitIso)
-	{
-		// DBからアクティブな配信（表示期間内）のみをJson形式で抽出
-		const [publicDataStr, count] = await this.displayScheduleQuery.loadActiveSchedulesJsonAsync(currentDateIso, startLimitIso, endLimitIso);
-		await this.livesJsonStore.put(OUTPUT_KEY, publicDataStr);
-		Log.info("YouTubeScheduleUpdater", `Generated ${OUTPUT_KEY} (${count} streams)`);
 	}
 
 	async scheduleTrigger()
@@ -93,7 +75,7 @@ export class YouTubeScheduleUpdater
 		// レスポンスを受け取りながらも乗っていないデータは非公開や削除がされている
 		// 期間外クリーンアップ
 		const currentDate = DateTimeUtils.getCurrentDate();
-		const [startLimit, endLimit] = DateTimeUtils.getLimitDate(currentDate);
+		const [startLimit] = DateTimeUtils.getLimitDate(currentDate);
 		const startLimitIso = startLimit.toISOString();
 		const [ updateCount, cleanupCount, modifySchedules ] = await this.youtubeRepository.saveAndCleanupSchedulesAsync(schedules, removedIds, startLimitIso);
 
@@ -112,14 +94,6 @@ export class YouTubeScheduleUpdater
 	{
 		// IDのキャッシュを更新する
 		await this.youtubeRepository.updateScheduleIdsAsync();
-
-		// 公開用 JSON 生成
-		const currentDate = DateTimeUtils.getCurrentDate();
-		const currentDateIso = currentDate.toISOString();
-		const [startLimit, endLimit] = DateTimeUtils.getLimitDate(currentDate);
-		const startLimitIso = startLimit.toISOString();
-		const endLimitIso = endLimit.toISOString();
-		await this.saveDataJsonAsync(currentDateIso, startLimitIso, endLimitIso);
 	}
 
 	/**
@@ -176,7 +150,7 @@ export class YouTubeScheduleUpdater
 		// レスポンスを受け取りながらも乗っていないデータは非公開や削除がされている
 		// 期間外クリーンアップ
 		const currentDate = DateTimeUtils.getCurrentDate();
-		const [startLimit, endLimit] = DateTimeUtils.getLimitDate(currentDate);
+		const [startLimit] = DateTimeUtils.getLimitDate(currentDate);
 		const startLimitIso = startLimit.toISOString();
 		const [ updateCount, cleanupCount, modifySchedules ] = await this.youtubeRepository.saveAndCleanupSchedulesAsync(allSchedules, removedIds, startLimitIso);
 
@@ -197,9 +171,5 @@ export class YouTubeScheduleUpdater
 		// IDのキャッシュを更新する
 		await this.youtubeRepository.updateScheduleIdsAsync();
 
-		// 公開用 JSON 生成
-		const currentDateIso = currentDate.toISOString();
-		const endLimitIso = endLimit.toISOString();
-		await this.saveDataJsonAsync(currentDateIso, startLimitIso, endLimitIso);
 	}
 }
