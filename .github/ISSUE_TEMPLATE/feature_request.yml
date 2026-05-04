@@ -1,0 +1,32 @@
+name: Feature Request
+description: Worker の機能追加や運用改善の提案を行います
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 背景・課題
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 提案内容
+      description: API、Queue、DB、管理 UI への変更があれば書いてください
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: 影響範囲
+      placeholder: |
+        - 必要な Secrets / Vars
+        - Cloudflare Bindings
+        - 既存 endpoint 互換性
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 代替案・補足
+
