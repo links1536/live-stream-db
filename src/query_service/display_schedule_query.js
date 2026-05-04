@@ -24,8 +24,8 @@ export class DisplayScheduleQueryService
 			const { results } = await this.db.prepare(
 				`
 				SELECT * FROM display_schedules
-				WHERE start_time_iso IS NOT NULL
-				AND start_time_iso >= ? AND start_time_iso <= ?
+				WHERE COALESCE(start_time_iso, published_at_iso) IS NOT NULL
+				AND COALESCE(start_time_iso, published_at_iso) >= ? AND COALESCE(start_time_iso, published_at_iso) <= ?
 				`
 			)
 			.bind(startLimitIso, endLimitIso)
@@ -59,6 +59,8 @@ export class DisplayScheduleQueryService
 				"title": "【 ドラゴンクエストⅤ 】裏ダンジョンを冒険する！！！！！！#??【 #紅炎メルト / #ぽけぶい  】",
 				"thumbnail": "https://i.ytimg.com/vi/OGkt5rWhlO0/maxresdefault_live.jpg",
 				"start_time_iso": "2026-04-25T15:00:00Z",
+				"published_at_iso": "2026-04-25T14:50:00Z",
+				"display_time_iso": "2026-04-25T15:00:00Z",
 				"status": "upcoming"
 			},
 		 */
@@ -66,10 +68,12 @@ export class DisplayScheduleQueryService
 		const queryResult = await this.db.prepare(`
 			WITH filtered_schedules AS (
 				-- 先にスケジュールを期間で絞る
-				SELECT * FROM youtube_schedules
-				WHERE start_time_iso IS NOT NULL
-					AND start_time_iso >= ?2
-					AND start_time_iso <= ?3
+				SELECT *,
+					COALESCE(start_time_iso, published_at_iso) AS display_time_iso
+				FROM youtube_schedules
+				WHERE COALESCE(start_time_iso, published_at_iso) IS NOT NULL
+					AND COALESCE(start_time_iso, published_at_iso) >= ?2
+					AND COALESCE(start_time_iso, published_at_iso) <= ?3
 			),
 			aggregated_tags AS (
 				-- 事前に VTuber に対してタグをまとめておく
@@ -91,6 +95,8 @@ export class DisplayScheduleQueryService
 								'title', schedule.title,
 								'thumbnail', schedule.thumbnail,
 								'start_time_iso', schedule.start_time_iso,
+								'published_at_iso', schedule.published_at_iso,
+								'display_time_iso', schedule.display_time_iso,
 								'status', schedule.status
 							)
 						), 

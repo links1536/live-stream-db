@@ -77,17 +77,18 @@ export class YouTubeDataAPI
 			const videoId = item.id;
 			foundIds.add(videoId);
 			
-			// 配信情報がない場合は対象外
 			const snippet = item.snippet;
 			const live = item.liveStreamingDetails;
-			if (!live)
-				continue;
 
 			// サムネイル選択をインライン化
 			const thumbnails = snippet.thumbnails;
 			const thumbnail = thumbnails ? (thumbnails.standard || thumbnails.high || thumbnails.medium || thumbnails.default) : null;
-			// 配信開始時間
-			const startTimeStr = live.scheduledStartTime || live.actualStartTime;
+			const publishedAt = snippet.publishedAt || null;
+			const startTimeStr = live?.scheduledStartTime || live?.actualStartTime || null;
+			const status = !live ? "video"
+				: live.actualEndTime ? "archived"
+				: live.actualStartTime ? "live"
+				: "upcoming";
 
 			// オブジェクト作成を1回にまとめて最小化
 			schedules.push({
@@ -96,8 +97,8 @@ export class YouTubeDataAPI
 				title: snippet.title || null,
 				thumbnail: thumbnail ? thumbnail.url : "",
 				start_time_iso: startTimeStr || null,
-				status: live.actualEndTime ? "archived" :
-						live.actualStartTime ? "live" : "upcoming"
+				published_at_iso: publishedAt,
+				status: status
 			});
 		}
 

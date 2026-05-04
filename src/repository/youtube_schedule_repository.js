@@ -57,18 +57,20 @@ export class YouTubeScheduleRepository
 		const stmt = this.db.prepare(`
 			INSERT INTO youtube_schedules (
 				video_id, channel_id, 
-				title, thumbnail, start_time_iso, status
-			) VALUES (?, ?, ?, ?, ?, ?)
+				title, thumbnail, start_time_iso, published_at_iso, status
+			) VALUES (?, ?, ?, ?, ?, ?, ?)
 			ON CONFLICT(video_id) DO UPDATE SET
 				channel_id = EXCLUDED.channel_id,
 				title = EXCLUDED.title,
 				thumbnail = EXCLUDED.thumbnail,
 				start_time_iso = EXCLUDED.start_time_iso,
+				published_at_iso = EXCLUDED.published_at_iso,
 				status = EXCLUDED.status
 			WHERE 
 				title IS NOT EXCLUDED.title OR 
 				thumbnail IS NOT EXCLUDED.thumbnail OR
 				start_time_iso IS NOT EXCLUDED.start_time_iso OR
+				published_at_iso IS NOT EXCLUDED.published_at_iso OR
 				status IS NOT EXCLUDED.status
 		`);
 
@@ -81,6 +83,7 @@ export class YouTubeScheduleRepository
 					schedule.title ?? null,
 					schedule.thumbnail ?? null,
 					schedule.start_time_iso ?? null,
+					schedule.published_at_iso ?? null,
 					schedule.status ?? null
 				)
 			);
@@ -104,11 +107,11 @@ export class YouTubeScheduleRepository
 
 		if (removeVideoIds && removeVideoIds.length > 0) {
 			const placeholders = removeVideoIds.map(() => "?").join(",");
-			sql = `DELETE FROM youtube_schedules WHERE start_time_iso < ? OR video_id IN (${placeholders})`;
+			sql = `DELETE FROM youtube_schedules WHERE COALESCE(start_time_iso, published_at_iso) < ? OR video_id IN (${placeholders})`;
 			params = [startLimitIso, ...removeVideoIds];
 		}
 		else {
-			sql = `DELETE FROM youtube_schedules WHERE start_time_iso < ?`;
+			sql = `DELETE FROM youtube_schedules WHERE COALESCE(start_time_iso, published_at_iso) < ?`;
 			params = [startLimitIso];
 		}
 
@@ -138,18 +141,20 @@ export class YouTubeScheduleRepository
 			const stmt = this.db.prepare(`
 				INSERT INTO youtube_schedules (
 					video_id, channel_id, 
-					title, thumbnail, start_time_iso, status
-					) VALUES (?, ?, ?, ?, ?, ?)
+					title, thumbnail, start_time_iso, published_at_iso, status
+					) VALUES (?, ?, ?, ?, ?, ?, ?)
 				ON CONFLICT(video_id) DO UPDATE SET
 					channel_id = EXCLUDED.channel_id,
 					title = EXCLUDED.title,
 					thumbnail = EXCLUDED.thumbnail,
 					start_time_iso = EXCLUDED.start_time_iso,
+					published_at_iso = EXCLUDED.published_at_iso,
 					status = EXCLUDED.status
 				WHERE
 					title IS NOT EXCLUDED.title OR 
 					thumbnail IS NOT EXCLUDED.thumbnail OR
 					start_time_iso IS NOT EXCLUDED.start_time_iso OR
+					published_at_iso IS NOT EXCLUDED.published_at_iso OR
 					status IS NOT EXCLUDED.status
 			`);
 			for (const schedule of schedules) {
@@ -160,6 +165,7 @@ export class YouTubeScheduleRepository
 						schedule.title ?? null,
 						schedule.thumbnail ?? null,
 						schedule.start_time_iso ?? null,
+						schedule.published_at_iso ?? null,
 						schedule.status ?? null
 					)
 				);
@@ -169,11 +175,11 @@ export class YouTubeScheduleRepository
 		// クリーンアップ
 		if (removeVideoIds && removeVideoIds.length > 0) {
 			const placeholders = removeVideoIds.map(() => "?").join(",");
-			const deleteStmt = this.db.prepare(`DELETE FROM youtube_schedules WHERE start_time_iso < ? OR video_id IN (${placeholders})`);
+			const deleteStmt = this.db.prepare(`DELETE FROM youtube_schedules WHERE COALESCE(start_time_iso, published_at_iso) < ? OR video_id IN (${placeholders})`);
 			batch.push(deleteStmt.bind(startLimitIso, ...removeVideoIds));
 		}
 		else if (startLimitIso) {
-			const deleteStmt = this.db.prepare(`DELETE FROM youtube_schedules WHERE start_time_iso < ?`);
+			const deleteStmt = this.db.prepare(`DELETE FROM youtube_schedules WHERE COALESCE(start_time_iso, published_at_iso) < ?`);
 			batch.push(deleteStmt.bind(startLimitIso));
 		}
 
