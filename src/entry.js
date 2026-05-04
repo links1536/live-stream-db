@@ -13,6 +13,25 @@ import { Log } from "./log.js";
 // Durable Object のエクスポート（必須）
 export { YouTubeNoticesCache } from "./repository/youtube_notices_cache.js";
 
+function methodNotAllowed(allow)
+{
+	return new Response("Method Not Allowed", {
+		status: 405,
+		headers: {
+			"Allow": allow,
+			"Content-Type": "text/plain; charset=utf-8"
+		}
+	});
+}
+
+async function runTwitchUpdate(env)
+{
+	const twitchUpdater = new TwitchStreamUpdater(env);
+	await twitchUpdater.updateStreamsAsync();
+	const livesJsonUpdater = new LivesJsonUpdater(env);
+	await livesJsonUpdater.saveDataJsonAsync();
+}
+
 export default {
 	/**
 	 * HTTP リクエスト処理
@@ -35,6 +54,29 @@ export default {
 
 		// 管理機能
 		if (path.startsWith("/admin")) {
+			const adminPath = path.slice("/admin".length) || "/";
+			const adminPostHandlers = {
+				"/youtube-websub-register": async () => {
+					const updater = new YouTubeWebSubUpdater(env);
+					await updater.registerWebsub();
+					return new Response("WebSub registration triggered");
+				},
+				"/youtube-fetch-rss": async () => {
+					const updater = new YouTubeRssFeedUpdater(env);
+					await updater.scheduleTrigger();
+					return new Response("RSS feed fetch triggered");
+				},
+				"/youtube-update": async () => {
+					const updater = new YouTubeScheduleUpdater(env);
+					await updater.scheduleTrigger();
+					return new Response("Schedule update triggered");
+				},
+				"/twitch-update": async () => {
+					await runTwitchUpdate(env);
+					return new Response("Twitch update triggered");
+				}
+			};
+
 			// AdminService の認証ロジックを使用
 			const authHeader = request.headers.get("Authorization");
 			if (!authHeader || !AdminService.checkAuth(authHeader, env)) {
@@ -47,44 +89,16 @@ export default {
 				});
 			}
 
-			// 管理画面
-			if (path === "/admin" && request.method === "GET") {
-				return await AdminService.handleRequest(request, env);
-			}
+			if (adminPath === "/")
+				return request.method === "GET"
+					? await AdminService.handleRequest(request, env)
+					: methodNotAllowed("GET");
 
-			// WebSub 登録（手動トリガー）
-			if (path === "/admin/youtube-websub-register" && request.method === "POST") {
-				const updater = new YouTubeWebSubUpdater(env);
-				await updater.registerWebsub();
-				return new Response("WebSub registration triggered");
-			}
-
-			// RSS フィード取得（手動トリガー）
-			if (path === "/admin/youtube-fetch-rss" && request.method === "POST") {
-				const updater = new YouTubeRssFeedUpdater(env);
-				await updater.scheduleTrigger();
-				return new Response("RSS feed fetch triggered");
-			}
-
-			// スケジュール更新（手動トリガー）
-			if (path === "/admin/youtube-update" && request.method === "POST") {
-				const updater = new YouTubeScheduleUpdater(env);
-				await updater.scheduleTrigger();
-				return new Response("Schedule update triggered");
-			}
-
-			if (
-				path === "/admin/youtube-websub-register" ||
-				path === "/admin/youtube-fetch-rss" ||
-				path === "/admin/youtube-update"
-			) {
-				return new Response("Method Not Allowed", {
-					status: 405,
-					headers: {
-						"Allow": "POST",
-						"Content-Type": "text/plain; charset=utf-8"
-					}
-				});
+			const adminPostHandler = adminPostHandlers[adminPath];
+			if (adminPostHandler) {
+				if (request.method !== "POST")
+					return methodNotAllowed("POST");
+				return await adminPostHandler();
 			}
 		}
 

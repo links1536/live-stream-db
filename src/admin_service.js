@@ -330,6 +330,18 @@ export class AdminService {
 					<span class="btn-text">Sync Schedules</span>
 				</button>
 			</div>
+
+			<!-- Twitch同期 -->
+			<div class="action-card">
+				<div class="action-info">
+					<h3>Twitch Stream Update</h3>
+					<p>Twitchのlive/archivedを更新し、公開用JSONを最新化します</p>
+				</div>
+				<button class="btn-trigger" onclick="runTask(this, '/admin/twitch-update')">
+					<div class="spinner"></div>
+					<span class="btn-text">Sync Twitch</span>
+				</button>
+			</div>
 		</main>
 
 		<!-- ログ表示セクション -->
