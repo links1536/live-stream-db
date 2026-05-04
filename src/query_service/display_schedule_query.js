@@ -61,19 +61,55 @@ export class DisplayScheduleQueryService
 				"start_time_iso": "2026-04-25T15:00:00Z",
 				"published_at_iso": "2026-04-25T14:50:00Z",
 				"display_time_iso": "2026-04-25T15:00:00Z",
-				"status": "upcoming"
+				"status": "upcoming",
+				"platform": "youtube",
+				"url": "https://www.youtube.com/watch?v=OGkt5rWhlO0"
 			},
 		 */
 
 		const queryResult = await this.db.prepare(`
 			WITH filtered_schedules AS (
-				-- 先にスケジュールを期間で絞る
-				SELECT *,
-					COALESCE(start_time_iso, published_at_iso) AS display_time_iso
-				FROM youtube_schedules
-				WHERE COALESCE(start_time_iso, published_at_iso) IS NOT NULL
-					AND COALESCE(start_time_iso, published_at_iso) >= ?2
-					AND COALESCE(start_time_iso, published_at_iso) <= ?3
+				SELECT
+					vtuber.id AS vtuber_id,
+					vtuber.name AS streamer_name,
+					vtuber.color,
+					vtuber.agency,
+					schedule.video_id,
+					schedule.title,
+					schedule.thumbnail,
+					schedule.start_time_iso,
+					schedule.published_at_iso,
+					COALESCE(start_time_iso, published_at_iso) AS display_time_iso,
+					schedule.status,
+					'youtube' AS platform,
+					'https://www.youtube.com/watch?v=' || schedule.video_id AS url
+				FROM youtube_schedules schedule
+				JOIN youtube_channels channel ON schedule.channel_id = channel.channel_id
+				JOIN vtubers vtuber ON channel.vtuber_id = vtuber.id
+				WHERE COALESCE(schedule.start_time_iso, schedule.published_at_iso) IS NOT NULL
+					AND COALESCE(schedule.start_time_iso, schedule.published_at_iso) >= ?2
+					AND COALESCE(schedule.start_time_iso, schedule.published_at_iso) <= ?3
+				UNION ALL
+				SELECT
+					vtuber.id AS vtuber_id,
+					vtuber.name AS streamer_name,
+					vtuber.color,
+					vtuber.agency,
+					NULL AS video_id,
+					stream.title,
+					stream.thumbnail,
+					stream.start_time_iso,
+					NULL AS published_at_iso,
+					stream.start_time_iso AS display_time_iso,
+					stream.status,
+					'twitch' AS platform,
+					stream.url
+				FROM twitch_live_streams stream
+				JOIN twitch_users user ON stream.user_login = user.user_login
+				JOIN vtubers vtuber ON user.vtuber_id = vtuber.id
+				WHERE stream.start_time_iso IS NOT NULL
+					AND stream.start_time_iso >= ?2
+					AND stream.start_time_iso <= ?3
 			),
 			aggregated_tags AS (
 				-- 事前に VTuber に対してタグをまとめておく
@@ -87,9 +123,9 @@ export class DisplayScheduleQueryService
 					'all_schedules', COALESCE(
 						json_group_array(
 							json_object(
-								'streamer_name', v.name,
-								'color', v.color,
-								'agency', v.agency,
+								'streamer_name', vtuber.name,
+								'color', schedule.color,
+								'agency', schedule.agency,
 								'tags', COALESCE(json(at.tags_json), json_array()),
 								'video_id', schedule.video_id,
 								'title', schedule.title,
@@ -97,7 +133,9 @@ export class DisplayScheduleQueryService
 								'start_time_iso', schedule.start_time_iso,
 								'published_at_iso', schedule.published_at_iso,
 								'display_time_iso', schedule.display_time_iso,
-								'status', schedule.status
+								'status', schedule.status,
+								'platform', schedule.platform,
+								'url', schedule.url
 							)
 						), 
 						json_array()
@@ -105,9 +143,8 @@ export class DisplayScheduleQueryService
 				) AS schedules_json,
 				COUNT(*) AS schedule_count
 			FROM filtered_schedules schedule
-			JOIN youtube_channels channel ON schedule.channel_id = channel.channel_id
-			JOIN vtubers v ON channel.vtuber_id = v.id
-			LEFT JOIN aggregated_tags at ON v.id = at.vtuber_id;
+			JOIN vtubers vtuber ON schedule.vtuber_id = vtuber.id
+			LEFT JOIN aggregated_tags at ON schedule.vtuber_id = at.vtuber_id;
 		`)
 		.bind(currentDateIso, startLimitIso, endLimitIso)
 		.first();

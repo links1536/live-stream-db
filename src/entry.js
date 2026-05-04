@@ -4,6 +4,7 @@
 import { YouTubeWebSubUpdater } from "./updater/youtube_websub_updater.js";
 import { YouTubeRssFeedUpdater } from "./updater/youtube_rss_feed_updater.js";
 import { YouTubeScheduleUpdater } from "./updater/youtube_schedule_updater.js";
+import { TwitchLiveUpdater } from "./updater/twitch_live_updater.js";
 import { LivesJsonUpdater } from "./updater/lives_json_updater.js";
 import { YouTubeWebSub } from "./api/youtube_websub.js";
 import { AdminService } from "./admin_service.js";
@@ -168,6 +169,8 @@ export default {
 				if (updateLast)
 				{
 					await scheduleUpdater.updateSchedulesLast();
+					const twitchUpdater = new TwitchLiveUpdater(env);
+					await twitchUpdater.updateLivesAsync();
 					const livesJsonUpdater = new LivesJsonUpdater(env);
 					await livesJsonUpdater.saveDataJsonAsync();
 				}

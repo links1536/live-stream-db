@@ -108,6 +108,38 @@ export class VTuberRepository
 		}
 	}
 
+	async loadTwitchMapAsync()
+	{
+		try {
+			const { results } = await this.db.prepare(`
+				SELECT
+					tu.user_login,
+					v.id,
+					v.name,
+					v.agency,
+					v.color
+				FROM twitch_users tu
+				JOIN vtubers v ON tu.vtuber_id = v.id
+			`).all();
+
+			const twitchMap = {};
+			for (const row of results) {
+				twitchMap[row.user_login] = {
+					id: row.id,
+					Name: row.name,
+					Agency: row.agency,
+					Color: row.color
+				};
+			}
+
+			return twitchMap;
+		}
+		catch (e) {
+			Log.error("VTuberRepository", `Failed to load Twitch map: ${e.message}`);
+			return {};
+		}
+	}
+
 	/**
 	 * DBからチャンネルごとの最終更新日時を読み込む
 	 */
