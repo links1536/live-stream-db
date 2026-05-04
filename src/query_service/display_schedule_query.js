@@ -95,21 +95,21 @@ export class DisplayScheduleQueryService
 					vtuber.name AS streamer_name,
 					vtuber.color,
 					vtuber.agency,
-					NULL AS video_id,
+					stream.twitch_id AS video_id,
 					stream.title,
 					stream.thumbnail,
 					stream.start_time_iso,
-					NULL AS published_at_iso,
-					stream.start_time_iso AS display_time_iso,
+					stream.published_at_iso,
+					COALESCE(stream.published_at_iso, stream.start_time_iso) AS display_time_iso,
 					stream.status,
 					'twitch' AS platform,
 					stream.url
-				FROM twitch_live_streams stream
+				FROM twitch_streams stream
 				JOIN twitch_users user ON stream.user_login = user.user_login
 				JOIN vtubers vtuber ON user.vtuber_id = vtuber.id
-				WHERE stream.start_time_iso IS NOT NULL
-					AND stream.start_time_iso >= ?2
-					AND stream.start_time_iso <= ?3
+				WHERE COALESCE(stream.published_at_iso, stream.start_time_iso) IS NOT NULL
+					AND COALESCE(stream.published_at_iso, stream.start_time_iso) >= ?2
+					AND COALESCE(stream.published_at_iso, stream.start_time_iso) <= ?3
 			),
 			aggregated_tags AS (
 				-- 事前に VTuber に対してタグをまとめておく
