@@ -8,10 +8,10 @@ import { TwitchStreamUpdater } from "./updater/twitch_stream_updater.js";
 import { LivesJsonUpdater } from "./updater/lives_json_updater.js";
 import { YouTubeWebSub } from "./api/youtube_websub.js";
 import { AdminService } from "./admin_service.js";
-import { Log } from "./log.js";
 
 // Durable Object のエクスポート（必須）
 export { YouTubeNoticesCache } from "./repository/youtube_notices_cache.js";
+export { StreamUpdateCoordinator } from "./repository/stream_update_coordinator.js";
 
 function methodNotAllowed(allow)
 {
@@ -22,14 +22,6 @@ function methodNotAllowed(allow)
 			"Content-Type": "text/plain; charset=utf-8"
 		}
 	});
-}
-
-async function runTwitchUpdate(env)
-{
-	const twitchUpdater = new TwitchStreamUpdater(env);
-	await twitchUpdater.updateStreamsAsync();
-	const livesJsonUpdater = new LivesJsonUpdater(env);
-	await livesJsonUpdater.saveDataJsonAsync();
 }
 
 export default {
@@ -72,7 +64,8 @@ export default {
 					return new Response("Schedule update triggered");
 				},
 				"/twitch-update": async () => {
-					await runTwitchUpdate(env);
+					const updater = new TwitchStreamUpdater(env);
+					await updater.scheduleTrigger();
 					return new Response("Twitch update triggered");
 				}
 			};
@@ -126,8 +119,10 @@ export default {
 		}
 		else {
 			// その他（デフォルト） - スケジュール更新
-			const updater = new YouTubeScheduleUpdater(env);
-			await updater.scheduleTrigger();
+			const youtubeUpdater = new YouTubeScheduleUpdater(env);
+			await youtubeUpdater.scheduleTrigger();
+			const twitchUpdater = new TwitchStreamUpdater(env);
+			await twitchUpdater.scheduleTrigger();
 			console.log("✅ Schedule update completed (scheduled)");
 		}
 	},
@@ -183,15 +178,38 @@ export default {
 				if (updateLast)
 				{
 					await scheduleUpdater.updateSchedulesLast();
-					const twitchUpdater = new TwitchStreamUpdater(env);
-					await twitchUpdater.updateStreamsAsync();
-					const livesJsonUpdater = new LivesJsonUpdater(env);
-					await livesJsonUpdater.saveDataJsonAsync();
 				}
 
 				// 成功時は ack
 				batch.ackAll();
 
+				break;
+			case env.QUEUE_NAME_TWITCH_STREAM_UPDATE:
+				const twitchUpdater = new TwitchStreamUpdater(env);
+				const livesJsonUpdater = new LivesJsonUpdater(env);
+
+				for (const msg of batch.messages) {
+					const bodyText = msg.body?.trim();
+					if (!bodyText)
+						continue;
+
+					const body = JSON.parse(bodyText);
+					if (body.type === "clear_all") {
+						await twitchUpdater.twitchStreamRepository.clearAllAsync();
+						await livesJsonUpdater.saveDataJsonAsync();
+						continue;
+					}
+
+					if (body.type !== "user_update" || !body.user_login || !body.run_id)
+						continue;
+
+					await twitchUpdater.updateStreamByUserLogin(body.user_login);
+					const pendingCount = await twitchUpdater.streamUpdateCoordinator.completeRunItemAsync(body.run_id);
+					if (pendingCount === 0)
+						await livesJsonUpdater.saveDataJsonAsync();
+				}
+
+				batch.ackAll();
 				break;
 			case env.QUEUE_NAME_YOUTUBE_RSS_FEED:
 				const rssUpdater = new YouTubeRssFeedUpdater(env);

@@ -17,12 +17,22 @@ def generate_wrangler_toml():
 	yt_register_websub_queue = get_secret("VAR_QUEUE_YOUTUBE_WEBSUB_REGISTER")
 	yr_schedule_update_queue = get_secret("VAR_QUEUE_YOUTUBE_SCHEDULE_UPDATE")
 	yr_rss_feed_queue = get_secret("VAR_QUEUE_YOUTUBE_RSS_FEED")
+	twitch_stream_update_queue = get_secret("VAR_QUEUE_TWITCH_STREAM_UPDATE")
 	d1_database_name = get_secret("VAR_D1_DATABASE_NAME")
 	d1_database_id = get_secret("VAR_D1_DATABASE_ID")
 
 	
-	if not all([kv_cache_id, kv_output_id, d1_database_name, d1_database_id]):
-		print("Error: KV_CACHE, KV_OUTPUT, and D1 configuration must be set as secrets")
+	if not all([
+		kv_cache_id,
+		kv_output_id,
+		yt_register_websub_queue,
+		yr_schedule_update_queue,
+		yr_rss_feed_queue,
+		twitch_stream_update_queue,
+		d1_database_name,
+		d1_database_id
+	]):
+		print("Error: KV, Queue, and D1 configuration must be set as secrets")
 		return False
 	
 	# wrangler.tomlの内容
@@ -35,6 +45,7 @@ compatibility_date = "2026-04-09"
 QUEUE_NAME_YOUTUBE_WEBSUB_REGISTER = "{yt_register_websub_queue}"
 QUEUE_NAME_YOUTUBE_SCHEDULE_UPDATE = "{yr_schedule_update_queue}"
 QUEUE_NAME_YOUTUBE_RSS_FEED = "{yr_rss_feed_queue}"
+QUEUE_NAME_TWITCH_STREAM_UPDATE = "{twitch_stream_update_queue}"
 
 # ログ設定
 [observability]
@@ -58,9 +69,17 @@ crons = [
 name = "YOUTUBE_NOTICES_CACHE"
 class_name = "YouTubeNoticesCache"
 
+[[durable_objects.bindings]]
+name = "STREAM_UPDATE_COORDINATOR"
+class_name = "StreamUpdateCoordinator"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = [ "YouTubeNoticesCache" ]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = [ "StreamUpdateCoordinator" ]
 
 # キャッシュ用KV
 [[kv_namespaces]]
@@ -111,6 +130,18 @@ delivery_delay = 60
 queue = "{yr_rss_feed_queue}"
 max_batch_size = 5 # パースとかいろいろ重いので、一度に最大5件とする
 retry_delay = 300
+
+# Twitch更新用キュー
+[[queues.producers]]
+binding = "QUEUE_TWITCH_UPDATE_TARGET"
+queue = "{twitch_stream_update_queue}"
+delivery_delay = 60
+
+[[queues.consumers]]
+queue = "{twitch_stream_update_queue}"
+retry_delay = 300
+max_batch_size = 1
+max_concurrency = 5
 
 """
 	

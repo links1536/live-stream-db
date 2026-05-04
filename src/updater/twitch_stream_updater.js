@@ -11,17 +11,39 @@ export class TwitchStreamUpdater
 		this.vtuberRepository = new VTuberRepository(env.DB);
 		this.twitchApi = new TwitchAPI(env.TWITCH_CLIENT_ID, env.TWITCH_CLIENT_SECRET);
 		this.twitchStreamRepository = new TwitchStreamRepository(env.DB);
+		this.updateStreamsQueue = env.QUEUE_TWITCH_UPDATE_TARGET;
+		const doId = env.STREAM_UPDATE_COORDINATOR.idFromName("stream-update-coordinator");
+		this.streamUpdateCoordinator = env.STREAM_UPDATE_COORDINATOR.get(doId);
 	}
 
-	async updateStreamsAsync()
+	async scheduleTrigger()
 	{
 		const twitchMap = await this.vtuberRepository.loadTwitchMapAsync();
 		const userLogins = Object.keys(twitchMap);
 		if (userLogins.length === 0) {
-			await this.twitchStreamRepository.replaceStreamsAsync([]);
+			await this.updateStreamsQueue.send(JSON.stringify({ type: "clear_all" }));
 			return;
 		}
 
+		const runId = crypto.randomUUID();
+		await this.streamUpdateCoordinator.initializeRunAsync(runId, userLogins.length);
+		Log.info("TwitchStreamUpdater", `Checking ${userLogins.length} Twitch users...`);
+		for (const userLogin of userLogins) {
+			Log.info("TwitchStreamUpdater", `Enqueue Twitch user: ${userLogin}`);
+			await this.updateStreamsQueue.send(JSON.stringify({
+				type: "user_update",
+				run_id: runId,
+				user_login: userLogin
+			}));
+		}
+	}
+
+	async updateStreamByUserLogin(userLogin)
+	{
+		if (!userLogin)
+			return;
+
+		const userLogins = [userLogin];
 		const users = await this.twitchApi.getUsersAsync(userLogins);
 		if (users == null) {
 			Log.error("TwitchStreamUpdater", "Skipping Twitch refresh because Twitch users request failed");
@@ -42,7 +64,7 @@ export class TwitchStreamUpdater
 			return;
 		}
 
-		await this.twitchStreamRepository.replaceStreamsAsync([
+		await this.twitchStreamRepository.replaceStreamsByUserLoginsAsync(userLogins, [
 			...liveStreams,
 			...archivedStreams
 		]);

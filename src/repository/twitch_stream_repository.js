@@ -7,10 +7,21 @@ export class TwitchStreamRepository
 		this.db = db;
 	}
 
-	async replaceStreamsAsync(streams)
+	async clearAllAsync()
+	{
+		await this.db.prepare("DELETE FROM twitch_streams").run();
+		Log.info("TwitchStreamRepository", "D1: Cleared all twitch streams.");
+	}
+
+	async replaceStreamsByUserLoginsAsync(userLogins, streams)
 	{
 		const batch = [];
-		batch.push(this.db.prepare("DELETE FROM twitch_streams"));
+
+		if (userLogins?.length) {
+			const placeholders = userLogins.map(() => "?").join(",");
+			const deleteStmt = this.db.prepare(`DELETE FROM twitch_streams WHERE user_login IN (${placeholders})`);
+			batch.push(deleteStmt.bind(...userLogins));
+		}
 
 		if (streams?.length) {
 			const insertStmt = this.db.prepare(`
@@ -35,6 +46,6 @@ export class TwitchStreamRepository
 
 		const results = await this.db.batch(batch);
 		const totalChanges = results.reduce((sum, res) => sum + (res.meta?.changes || 0), 0);
-		Log.info("TwitchStreamRepository", `D1: Replaced ${streams?.length ?? 0} twitch streams (${totalChanges} changes).`);
+		Log.info("TwitchStreamRepository", `D1: Replaced ${streams?.length ?? 0} twitch streams for ${userLogins?.length ?? 0} users (${totalChanges} changes).`);
 	}
 }
