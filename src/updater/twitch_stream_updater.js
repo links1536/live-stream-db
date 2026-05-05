@@ -28,25 +28,26 @@ export class TwitchStreamUpdater
 			return;
 		}
 
+		const batchCount = Math.ceil(userLogins.length / TwitchAPI.CHUNK_SIZE);
 		const runId = crypto.randomUUID();
-		await this.streamUpdateCoordinator.initializeRunAsync(runId, userLogins.length, "twitch", outputRunId);
+		await this.streamUpdateCoordinator.initializeRunAsync(runId, batchCount, "twitch", outputRunId);
 		Log.info("TwitchStreamUpdater", `Checking ${userLogins.length} Twitch users...`);
-		for (const userLogin of userLogins) {
-			Log.info("TwitchStreamUpdater", `Enqueue Twitch user: ${userLogin}`);
+		for (let i = 0; i < userLogins.length; i += TwitchAPI.CHUNK_SIZE) {
+			const chunk = userLogins.slice(i, i + TwitchAPI.CHUNK_SIZE);
+			Log.info("TwitchStreamUpdater", `Enqueue Twitch users: ${chunk.join(",")}`);
 			await this.updateStreamsQueue.send(JSON.stringify({
-				type: "user_update",
+				type: "user_batch_update",
 				run_id: runId,
-				user_login: userLogin
+				user_logins: chunk
 			}));
 		}
 	}
 
-	async updateStreamByUserLogin(userLogin)
+	async updateStreamsByUserLogins(userLogins)
 	{
-		if (!userLogin)
+		if (!userLogins?.length)
 			return;
 
-		const userLogins = [userLogin];
 		const users = await this.twitchApi.getUsersAsync(userLogins);
 		if (users == null) {
 			Log.error("TwitchStreamUpdater", "Skipping Twitch refresh because Twitch users request failed");

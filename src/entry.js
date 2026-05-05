@@ -229,10 +229,10 @@ export default {
 						continue;
 					}
 
-					if (body.type !== "user_update" || !body.user_login || !body.run_id)
+					if (body.type !== "user_batch_update" || !Array.isArray(body.user_logins) || !body.run_id)
 						continue;
 
-					const dirty = await twitchUpdater.updateStreamByUserLogin(body.user_login);
+					const dirty = await twitchUpdater.updateStreamsByUserLogins(body.user_logins);
 					const runState = await twitchUpdater.streamUpdateCoordinator.completeRunItemAsync(body.run_id, dirty);
 					if (runState?.is_last) {
 						const shouldUpdateOutput = await completeOutputSourceAsync(env, runState.output_run_id, runState.source, runState.dirty);
