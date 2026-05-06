@@ -14,6 +14,7 @@ CREATE TABLE rss_last_updated (
 );
 CREATE TABLE twitch_streams (
 	twitch_id TEXT PRIMARY KEY,
+	source_stream_id TEXT,
 	user_login TEXT,
 	title TEXT,
 	thumbnail TEXT,
@@ -42,3 +43,6 @@ CREATE INDEX IF NOT EXISTS idx_twitch_streams_published_at ON twitch_streams (pu
 
 DROP INDEX IF EXISTS idx_twitch_streams_status;
 CREATE INDEX IF NOT EXISTS idx_twitch_streams_status ON twitch_streams (status);
+
+DROP INDEX IF EXISTS idx_twitch_streams_source_stream_id;
+CREATE INDEX IF NOT EXISTS idx_twitch_streams_source_stream_id ON twitch_streams (source_stream_id);
