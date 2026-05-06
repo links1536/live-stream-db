@@ -36,13 +36,14 @@ export class TwitchStreamRepository
 		if (streams?.length) {
 			const insertStmt = this.db.prepare(`
 				INSERT INTO twitch_streams (
-					twitch_id, user_login, title, thumbnail, start_time_iso, published_at_iso, url, status
-				) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+					twitch_id, source_stream_id, user_login, title, thumbnail, start_time_iso, published_at_iso, url, status
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 			`);
 
 			for (const stream of streams) {
 				batch.push(insertStmt.bind(
 					stream.twitch_id ?? null,
+					stream.source_stream_id ?? stream.twitch_id ?? null,
 					stream.user_login ?? null,
 					stream.title ?? null,
 					stream.thumbnail ?? null,
@@ -67,7 +68,7 @@ export class TwitchStreamRepository
 
 		const placeholders = userLogins.map(() => "?").join(",");
 		const { results } = await this.db.prepare(`
-			SELECT twitch_id, user_login, title, thumbnail, start_time_iso, published_at_iso, url, status
+			SELECT twitch_id, source_stream_id, user_login, title, thumbnail, start_time_iso, published_at_iso, url, status
 			FROM twitch_streams
 			WHERE user_login IN (${placeholders})
 		`).bind(...userLogins).all();
@@ -79,6 +80,7 @@ export class TwitchStreamRepository
 		return [...(streams || [])]
 			.map(stream => ({
 				twitch_id: stream.twitch_id ?? null,
+				source_stream_id: stream.source_stream_id ?? stream.twitch_id ?? null,
 				user_login: stream.user_login ?? null,
 				title: stream.title ?? null,
 				thumbnail: stream.thumbnail ?? null,

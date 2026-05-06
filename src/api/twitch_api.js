@@ -168,6 +168,7 @@ export class TwitchAPI
 
 					archivedVideos.push({
 						twitch_id: video.id,
+						source_stream_id: video.stream_id != null ? String(video.stream_id) : null,
 						user_login: user.login,
 						title: video.title ?? null,
 						thumbnail: TwitchAPI.formatThumbnailUrl(video.thumbnail_url),

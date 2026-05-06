@@ -62,7 +62,10 @@ export class TwitchStreamUpdater
 
 		const currentDate = DateTimeUtils.getCurrentDate();
 		const [startLimit] = DateTimeUtils.getLimitDate(currentDate);
-		const archivedStreams = await this.twitchApi.getArchivedVideosAsync(users, startLimit.toISOString());
+		const archivedStreams = await this.twitchApi.getArchivedVideosAsync(
+			users,
+			startLimit.toISOString()
+		);
 		if (archivedStreams == null) {
 			Log.error("TwitchStreamUpdater", "Skipping Twitch refresh because Twitch videos request failed");
 			return;

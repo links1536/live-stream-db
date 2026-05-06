@@ -110,6 +110,16 @@ export class DisplayScheduleQueryService
 				WHERE COALESCE(stream.published_at_iso, stream.start_time_iso) IS NOT NULL
 					AND COALESCE(stream.published_at_iso, stream.start_time_iso) >= ?2
 					AND COALESCE(stream.published_at_iso, stream.start_time_iso) <= ?3
+					AND NOT (
+						stream.status = 'archived'
+						AND stream.source_stream_id IS NOT NULL
+						AND EXISTS (
+							SELECT 1
+							FROM twitch_streams live_stream
+							WHERE live_stream.status = 'live'
+								AND live_stream.source_stream_id = stream.source_stream_id
+						)
+					)
 			),
 			aggregated_tags AS (
 				-- 事前に VTuber に対してタグをまとめておく
