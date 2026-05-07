@@ -97,13 +97,21 @@ export default {
 					const { outputRunId } = await initializeOutputRunAsync(env, [ "youtube" ]);
 					const updater = new YouTubeScheduleUpdater(env);
 					await updater.scheduleTrigger(outputRunId);
-					return new Response("Schedule update triggered");
+					return new Response("Triggered YouTube schedule update");
 				},
 				"/twitch-update": async () => {
 					const { outputRunId } = await initializeOutputRunAsync(env, [ "twitch" ]);
 					const updater = new TwitchStreamUpdater(env);
 					await updater.scheduleTrigger(outputRunId);
-					return new Response("Twitch update triggered");
+					return new Response("Triggered Twitch stream update");
+				},
+				"/full-update": async () => {
+					const { outputRunId } = await initializeOutputRunAsync(env, [ "youtube", "twitch" ]);
+					const youtubeUpdater = new YouTubeScheduleUpdater(env);
+					await youtubeUpdater.scheduleTrigger(outputRunId);
+					const twitchUpdater = new TwitchStreamUpdater(env);
+					await twitchUpdater.scheduleTrigger(outputRunId);
+					return new Response("Triggered full stream update");
 				}
 			};
 

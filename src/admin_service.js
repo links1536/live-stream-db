@@ -311,7 +311,7 @@ export class AdminService {
 			<div class="action-card">
 				<div class="action-info">
 					<h3>Manual RSS Fetch</h3>
-					<p>最新のRSSフィードを即座にフェッチし、新着動画をキューへ投入します</p>
+					<p>最新のRSSフィードを取得し、新着動画候補を通知キャッシュへ投入します</p>
 				</div>
 				<button class="btn-trigger" onclick="runTask(this, '/admin/youtube-fetch-rss')">
 					<div class="spinner"></div>
@@ -322,12 +322,12 @@ export class AdminService {
 			<!-- スケジュール同期 -->
 			<div class="action-card">
 				<div class="action-info">
-					<h3>Full Sync Update</h3>
-					<p>YouTube Data APIを使用して、全動画のステータスとJSONを最新化します</p>
+					<h3>YouTube Schedule Update</h3>
+					<p>YouTubeのスケジュール更新をトリガーし、完了後に必要なら lives.json を再生成します</p>
 				</div>
 				<button class="btn-trigger" onclick="runTask(this, '/admin/youtube-update')">
 					<div class="spinner"></div>
-					<span class="btn-text">Sync Schedules</span>
+					<span class="btn-text">Trigger YouTube</span>
 				</button>
 			</div>
 
@@ -335,11 +335,23 @@ export class AdminService {
 			<div class="action-card">
 				<div class="action-info">
 					<h3>Twitch Stream Update</h3>
-					<p>Twitchのlive/archivedを更新し、公開用JSONを最新化します</p>
+					<p>Twitchの配信更新をトリガーし、完了後に必要なら lives.json を再生成します</p>
 				</div>
 				<button class="btn-trigger" onclick="runTask(this, '/admin/twitch-update')">
 					<div class="spinner"></div>
-					<span class="btn-text">Sync Twitch</span>
+					<span class="btn-text">Trigger Twitch</span>
+				</button>
+			</div>
+
+			<!-- 全体同期 -->
+			<div class="action-card">
+				<div class="action-info">
+					<h3>Full Stream Update</h3>
+					<p>YouTube と Twitch の両方の更新をトリガーし、両方完了後に lives.json を再生成します</p>
+				</div>
+				<button class="btn-trigger" onclick="runTask(this, '/admin/full-update')">
+					<div class="spinner"></div>
+					<span class="btn-text">Trigger Full Sync</span>
 				</button>
 			</div>
 		</main>
