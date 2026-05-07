@@ -12,7 +12,7 @@ export class YouTubeScheduleUpdater
 		this.youtubeRepository = new YouTubeScheduleRepository(env.DB, env.KV_CACHE);
 		this.youtubeDataApi = new YouTubeDataAPI(env.YOUTUBE_DATA_API_KEY);
 
-		this.updateSchedulesQueue = env.QUEUE_YOUTUBE_UPDATE_TARGET;
+		this.updateSchedulesQueue = env.QUEUE_STREAM_UPDATE_TARGET;
 
 		const doId = env.YOUTUBE_NOTICES_CACHE.idFromName("rss-key-cache");
 		this.youtubeNoticesCache = env.YOUTUBE_NOTICES_CACHE.get(doId);
@@ -53,7 +53,7 @@ export class YouTubeScheduleUpdater
 			const chunk = requestTargetIds.slice(i, i + chunkSize);
 			Log.info("YouTubeScheduleUpdater", `Chunk: ${chunkSize} Id: ${chunk.join(",")}`);
 			await this.updateSchedulesQueue.send(JSON.stringify({
-				type: "youtube_chunk",
+				type: "youtube_video_batch_update",
 				run_id: runId,
 				video_ids: chunk
 			}));

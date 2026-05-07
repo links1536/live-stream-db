@@ -56,7 +56,7 @@ YouTube Data API、WebSub、RSS を使って動画情報を収集し、Cloudflar
 | `KV_OUTPUT` | Cloudflare KV | 公開用 `lives.json` の保存 |
 | `YOUTUBE_NOTICES_CACHE` | Durable Object Storage | WebSub / RSS で見つけた新着動画 ID の一時保持 |
 | WebSub 登録用 Queue | Cloudflare Queue | WebSub 登録要求の非同期処理 |
-| スケジュール更新用 Queue | Cloudflare Queue | YouTube Data API 更新対象の分割実行 |
+| 統合更新用 Queue | Cloudflare Queue | YouTube / Twitch 更新と `lives.json` 最終生成の直列処理 |
 | RSS 取得用 Queue | Cloudflare Queue | RSS 取得対象チャンネルの非同期処理 |
 
 ## 必要な設定値
@@ -70,7 +70,7 @@ YouTube Data API、WebSub、RSS を使って動画情報を収集し、Cloudflar
 | `VAR_KV_CACHE_ID` | 動画 ID キャッシュ用 KV ID |
 | `VAR_KV_OUTPUT_ID` | 公開用 `lives.json` を保存する KV ID |
 | `VAR_QUEUE_YOUTUBE_WEBSUB_REGISTER` | WebSub 登録用 Queue 名 |
-| `VAR_QUEUE_YOUTUBE_SCHEDULE_UPDATE` | スケジュール更新用 Queue 名 |
+| `VAR_QUEUE_STREAM_UPDATE` | 統合更新用 Queue 名 |
 | `VAR_QUEUE_YOUTUBE_RSS_FEED` | RSS 取得用 Queue 名 |
 | `VAR_D1_DATABASE_NAME` | D1 データベース名 |
 | `VAR_D1_DATABASE_ID` | D1 データベース ID |
@@ -137,7 +137,7 @@ Cloudflare ダッシュボードで次を開きます
 次の 3 つを用意します
 
 - WebSub 登録用 Queue
-- スケジュール更新用 Queue
+- 統合更新用 Queue
 - RSS 取得用 Queue
 
 確認する項目:
@@ -161,7 +161,7 @@ Cloudflare ダッシュボードで次を開きます
 $env:VAR_KV_CACHE_ID="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 $env:VAR_KV_OUTPUT_ID="yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
 $env:VAR_QUEUE_YOUTUBE_WEBSUB_REGISTER="youtube-websub-register"
-$env:VAR_QUEUE_YOUTUBE_SCHEDULE_UPDATE="youtube-schedule-update"
+$env:VAR_QUEUE_STREAM_UPDATE="stream-update"
 $env:VAR_QUEUE_YOUTUBE_RSS_FEED="youtube-rss-feed"
 $env:VAR_D1_DATABASE_NAME="live-stream-db"
 $env:VAR_D1_DATABASE_ID="zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz"
@@ -232,8 +232,8 @@ wrangler deploy
 
 - Cron で WebSub 再登録、RSS 取得、スケジュール更新を回します
 - WebSub と RSS で見つけた動画 ID を Durable Object / Queue に積みます
-- YouTube Data API の結果を D1 に保存します
-- 表示対象期間のデータを `lives.json` に変換して `KV_OUTPUT` に保存します
+- YouTube / Twitch の更新チャンクと `lives.json` 最終処理を統合 Queue で順次処理します
+- 更新結果を D1 に保存し、最後に表示対象期間のデータを `lives.json` に変換して `KV_OUTPUT` に保存します
 
 ## 管理用エンドポイント
 

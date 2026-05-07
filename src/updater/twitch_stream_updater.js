@@ -11,7 +11,7 @@ export class TwitchStreamUpdater
 		this.vtuberRepository = new VTuberRepository(env.DB);
 		this.twitchApi = new TwitchAPI(env.TWITCH_CLIENT_ID, env.TWITCH_CLIENT_SECRET);
 		this.twitchStreamRepository = new TwitchStreamRepository(env.DB);
-		this.updateStreamsQueue = env.QUEUE_TWITCH_UPDATE_TARGET;
+		this.updateStreamsQueue = env.QUEUE_STREAM_UPDATE_TARGET;
 		const doId = env.STREAM_UPDATE_COORDINATOR.idFromName("stream-update-coordinator");
 		this.streamUpdateCoordinator = env.STREAM_UPDATE_COORDINATOR.get(doId);
 	}
@@ -22,7 +22,7 @@ export class TwitchStreamUpdater
 		const userLogins = Object.keys(twitchMap);
 		if (userLogins.length === 0) {
 			await this.updateStreamsQueue.send(JSON.stringify({
-				type: "clear_all",
+				type: "twitch_clear_all",
 				output_run_id: outputRunId
 			}));
 			return;
@@ -36,7 +36,7 @@ export class TwitchStreamUpdater
 			const chunk = userLogins.slice(i, i + TwitchAPI.CHUNK_SIZE);
 			Log.info("TwitchStreamUpdater", `Enqueue Twitch users: ${chunk.join(",")}`);
 			await this.updateStreamsQueue.send(JSON.stringify({
-				type: "user_batch_update",
+				type: "twitch_user_batch_update",
 				run_id: runId,
 				user_logins: chunk
 			}));

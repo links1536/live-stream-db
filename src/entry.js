@@ -44,6 +44,21 @@ async function completeOutputSourceAsync(env, outputRunId, source, dirty)
 	return completion?.should_update === true;
 }
 
+async function enqueueLivesJsonUpdateAsync(env, outputRunId, source, dirty)
+{
+	const shouldUpdateOutput = await completeOutputSourceAsync(env, outputRunId, source, dirty);
+	if (!shouldUpdateOutput)
+		return false;
+
+	await env.QUEUE_STREAM_UPDATE_TARGET.send(JSON.stringify({
+		type: "lives_json_update",
+		output_run_id: outputRunId,
+		source,
+		dirty
+	}));
+	return true;
+}
+
 export default {
 	/**
 	 * HTTP リクエスト処理
@@ -181,64 +196,62 @@ export default {
 					}
 				}
 				break;
-			case env.QUEUE_NAME_YOUTUBE_SCHEDULE_UPDATE:
-				const scheduleUpdater = new YouTubeScheduleUpdater(env);
-				const scheduleLivesJsonUpdater = new LivesJsonUpdater(env);
-
+			case env.QUEUE_NAME_STREAM_UPDATE:
 				for (const msg of batch.messages) {
 					const bodyText = msg.body?.trim();
 					if (!bodyText)
 						continue;
 
 					const body = JSON.parse(bodyText);
-					if (body.type !== "youtube_chunk" || !body.run_id || !Array.isArray(body.video_ids))
-						continue;
 
-					const dirty = await scheduleUpdater.updateSchedules(body.video_ids);
-					const runState = await scheduleUpdater.streamUpdateCoordinator.completeRunItemAsync(body.run_id, dirty);
-					if (runState?.is_last) {
+					// YouTubeのスケジュール更新
+					if (body.type === "youtube_video_batch_update") {
+						if (!body.run_id || !Array.isArray(body.video_ids))
+							continue;
+
+						const scheduleUpdater = new YouTubeScheduleUpdater(env);
+						const dirty = await scheduleUpdater.updateSchedules(body.video_ids);
+						const runState = await scheduleUpdater.streamUpdateCoordinator.completeRunItemAsync(body.run_id, dirty);
+						if (!runState?.is_last)
+							continue;
+
 						if (runState.dirty) {
 							await scheduleUpdater.youtubeRepository.updateScheduleIdsAsync();
 						}
-						const shouldUpdateOutput = await completeOutputSourceAsync(env, runState.output_run_id, runState.source, runState.dirty);
-						if (shouldUpdateOutput) {
-							await scheduleLivesJsonUpdater.saveDataJsonAsync();
+						await enqueueLivesJsonUpdateAsync(env, runState.output_run_id, runState.source, runState.dirty);
+						continue;
+					}
+
+					// Twitchのスケジュール更新
+					if (body.type === "twitch_user_batch_update") {
+						if (!Array.isArray(body.user_logins) || !body.run_id)
+							continue;
+
+						const twitchUpdater = new TwitchStreamUpdater(env);
+						const dirty = await twitchUpdater.updateStreamsByUserLogins(body.user_logins);
+						const runState = await twitchUpdater.streamUpdateCoordinator.completeRunItemAsync(body.run_id, dirty);
+						if (runState?.is_last) {
+							await enqueueLivesJsonUpdateAsync(env, runState.output_run_id, runState.source, runState.dirty);
 						}
-					}
-				}
-
-				// 成功時は ack
-				batch.ackAll();
-
-				break;
-			case env.QUEUE_NAME_TWITCH_STREAM_UPDATE:
-				const twitchUpdater = new TwitchStreamUpdater(env);
-				const livesJsonUpdater = new LivesJsonUpdater(env);
-
-				for (const msg of batch.messages) {
-					const bodyText = msg.body?.trim();
-					if (!bodyText)
 						continue;
+					}
 
-					const body = JSON.parse(bodyText);
-					if (body.type === "clear_all") {
+					// Twitchの配信をすべて削除
+					if (body.type === "twitch_clear_all") {
+						const twitchUpdater = new TwitchStreamUpdater(env);
 						const dirty = await twitchUpdater.twitchStreamRepository.clearAllAsync();
-						const shouldUpdateOutput = await completeOutputSourceAsync(env, body.output_run_id, "twitch", dirty);
-						if (shouldUpdateOutput)
-							await livesJsonUpdater.saveDataJsonAsync();
+						await enqueueLivesJsonUpdateAsync(env, body.output_run_id, "twitch", dirty);
 						continue;
 					}
 
-					if (body.type !== "user_batch_update" || !Array.isArray(body.user_logins) || !body.run_id)
+					// lives.jsonを更新
+					if (body.type === "lives_json_update") {
+						const livesJsonUpdater = new LivesJsonUpdater(env);
+						await livesJsonUpdater.saveDataJsonAsync();
 						continue;
-
-					const dirty = await twitchUpdater.updateStreamsByUserLogins(body.user_logins);
-					const runState = await twitchUpdater.streamUpdateCoordinator.completeRunItemAsync(body.run_id, dirty);
-					if (runState?.is_last) {
-						const shouldUpdateOutput = await completeOutputSourceAsync(env, runState.output_run_id, runState.source, runState.dirty);
-						if (shouldUpdateOutput)
-							await livesJsonUpdater.saveDataJsonAsync();
 					}
+
+					console.warn(`[WARN] Unknown stream update message type: ${body.type}`);
 				}
 
 				batch.ackAll();

@@ -1,34 +1,28 @@
 import os
 from datetime import datetime
 
-def get_vars(secret_name):
+def get_env(secret_name):
 	"""環境変数から値を取得"""
-	return os.environ.get(secret_name)
-
-def get_secret(secret_name):
-	"""シークレットから値を取得"""
 	return os.environ.get(secret_name)
 
 def generate_wrangler_toml():
 	"""wrangler.tomlを生成"""
 	# シークレットからKV IDを取得
-	kv_cache_id = get_secret("VAR_KV_CACHE_ID")
-	kv_output_id = get_secret("VAR_KV_OUTPUT_ID")
-	yt_register_websub_queue = get_secret("VAR_QUEUE_YOUTUBE_WEBSUB_REGISTER")
-	yr_schedule_update_queue = get_secret("VAR_QUEUE_YOUTUBE_SCHEDULE_UPDATE")
-	yr_rss_feed_queue = get_secret("VAR_QUEUE_YOUTUBE_RSS_FEED")
-	twitch_stream_update_queue = get_secret("VAR_QUEUE_TWITCH_STREAM_UPDATE")
-	d1_database_name = get_secret("VAR_D1_DATABASE_NAME")
-	d1_database_id = get_secret("VAR_D1_DATABASE_ID")
+	kv_cache_id = get_env("VAR_KV_CACHE_ID")
+	kv_output_id = get_env("VAR_KV_OUTPUT_ID")
+	yt_register_websub_queue = get_env("VAR_QUEUE_YOUTUBE_WEBSUB_REGISTER")
+	stream_update_queue = get_env("VAR_QUEUE_STREAM_UPDATE")
+	yr_rss_feed_queue = get_env("VAR_QUEUE_YOUTUBE_RSS_FEED")
+	d1_database_name = get_env("VAR_D1_DATABASE_NAME")
+	d1_database_id = get_env("VAR_D1_DATABASE_ID")
 
-	
+	# 変数チェック
 	if not all([
 		kv_cache_id,
 		kv_output_id,
 		yt_register_websub_queue,
-		yr_schedule_update_queue,
+		stream_update_queue,
 		yr_rss_feed_queue,
-		twitch_stream_update_queue,
 		d1_database_name,
 		d1_database_id
 	]):
@@ -43,9 +37,8 @@ compatibility_date = "2026-04-09"
 # 変数
 [vars]
 QUEUE_NAME_YOUTUBE_WEBSUB_REGISTER = "{yt_register_websub_queue}"
-QUEUE_NAME_YOUTUBE_SCHEDULE_UPDATE = "{yr_schedule_update_queue}"
+QUEUE_NAME_STREAM_UPDATE = "{stream_update_queue}"
 QUEUE_NAME_YOUTUBE_RSS_FEED = "{yr_rss_feed_queue}"
-QUEUE_NAME_TWITCH_STREAM_UPDATE = "{twitch_stream_update_queue}"
 
 # ログ設定
 [observability]
@@ -110,12 +103,12 @@ retry_delay = 300
 
 # スケジュール情報更新用キュー
 [[queues.producers]]
-binding = "QUEUE_YOUTUBE_UPDATE_TARGET"
-queue = "{yr_schedule_update_queue}"
+binding = "QUEUE_STREAM_UPDATE_TARGET"
+queue = "{stream_update_queue}"
 delivery_delay = 60
 
 [[queues.consumers]]
-queue = "{yr_schedule_update_queue}"
+queue = "{stream_update_queue}"
 retry_delay = 300
 max_batch_size = 1 #先にまとめるので、1個ずつ処理する
 max_concurrency = 1
@@ -130,18 +123,6 @@ delivery_delay = 60
 queue = "{yr_rss_feed_queue}"
 max_batch_size = 5 # パースとかいろいろ重いので、一度に最大5件とする
 retry_delay = 300
-
-# Twitch更新用キュー
-[[queues.producers]]
-binding = "QUEUE_TWITCH_UPDATE_TARGET"
-queue = "{twitch_stream_update_queue}"
-delivery_delay = 60
-
-[[queues.consumers]]
-queue = "{twitch_stream_update_queue}"
-retry_delay = 300
-max_batch_size = 1
-max_concurrency = 5
 
 """
 	
