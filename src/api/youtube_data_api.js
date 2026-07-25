@@ -84,7 +84,7 @@ export class YouTubeDataAPI
 			const thumbnails = snippet.thumbnails;
 			const thumbnail = thumbnails ? (thumbnails.standard || thumbnails.high || thumbnails.medium || thumbnails.default) : null;
 			const publishedAt = snippet.publishedAt || null;
-			const startTimeStr = live?.scheduledStartTime || live?.actualStartTime || null;
+			const startTimeStr = live?.actualStartTime || live?.scheduledStartTime || null;
 			const status = !live ? "video"
 				: live.actualEndTime ? "archived"
 				: live.actualStartTime ? "live"
