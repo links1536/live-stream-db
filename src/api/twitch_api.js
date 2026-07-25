@@ -5,7 +5,7 @@ const TWITCH_TOKEN_ENDPOINT = "https://id.twitch.tv/oauth2/token";
 const TWITCH_STREAMS_ENDPOINT = "https://api.twitch.tv/helix/streams";
 const TWITCH_USERS_ENDPOINT = "https://api.twitch.tv/helix/users";
 const TWITCH_VIDEOS_ENDPOINT = "https://api.twitch.tv/helix/videos";
-const TWITCH_MAX_USERS_PER_REQUEST = 100;
+const TWITCH_MAX_USERS_PER_REQUEST = 50;
 
 export class TwitchAPI
 {
