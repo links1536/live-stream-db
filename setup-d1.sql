@@ -23,6 +23,16 @@ CREATE TABLE twitch_streams (
 	url TEXT,
 	status TEXT
 );
+CREATE TABLE twitcasting_streams (
+	twitcasting_id TEXT PRIMARY KEY,
+	screen_id TEXT,
+	title TEXT,
+	thumbnail TEXT,
+	start_time_iso TEXT,
+	published_at_iso TEXT,
+	url TEXT,
+	status TEXT
+);
 
 -- インデックス作成
 
@@ -46,3 +56,12 @@ CREATE INDEX IF NOT EXISTS idx_twitch_streams_status ON twitch_streams (status);
 
 DROP INDEX IF EXISTS idx_twitch_streams_source_stream_id;
 CREATE INDEX IF NOT EXISTS idx_twitch_streams_source_stream_id ON twitch_streams (source_stream_id);
+
+DROP INDEX IF EXISTS idx_twitcasting_streams_start_time;
+CREATE INDEX IF NOT EXISTS idx_twitcasting_streams_start_time ON twitcasting_streams (start_time_iso);
+
+DROP INDEX IF EXISTS idx_twitcasting_streams_status;
+CREATE INDEX IF NOT EXISTS idx_twitcasting_streams_status ON twitcasting_streams (status);
+
+DROP INDEX IF EXISTS idx_twitcasting_streams_screen_id;
+CREATE INDEX IF NOT EXISTS idx_twitcasting_streams_screen_id ON twitcasting_streams (screen_id);

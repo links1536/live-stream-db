@@ -5,6 +5,7 @@ import { YouTubeWebSubUpdater } from "./updater/youtube_websub_updater.js";
 import { YouTubeRssFeedUpdater } from "./updater/youtube_rss_feed_updater.js";
 import { YouTubeScheduleUpdater } from "./updater/youtube_schedule_updater.js";
 import { TwitchStreamUpdater } from "./updater/twitch_stream_updater.js";
+import { TwitCastingStreamUpdater } from "./updater/twitcasting_stream_updater.js";
 import { LivesJsonUpdater } from "./updater/lives_json_updater.js";
 import { YouTubeWebSub } from "./api/youtube_websub.js";
 import { AdminService } from "./admin_service.js";
@@ -105,12 +106,20 @@ export default {
 					await updater.scheduleTrigger(outputRunId);
 					return new Response("Triggered Twitch stream update");
 				},
+				"/twitcasting-update": async () => {
+					const { outputRunId } = await initializeOutputRunAsync(env, [ "twitcasting" ]);
+					const updater = new TwitCastingStreamUpdater(env);
+					await updater.scheduleTrigger(outputRunId);
+					return new Response("Triggered TwitCasting stream update");
+				},
 				"/full-update": async () => {
-					const { outputRunId } = await initializeOutputRunAsync(env, [ "youtube", "twitch" ]);
+					const { outputRunId } = await initializeOutputRunAsync(env, [ "youtube", "twitch", "twitcasting" ]);
 					const youtubeUpdater = new YouTubeScheduleUpdater(env);
 					await youtubeUpdater.scheduleTrigger(outputRunId);
 					const twitchUpdater = new TwitchStreamUpdater(env);
 					await twitchUpdater.scheduleTrigger(outputRunId);
+					const twitcastingUpdater = new TwitCastingStreamUpdater(env);
+					await twitcastingUpdater.scheduleTrigger(outputRunId);
 					return new Response("Triggered full stream update");
 				}
 			};
@@ -164,11 +173,13 @@ export default {
 		}
 		else {
 			// その他（デフォルト） - スケジュール更新
-			const { outputRunId } = await initializeOutputRunAsync(env, [ "youtube", "twitch" ]);
+			const { outputRunId } = await initializeOutputRunAsync(env, [ "youtube", "twitch", "twitcasting" ]);
 			const youtubeUpdater = new YouTubeScheduleUpdater(env);
 			await youtubeUpdater.scheduleTrigger(outputRunId);
 			const twitchUpdater = new TwitchStreamUpdater(env);
 			await twitchUpdater.scheduleTrigger(outputRunId);
+			const twitcastingUpdater = new TwitCastingStreamUpdater(env);
+			await twitcastingUpdater.scheduleTrigger(outputRunId);
 			console.log("✅ Schedule update completed (scheduled)");
 		}
 	},
@@ -249,6 +260,28 @@ export default {
 						const twitchUpdater = new TwitchStreamUpdater(env);
 						const dirty = await twitchUpdater.twitchStreamRepository.clearAllAsync();
 						await enqueueLivesJsonUpdateAsync(env, body.output_run_id, "twitch", dirty);
+						continue;
+					}
+
+					// TwitCastingの配信更新
+					if (body.type === "twitcasting_user_batch_update") {
+						if (!Array.isArray(body.screen_ids) || !body.run_id)
+							continue;
+
+						const twitcastingUpdater = new TwitCastingStreamUpdater(env);
+						const dirty = await twitcastingUpdater.updateStreamsByScreenIds(body.screen_ids);
+						const runState = await twitcastingUpdater.streamUpdateCoordinator.completeRunItemAsync(body.run_id, dirty);
+						if (runState?.is_last) {
+							await enqueueLivesJsonUpdateAsync(env, runState.output_run_id, runState.source, runState.dirty);
+						}
+						continue;
+					}
+
+					// TwitCastingの配信をすべて削除
+					if (body.type === "twitcasting_clear_all") {
+						const twitcastingUpdater = new TwitCastingStreamUpdater(env);
+						const dirty = await twitcastingUpdater.twitcastingStreamRepository.clearAllAsync();
+						await enqueueLivesJsonUpdateAsync(env, body.output_run_id, "twitcasting", dirty);
 						continue;
 					}
 

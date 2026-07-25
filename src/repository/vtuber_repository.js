@@ -140,6 +140,38 @@ export class VTuberRepository
 		}
 	}
 
+	async loadTwitCastingMapAsync()
+	{
+		try {
+			const { results } = await this.db.prepare(`
+				SELECT
+					tc.screen_id,
+					v.id,
+					v.name,
+					v.agency,
+					v.color
+				FROM twitcasting_users tc
+				JOIN vtubers v ON tc.vtuber_id = v.id
+			`).all();
+
+			const twitcastingMap = {};
+			for (const row of results) {
+				twitcastingMap[row.screen_id] = {
+					id: row.id,
+					Name: row.name,
+					Agency: row.agency,
+					Color: row.color
+				};
+			}
+
+			return twitcastingMap;
+		}
+		catch (e) {
+			Log.error("VTuberRepository", `Failed to load TwitCasting map: ${e.message}`);
+			return {};
+		}
+	}
+
 	/**
 	 * DBからチャンネルごとの最終更新日時を読み込む
 	 */
