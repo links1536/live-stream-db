@@ -343,11 +343,23 @@ export class AdminService {
 				</button>
 			</div>
 
+			<!-- TwitCasting同期 -->
+			<div class="action-card">
+				<div class="action-info">
+					<h3>TwitCasting Stream Update</h3>
+					<p>ツイキャスの配信予定・配信中・過去配信を更新し、必要なら lives.json を再生成します</p>
+				</div>
+				<button class="btn-trigger" onclick="runTask(this, '/admin/twitcasting-update')">
+					<div class="spinner"></div>
+					<span class="btn-text">Trigger TwitCasting</span>
+				</button>
+			</div>
+
 			<!-- 全体同期 -->
 			<div class="action-card">
 				<div class="action-info">
 					<h3>Full Stream Update</h3>
-					<p>YouTube と Twitch の両方の更新をトリガーし、両方完了後に lives.json を再生成します</p>
+					<p>YouTube、Twitch、ツイキャスの更新をトリガーし、すべて完了後に lives.json を再生成します</p>
 				</div>
 				<button class="btn-trigger" onclick="runTask(this, '/admin/full-update')">
 					<div class="spinner"></div>

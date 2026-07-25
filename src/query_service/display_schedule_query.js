@@ -120,6 +120,27 @@ export class DisplayScheduleQueryService
 								AND live_stream.source_stream_id = stream.source_stream_id
 						)
 					)
+				UNION ALL
+				SELECT
+					vtuber.id AS vtuber_id,
+					vtuber.name AS streamer_name,
+					vtuber.color,
+					vtuber.agency,
+					stream.twitcasting_id AS video_id,
+					stream.title,
+					stream.thumbnail,
+					stream.start_time_iso,
+					stream.published_at_iso,
+					COALESCE(stream.start_time_iso, stream.published_at_iso) AS display_time_iso,
+					stream.status,
+					'twitcasting' AS platform,
+					stream.url
+				FROM twitcasting_streams stream
+				JOIN twitcasting_users user ON stream.screen_id = user.screen_id
+				JOIN vtubers vtuber ON user.vtuber_id = vtuber.id
+				WHERE COALESCE(stream.start_time_iso, stream.published_at_iso) IS NOT NULL
+					AND COALESCE(stream.start_time_iso, stream.published_at_iso) >= ?2
+					AND COALESCE(stream.start_time_iso, stream.published_at_iso) <= ?3
 			),
 			aggregated_tags AS (
 				-- 事前に VTuber に対してタグをまとめておく

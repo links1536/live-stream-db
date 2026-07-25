@@ -2,9 +2,9 @@
 
 ## プロジェクト説明
 
-YouTube の配信予定と配信状態を収集し、公開用 `lives.json` を生成する Cloudflare Workers アプリケーションです
+YouTube、Twitch、ツイキャスの配信予定と配信状態を収集し、公開用 `lives.json` を生成する Cloudflare Workers アプリケーションです
 
-YouTube Data API、WebSub、RSS を使って動画情報を収集し、Cloudflare D1 に保存した上で Cloudflare KV に `lives.json` を出力します
+各プラットフォームの API と YouTube WebSub / RSS を使って配信情報を収集し、Cloudflare D1 に保存した上で Cloudflare KV に `lives.json` を出力します
 
 `live-stream-db-pages` はこの `KV_OUTPUT` を参照して公開画面を表示します
 
@@ -19,6 +19,8 @@ YouTube Data API、WebSub、RSS を使って動画情報を収集し、Cloudflar
 - Wrangler CLI 4 系
 - Cloudflare D1 / KV / Queues / Durable Objects が利用できるアカウント
 - YouTube Data API v3 キー
+- Twitch アプリケーションの Client ID / Client Secret
+- TwitCasting API v2 アプリケーションの Client ID / Client Secret
 
 ## 構成
 
@@ -28,6 +30,7 @@ YouTube Data API、WebSub、RSS を使って動画情報を収集し、Cloudflar
   - WebSub 通知受信
   - RSS 巡回
   - YouTube Data API 更新
+  - Twitch / TwitCasting API 更新
   - `lives.json` 生成
 
 ## 主なエントリポイント
@@ -51,7 +54,7 @@ YouTube Data API、WebSub、RSS を使って動画情報を収集し、Cloudflar
 
 | バインド名 / データ | ストレージ種別 | 用途 |
 |---|---|---|
-| `DB` | Cloudflare D1 | `youtube_schedules` や `rss_last_updated` の保存 |
+| `DB` | Cloudflare D1 | YouTube、Twitch、TwitCasting の配信情報などの保存 |
 | `KV_CACHE` | Cloudflare KV | 動画 ID 一覧などの軽量キャッシュ |
 | `KV_OUTPUT` | Cloudflare KV | 公開用 `lives.json` の保存 |
 | `YOUTUBE_NOTICES_CACHE` | Durable Object Storage | WebSub / RSS で見つけた新着動画 ID の一時保持 |
@@ -85,6 +88,10 @@ YouTube Data API、WebSub、RSS を使って動画情報を収集し、Cloudflar
 | `YOUTUBE_WEBSUB_CALLBACK_URL` | WebSub コールバック URL |
 | `YOUTUBE_WEBSUB_VERIFY_TOKEN` | WebSub 検証トークン |
 | `YOUTUBE_WEBSUB_SECRETS` | WebSub 署名検証シークレット |
+| `TWITCH_CLIENT_ID` | Twitch アプリケーションの Client ID |
+| `TWITCH_CLIENT_SECRET` | Twitch アプリケーションの Client Secret |
+| `TWITCASTING_CLIENT_ID` | TwitCasting API v2 アプリケーションの Client ID |
+| `TWITCASTING_CLIENT_SECRET` | TwitCasting API v2 アプリケーションの Client Secret |
 
 ## Cloudflare 側の設定方法
 
@@ -196,6 +203,10 @@ Cloudflare ダッシュボードで次を開きます
 - `YOUTUBE_WEBSUB_CALLBACK_URL`
 - `YOUTUBE_WEBSUB_VERIFY_TOKEN`
 - `YOUTUBE_WEBSUB_SECRETS`
+- `TWITCH_CLIENT_ID`
+- `TWITCH_CLIENT_SECRET`
+- `TWITCASTING_CLIENT_ID`
+- `TWITCASTING_CLIENT_SECRET`
 
 CLI を使う場合の例:
 
@@ -206,6 +217,10 @@ wrangler secret put YOUTUBE_DATA_API_KEY
 wrangler secret put YOUTUBE_WEBSUB_CALLBACK_URL
 wrangler secret put YOUTUBE_WEBSUB_VERIFY_TOKEN
 wrangler secret put YOUTUBE_WEBSUB_SECRETS
+wrangler secret put TWITCH_CLIENT_ID
+wrangler secret put TWITCH_CLIENT_SECRET
+wrangler secret put TWITCASTING_CLIENT_ID
+wrangler secret put TWITCASTING_CLIENT_SECRET
 ```
 
 ### 7. デプロイする
@@ -232,7 +247,7 @@ wrangler deploy
 
 - Cron で WebSub 再登録、RSS 取得、スケジュール更新を回します
 - WebSub と RSS で見つけた動画 ID を Durable Object / Queue に積みます
-- YouTube / Twitch の更新チャンクと `lives.json` 最終処理を統合 Queue で順次処理します
+- YouTube / Twitch / TwitCasting の更新チャンクと `lives.json` 最終処理を統合 Queue で順次処理します
 - 更新結果を D1 に保存し、最後に表示対象期間のデータを `lives.json` に変換して `KV_OUTPUT` に保存します
 
 ## 管理用エンドポイント
@@ -243,6 +258,21 @@ Basic 認証つきで次を利用できます
 - `POST /admin/youtube-websub-register`: WebSub 再登録
 - `POST /admin/youtube-fetch-rss`: RSS 手動取得
 - `POST /admin/youtube-update`: スケジュール更新
+- `POST /admin/twitch-update`: Twitch 配信更新
+- `POST /admin/twitcasting-update`: TwitCasting 配信更新
+- `POST /admin/full-update`: 全プラットフォーム更新
+
+## TwitCasting API の運用
+
+- [TwitCasting API v2 のアプリケーション登録](https://twitcasting.tv/applications.php)で Client ID / Client Secret を取得します
+- 読み取り API はアプリケーション単位の Basic 認証で呼び出します。ユーザーごとの OAuth 認可は不要です
+- API の 60 requests / 60 sec 制限を超えないよう、対象を15ユーザー単位に分割し、Queue で1分ずつ遅延させます
+- 現在配信、直近7日の配信予定、表示期間内の過去配信を取得します
+- 新規環境では `setup-d1.sql`、既存環境では `migrate-twitcasting.sql` を D1 に適用してからデプロイしてください
+
+```powershell
+wrangler d1 execute <DATABASE_NAME> --remote --file=migrate-twitcasting.sql
+```
 
 ## 補足
 
