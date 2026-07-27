@@ -298,12 +298,12 @@ export class AdminService {
 			<!-- WebSub再登録 -->
 			<div class="action-card">
 				<div class="action-info">
-					<h3>WebSub Re-register</h3>
-					<p>YouTubeのリアルタイム通知(PubSubHubbub)を全件強制登録します</p>
+					<h3>YouTube WebSub Register</h3>
+					<p>登録済みYouTube配信者のリアルタイム通知を再登録します</p>
 				</div>
 				<button class="btn-trigger" onclick="runTask(this, '/admin/youtube-websub-register')">
 					<div class="spinner"></div>
-					<span class="btn-text">Execute Now</span>
+					<span class="btn-text">Execute</span>
 				</button>
 			</div>
 
@@ -315,7 +315,7 @@ export class AdminService {
 				</div>
 				<button class="btn-trigger" onclick="runTask(this, '/admin/youtube-fetch-rss')">
 					<div class="spinner"></div>
-					<span class="btn-text">Check Feeds</span>
+					<span class="btn-text">Execute</span>
 				</button>
 			</div>
 
@@ -327,7 +327,7 @@ export class AdminService {
 				</div>
 				<button class="btn-trigger" onclick="runTask(this, '/admin/youtube-update')">
 					<div class="spinner"></div>
-					<span class="btn-text">Trigger YouTube</span>
+					<span class="btn-text">Execute</span>
 				</button>
 			</div>
 
@@ -339,7 +339,7 @@ export class AdminService {
 				</div>
 				<button class="btn-trigger" onclick="runTask(this, '/admin/twitch-update')">
 					<div class="spinner"></div>
-					<span class="btn-text">Trigger Twitch</span>
+					<span class="btn-text">Execute</span>
 				</button>
 			</div>
 
@@ -351,7 +351,7 @@ export class AdminService {
 				</div>
 				<button class="btn-trigger" onclick="runTask(this, '/admin/twitcasting-update')">
 					<div class="spinner"></div>
-					<span class="btn-text">Trigger TwitCasting</span>
+					<span class="btn-text">Execute</span>
 				</button>
 			</div>
 
@@ -363,7 +363,7 @@ export class AdminService {
 				</div>
 				<button class="btn-trigger" onclick="runTask(this, '/admin/twitcasting-webhook-register')">
 					<div class="spinner"></div>
-					<span class="btn-text">Register WebHooks</span>
+					<span class="btn-text">Execute</span>
 				</button>
 			</div>
 
@@ -375,7 +375,7 @@ export class AdminService {
 				</div>
 				<button class="btn-trigger" onclick="runTask(this, '/admin/full-update')">
 					<div class="spinner"></div>
-					<span class="btn-text">Trigger Full Sync</span>
+					<span class="btn-text">Execute</span>
 				</button>
 			</div>
 		</main>
