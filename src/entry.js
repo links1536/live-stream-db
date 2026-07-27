@@ -6,6 +6,7 @@ import { YouTubeRssFeedUpdater } from "./updater/youtube_rss_feed_updater.js";
 import { YouTubeScheduleUpdater } from "./updater/youtube_schedule_updater.js";
 import { TwitchStreamUpdater } from "./updater/twitch_stream_updater.js";
 import { TwitCastingStreamUpdater } from "./updater/twitcasting_stream_updater.js";
+import { TwitCastingWebhookUpdater } from "./updater/twitcasting_webhook_updater.js";
 import { LivesJsonUpdater } from "./updater/lives_json_updater.js";
 import { YouTubeWebSub } from "./api/youtube_websub.js";
 import { AdminService } from "./admin_service.js";
@@ -80,6 +81,13 @@ export default {
 			return await updater.handleYoutubeWebhook(request);
 		}
 
+		if (path === "/webhooks/twitcasting") {
+			if (request.method !== "POST")
+				return methodNotAllowed("POST");
+			const updater = new TwitCastingWebhookUpdater(env);
+			return await updater.handleWebhookAsync(request);
+		}
+
 		// 管理機能
 		if (path.startsWith("/admin")) {
 			const adminPath = path.slice("/admin".length) || "/";
@@ -111,6 +119,11 @@ export default {
 					const updater = new TwitCastingStreamUpdater(env);
 					await updater.scheduleTrigger(outputRunId);
 					return new Response("Triggered TwitCasting stream update");
+				},
+				"/twitcasting-webhook-register": async () => {
+					const updater = new TwitCastingWebhookUpdater(env);
+					const result = await updater.registerAllAsync();
+					return Response.json(result);
 				},
 				"/full-update": async () => {
 					const { outputRunId } = await initializeOutputRunAsync(env, [ "youtube", "twitch", "twitcasting" ]);
@@ -159,11 +172,20 @@ export default {
 	async scheduled(controller, env, ctx)
 	{
 		if (controller.cron === "0 19 * * *") {
-			// 毎日 UTC19:00 - WebSub 再登録
-			const updater = new YouTubeWebSubUpdater(env);
-			await updater.registerWebsub(env.YOUTUBE_WEBSUB_CALLBACK_URL);
-			console.log("✅ WebSub registration completed (scheduled)");
+			// 毎日 UTC19:00 - YouTube WebSub / TwitCasting WebHook 再登録
+			const youtubeUpdater = new YouTubeWebSubUpdater(env);
+			await youtubeUpdater.registerWebsub(env.YOUTUBE_WEBSUB_CALLBACK_URL);
+			const twitcastingWebhookUpdater = new TwitCastingWebhookUpdater(env);
+			await twitcastingWebhookUpdater.registerAllAsync();
+			console.log("✅ Webhook registration completed (scheduled)");
 
+		}
+		else if (controller.cron === "15 19 * * *") {
+			// 毎日 UTC19:15 - TwitCasting の通知漏れを整合
+			const { outputRunId } = await initializeOutputRunAsync(env, [ "twitcasting" ]);
+			const updater = new TwitCastingStreamUpdater(env);
+			await updater.scheduleTrigger(outputRunId);
+			console.log("✅ TwitCasting reconciliation triggered (scheduled)");
 		}
 		else if (controller.cron === "45 * * * *") {
 			// 毎時45分 - RSS フィード取得
@@ -172,14 +194,12 @@ export default {
 			console.log("✅ RSS feed fetch completed (scheduled)");
 		}
 		else {
-			// その他（デフォルト） - スケジュール更新
-			const { outputRunId } = await initializeOutputRunAsync(env, [ "youtube", "twitch", "twitcasting" ]);
+			// その他（デフォルト） - YouTube / Twitch のスケジュール更新
+			const { outputRunId } = await initializeOutputRunAsync(env, [ "youtube", "twitch" ]);
 			const youtubeUpdater = new YouTubeScheduleUpdater(env);
 			await youtubeUpdater.scheduleTrigger(outputRunId);
 			const twitchUpdater = new TwitchStreamUpdater(env);
 			await twitchUpdater.scheduleTrigger(outputRunId);
-			const twitcastingUpdater = new TwitCastingStreamUpdater(env);
-			await twitcastingUpdater.scheduleTrigger(outputRunId);
 			console.log("✅ Schedule update completed (scheduled)");
 		}
 	},

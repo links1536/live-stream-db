@@ -4,6 +4,13 @@ import { Log } from "../log.js";
 const TWITCASTING_API_ENDPOINT = "https://apiv2.twitcasting.tv";
 const TWITCASTING_MAX_USERS_PER_BATCH = 15;
 const TWITCASTING_API_VERSION = "2.0";
+const TWITCASTING_WEBHOOK_EVENTS = [
+	"livestart",
+	"liveend",
+	"liveschedulecreate",
+	"livescheduleupdate",
+	"livescheduledelete"
+];
 
 export class TwitCastingAPI
 {
@@ -16,6 +23,50 @@ export class TwitCastingAPI
 	static get CHUNK_SIZE()
 	{
 		return TWITCASTING_MAX_USERS_PER_BATCH;
+	}
+
+	static get WEBHOOK_EVENTS()
+	{
+		return TWITCASTING_WEBHOOK_EVENTS;
+	}
+
+	async getUserInfoAsync(screenId)
+	{
+		const response = await this.getAsync(`/users/${encodeURIComponent(screenId)}`);
+		if (response == null)
+			return null;
+		if (!response.ok) {
+			Log.error("TwitCastingAPI", `User Info Error (${screenId}): ${response.status} ${await response.text()}`);
+			return null;
+		}
+
+		const json = await response.json();
+		return json.user ?? null;
+	}
+
+	async registerWebhookAsync(userId, events = TWITCASTING_WEBHOOK_EVENTS)
+	{
+		const headers = this.getAuthHeaders();
+		if (!headers)
+			return false;
+
+		const response = await HttpUtils.post(
+			`${TWITCASTING_API_ENDPOINT}/webhooks`,
+			{
+				...headers,
+				"Content-Type": "application/json"
+			},
+			JSON.stringify({
+				user_id: String(userId),
+				events
+			})
+		);
+		if (!response.ok) {
+			Log.error("TwitCastingAPI", `WebHook Registration Error (${userId}): ${response.status} ${await response.text()}`);
+			return false;
+		}
+
+		return true;
 	}
 
 	async getCurrentLiveAsync(screenId)
@@ -48,17 +99,7 @@ export class TwitCastingAPI
 		}
 
 		const json = await response.json();
-		return (json.live_schedules ?? []).map(schedule => ({
-			twitcasting_id: String(schedule.id),
-			screen_id: screenId,
-			title: schedule.title ?? null,
-			thumbnail: schedule.thumbnail ?? "",
-			start_time_iso: TwitCastingAPI.toIsoString(schedule.start_at),
-			published_at_iso: null,
-			url: `https://twitcasting.tv/${encodeURIComponent(screenId)}`,
-			status: "upcoming",
-			platform: "twitcasting"
-		}));
+		return (json.live_schedules ?? []).map(schedule => this.mapLiveSchedule(schedule, screenId));
 	}
 
 	async getArchivedMoviesAsync(screenId, startLimitIso)
@@ -121,6 +162,21 @@ export class TwitCastingAPI
 			published_at_iso: null,
 			url: movie.link ?? `https://twitcasting.tv/${encodeURIComponent(screenId)}`,
 			status,
+			platform: "twitcasting"
+		};
+	}
+
+	mapLiveSchedule(schedule, screenId)
+	{
+		return {
+			twitcasting_id: String(schedule.id),
+			screen_id: screenId,
+			title: schedule.title ?? null,
+			thumbnail: schedule.thumbnail ?? "",
+			start_time_iso: TwitCastingAPI.toIsoString(schedule.start_at),
+			published_at_iso: null,
+			url: `https://twitcasting.tv/${encodeURIComponent(screenId)}`,
+			status: "upcoming",
 			platform: "twitcasting"
 		};
 	}
