@@ -59,6 +59,66 @@ export class TwitCastingStreamRepository
 		return totalChanges > 0;
 	}
 
+	async upsertStreamAsync(stream)
+	{
+		if (!stream?.twitcasting_id)
+			return false;
+
+		const current = await this.loadStreamByIdAsync(stream.twitcasting_id);
+		const normalizedCurrent = current ? this.normalizeStreams([current])[0] : null;
+		const normalizedNext = this.normalizeStreams([stream])[0];
+		if (JSON.stringify(normalizedCurrent) === JSON.stringify(normalizedNext))
+			return false;
+
+		const result = await this.db.prepare(`
+			INSERT INTO twitcasting_streams (
+				twitcasting_id, screen_id, title, thumbnail, start_time_iso, published_at_iso, url, status
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT(twitcasting_id) DO UPDATE SET
+				screen_id = excluded.screen_id,
+				title = excluded.title,
+				thumbnail = excluded.thumbnail,
+				start_time_iso = excluded.start_time_iso,
+				published_at_iso = excluded.published_at_iso,
+				url = excluded.url,
+				status = excluded.status
+		`).bind(
+			normalizedNext.twitcasting_id,
+			normalizedNext.screen_id,
+			normalizedNext.title,
+			normalizedNext.thumbnail,
+			normalizedNext.start_time_iso,
+			normalizedNext.published_at_iso,
+			normalizedNext.url,
+			normalizedNext.status
+		).run();
+		const changes = result.meta?.changes || 0;
+		Log.info("TwitCastingStreamRepository", `D1: Upserted TwitCasting stream ${stream.twitcasting_id} (${changes} changes).`);
+		return changes > 0;
+	}
+
+	async deleteStreamByIdAsync(twitcastingId)
+	{
+		if (!twitcastingId)
+			return false;
+
+		const result = await this.db.prepare(
+			"DELETE FROM twitcasting_streams WHERE twitcasting_id = ?"
+		).bind(String(twitcastingId)).run();
+		const changes = result.meta?.changes || 0;
+		Log.info("TwitCastingStreamRepository", `D1: Deleted TwitCasting stream ${twitcastingId} (${changes} changes).`);
+		return changes > 0;
+	}
+
+	async loadStreamByIdAsync(twitcastingId)
+	{
+		return await this.db.prepare(`
+			SELECT twitcasting_id, screen_id, title, thumbnail, start_time_iso, published_at_iso, url, status
+			FROM twitcasting_streams
+			WHERE twitcasting_id = ?
+		`).bind(String(twitcastingId)).first();
+	}
+
 	async loadStreamsByScreenIdsAsync(screenIds)
 	{
 		if (!screenIds?.length)

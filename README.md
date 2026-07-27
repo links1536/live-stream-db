@@ -4,7 +4,7 @@
 
 YouTube、Twitch、ツイキャスの配信予定と配信状態を収集し、公開用 `lives.json` を生成する Cloudflare Workers アプリケーションです
 
-各プラットフォームの API と YouTube WebSub / RSS を使って配信情報を収集し、Cloudflare D1 に保存した上で Cloudflare KV に `lives.json` を出力します
+各プラットフォームの API と YouTube WebSub / RSS、TwitCasting WebHook を使って配信情報を収集し、Cloudflare D1 に保存した上で Cloudflare KV に `lives.json` を出力します
 
 `live-stream-db-pages` はこの `KV_OUTPUT` を参照して公開画面を表示します
 
@@ -27,7 +27,7 @@ YouTube、Twitch、ツイキャスの配信予定と配信状態を収集し、�
 - Runtime: Cloudflare Workers
 - 言語: JavaScript
 - 主な処理:
-  - WebSub 通知受信
+  - YouTube WebSub / TwitCasting WebHook 通知受信
   - RSS 巡回
   - YouTube Data API 更新
   - Twitch / TwitCasting API 更新
@@ -38,7 +38,7 @@ YouTube、Twitch、ツイキャスの配信予定と配信状態を収集し、�
 - `src/entry.js`: Worker 本体
 - `src/build.py`: `wrangler.toml` 生成
 - `src/updater/`: 定期更新処理
-- `src/api/`: YouTube API / RSS / WebSub
+- `src/api/`: YouTube / Twitch / TwitCasting API、RSS、WebSub
 - `src/repository/`: D1 / KV / Durable Object アクセス
 - `setup-d1.sql`: D1 初期セットアップ SQL
 
@@ -48,7 +48,7 @@ YouTube、Twitch、ツイキャスの配信予定と配信状態を収集し、�
 3. KV、Queue、Durable Object を作成します
 4. 環境変数を設定して `python src/build.py` を実行します
 5. Secrets を投入して `wrangler deploy` します
-6. `/admin` と `/webhooks/youtube` を確認します
+6. `/admin`、`/webhooks/youtube`、`/webhooks/twitcasting` を確認します
 
 ## ストレージ種別
 
@@ -92,6 +92,7 @@ YouTube、Twitch、ツイキャスの配信予定と配信状態を収集し、�
 | `TWITCH_CLIENT_SECRET` | Twitch アプリケーションの Client Secret |
 | `TWITCASTING_CLIENT_ID` | TwitCasting API v2 アプリケーションの Client ID |
 | `TWITCASTING_CLIENT_SECRET` | TwitCasting API v2 アプリケーションの Client Secret |
+| `TWITCASTING_WEBHOOK_SIGNATURE` | TwitCasting アプリケーションに設定した WebHook 署名キー |
 
 ## Cloudflare 側の設定方法
 
@@ -207,6 +208,7 @@ Cloudflare ダッシュボードで次を開きます
 - `TWITCH_CLIENT_SECRET`
 - `TWITCASTING_CLIENT_ID`
 - `TWITCASTING_CLIENT_SECRET`
+- `TWITCASTING_WEBHOOK_SIGNATURE`
 
 CLI を使う場合の例:
 
@@ -221,6 +223,7 @@ wrangler secret put TWITCH_CLIENT_ID
 wrangler secret put TWITCH_CLIENT_SECRET
 wrangler secret put TWITCASTING_CLIENT_ID
 wrangler secret put TWITCASTING_CLIENT_SECRET
+wrangler secret put TWITCASTING_WEBHOOK_SIGNATURE
 ```
 
 ### 7. デプロイする
@@ -235,19 +238,22 @@ wrangler deploy
 - `Triggers` に Cron が入っていること
 - `/admin` に Basic 認証でアクセスできること
 - `/webhooks/youtube` が公開されていること
+- `/webhooks/twitcasting` が公開されており、TwitCasting アプリケーションの WebHook URL に設定されていること
 
 初回動作確認の順番:
 
 1. `/admin` に Basic 認証で入れることを確認します
 2. 管理画面から WebSub 再登録を実行し、Queue に流せることを確認します
-3. 管理画面から RSS 取得を実行し、起動できることを確認します
-4. 管理画面からスケジュール更新を実行し、`KV_OUTPUT` に `lives.json` が生成されることを確認します
+3. 管理画面から TwitCasting WebHook 再登録を実行し、全対象の登録結果を確認します
+4. 管理画面から RSS 取得を実行し、起動できることを確認します
+5. 管理画面からスケジュール更新を実行し、`KV_OUTPUT` に `lives.json` が生成されることを確認します
 
 ## 運用フロー
 
-- Cron で WebSub 再登録、RSS 取得、スケジュール更新を回します
+- Cron で YouTube WebSub / TwitCasting WebHook 再登録、RSS 取得、スケジュール更新を回します
 - WebSub と RSS で見つけた動画 ID を Durable Object / Queue に積みます
-- YouTube / Twitch / TwitCasting の更新チャンクと `lives.json` 最終処理を統合 Queue で順次処理します
+- YouTube / Twitch は5分ごと、TwitCasting の整合更新は1日1回、更新チャンクと `lives.json` 最終処理を統合 Queue で順次処理します
+- TwitCasting の開始・終了・配信予定イベントは WebHook で即時受信し、変更時だけ D1 と `lives.json` を直接更新します
 - 更新結果を D1 に保存し、最後に表示対象期間のデータを `lives.json` に変換して `KV_OUTPUT` に保存します
 
 ## 管理用エンドポイント
@@ -260,13 +266,16 @@ Basic 認証つきで次を利用できます
 - `POST /admin/youtube-update`: スケジュール更新
 - `POST /admin/twitch-update`: Twitch 配信更新
 - `POST /admin/twitcasting-update`: TwitCasting 配信更新
+- `POST /admin/twitcasting-webhook-register`: TwitCasting WebHook 再登録
 - `POST /admin/full-update`: 全プラットフォーム更新
 
 ## TwitCasting API の運用
 
 - [TwitCasting API v2 のアプリケーション登録](https://twitcasting.tv/applications.php)で Client ID / Client Secret を取得します
 - 読み取り API はアプリケーション単位の Basic 認証で呼び出します。ユーザーごとの OAuth 認可は不要です
-- API の 60 requests / 60 sec 制限を超えないよう、対象を15ユーザー単位に分割し、Queue で1分ずつ遅延させます
+- アプリケーションの WebHook URL に `https://<Workerのホスト>/webhooks/twitcasting` を設定し、署名キーを `TWITCASTING_WEBHOOK_SIGNATURE` に同じ値で登録します
+- 毎日 UTC 19:00 に全対象の `livestart`、`liveend`、`liveschedulecreate`、`livescheduleupdate`、`livescheduledelete` を冪等登録します
+- 毎日 UTC 19:15 に通知漏れを整合する全件更新を実行します。60 requests / 60 sec 制限を超えないよう、対象を15ユーザー単位に分割し、Queue で1分ずつ遅延させます
 - 現在配信、直近7日の配信予定、表示期間内の過去配信を取得します
 - 新規環境では `setup-d1.sql`、既存環境では `migrate-twitcasting.sql` を D1 に適用してからデプロイしてください
 
