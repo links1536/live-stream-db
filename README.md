@@ -244,13 +244,14 @@ wrangler deploy
 
 1. `/admin` に Basic 認証で入れることを確認します
 2. 管理画面から WebSub 再登録を実行し、Queue に流せることを確認します
-3. 管理画面から TwitCasting WebHook 再登録を実行し、全対象の登録結果を確認します
+3. 管理画面から TwitCasting WebHook 登録を実行し、全対象の登録結果を確認します
 4. 管理画面から RSS 取得を実行し、起動できることを確認します
 5. 管理画面からスケジュール更新を実行し、`KV_OUTPUT` に `lives.json` が生成されることを確認します
 
 ## 運用フロー
 
-- Cron で YouTube WebSub / TwitCasting WebHook 再登録、RSS 取得、スケジュール更新を回します
+- Cron で YouTube WebSub 再登録、RSS 取得、スケジュール更新を回します
+- TwitCasting WebHook は管理画面から手動登録します
 - WebSub と RSS で見つけた動画 ID を Durable Object / Queue に積みます
 - YouTube / Twitch は5分ごと、TwitCasting の整合更新は1日1回、更新チャンクと `lives.json` 最終処理を統合 Queue で順次処理します
 - TwitCasting の開始・終了・配信予定イベントは WebHook で即時受信し、変更時だけ D1 と `lives.json` を直接更新します
@@ -266,7 +267,7 @@ Basic 認証つきで次を利用できます
 - `POST /admin/youtube-update`: スケジュール更新
 - `POST /admin/twitch-update`: Twitch 配信更新
 - `POST /admin/twitcasting-update`: TwitCasting 配信更新
-- `POST /admin/twitcasting-webhook-register`: TwitCasting WebHook 再登録
+- `POST /admin/twitcasting-webhook-register`: TwitCasting WebHook 手動登録
 - `POST /admin/full-update`: 全プラットフォーム更新
 
 ## TwitCasting API の運用
@@ -274,7 +275,8 @@ Basic 認証つきで次を利用できます
 - [TwitCasting API v2 のアプリケーション登録](https://twitcasting.tv/applications.php)で Client ID / Client Secret を取得します
 - 読み取り API はアプリケーション単位の Basic 認証で呼び出します。ユーザーごとの OAuth 認可は不要です
 - アプリケーションの WebHook URL に `https://<Workerのホスト>/webhooks/twitcasting` を設定し、署名キーを `TWITCASTING_WEBHOOK_SIGNATURE` に同じ値で登録します
-- 毎日 UTC 19:00 に全対象の `livestart`、`liveend`、`liveschedulecreate`、`livescheduleupdate`、`livescheduledelete` を冪等登録します
+- 初回構築時に管理画面から、全対象の `livestart`、`liveend`、`liveschedulecreate`、`livescheduleupdate`、`livescheduledelete` を登録します
+- 配信者の追加、アプリケーションの WebHook URL 変更、または通知不達からの復旧時にも、管理画面から手動登録します
 - 毎日 UTC 19:15 に通知漏れを整合する全件更新を実行します。60 requests / 60 sec 制限を超えないよう、対象を15ユーザー単位に分割し、Queue で1分ずつ遅延させます
 - 現在配信、直近7日の配信予定、表示期間内の過去配信を取得します
 - 新規環境では `setup-d1.sql`、既存環境では `migrate-twitcasting.sql` を D1 に適用してからデプロイしてください

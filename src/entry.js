@@ -172,12 +172,10 @@ export default {
 	async scheduled(controller, env, ctx)
 	{
 		if (controller.cron === "0 19 * * *") {
-			// 毎日 UTC19:00 - YouTube WebSub / TwitCasting WebHook 再登録
+			// 毎日 UTC19:00 - YouTube WebSub 再登録
 			const youtubeUpdater = new YouTubeWebSubUpdater(env);
 			await youtubeUpdater.registerWebsub(env.YOUTUBE_WEBSUB_CALLBACK_URL);
-			const twitcastingWebhookUpdater = new TwitCastingWebhookUpdater(env);
-			await twitcastingWebhookUpdater.registerAllAsync();
-			console.log("✅ Webhook registration completed (scheduled)");
+			console.log("✅ YouTube WebSub registration completed (scheduled)");
 
 		}
 		else if (controller.cron === "15 19 * * *") {

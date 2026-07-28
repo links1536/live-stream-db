@@ -355,11 +355,11 @@ export class AdminService {
 				</button>
 			</div>
 
-			<!-- TwitCasting WebHook再登録 -->
+			<!-- TwitCasting WebHook手動登録 -->
 			<div class="action-card">
 				<div class="action-info">
 					<h3>TwitCasting WebHook Register</h3>
-					<p>登録済みツイキャス配信者の全イベント通知を再登録します</p>
+					<p>登録済みツイキャス配信者の全イベント通知を手動登録します</p>
 				</div>
 				<button class="btn-trigger" onclick="runTask(this, '/admin/twitcasting-webhook-register')">
 					<div class="spinner"></div>
