@@ -5,6 +5,40 @@ import { Log } from "./log.js";
  */
 export class AdminService {
 	/**
+	 * KVに保存されているlives.jsonをダウンロード用レスポンスとして返す
+	 *
+	 * @param {Object} env - 環境変数
+	 * @returns {Promise<Response>} lives.jsonのダウンロードレスポンス
+	 */
+	static async downloadLivesJsonAsync(env) {
+		try {
+			const livesJson = await env.KV_OUTPUT.get("lives.json");
+			if (livesJson === null) {
+				return new Response("lives.json has not been generated", {
+					status: 404,
+					headers: { "Content-Type": "text/plain; charset=utf-8" }
+				});
+			}
+
+			return new Response(livesJson, {
+				headers: {
+					"Content-Type": "application/json; charset=utf-8",
+					"Content-Disposition": 'attachment; filename="lives.json"',
+					"Cache-Control": "no-store",
+					"X-Content-Type-Options": "nosniff"
+				}
+			});
+		}
+		catch (e) {
+			Log.error("AdminService", `lives.jsonの取得に失敗しました: ${e}`);
+			return new Response("Failed to load lives.json", {
+				status: 500,
+				headers: { "Content-Type": "text/plain; charset=utf-8" }
+			});
+		}
+	}
+
+	/**
 	 * 管理画面のHTMLを返す（認証を含む）
 	 */
 	static async handleRequest(request, env) {
@@ -199,6 +233,7 @@ export class AdminService {
 		.btn-trigger:hover { background: #0052a3; }
 		.btn-trigger:active { transform: scale(0.98); }
 		.btn-trigger:disabled { background: var(--border); cursor: not-allowed; }
+		a.btn-trigger { text-decoration: none; }
 
 		.spinner {
 			width: 14px;
@@ -377,6 +412,17 @@ export class AdminService {
 					<div class="spinner"></div>
 					<span class="btn-text">Execute</span>
 				</button>
+			</div>
+
+			<!-- lives.jsonダウンロード -->
+			<div class="action-card">
+				<div class="action-info">
+					<h3>Download lives.json</h3>
+					<p>KV_OUTPUTに保存されている最新の lives.json をダウンロードします</p>
+				</div>
+				<a class="btn-trigger" href="/admin/lives.json" download="lives.json">
+					<span class="btn-text">Download</span>
+				</a>
 			</div>
 		</main>
 

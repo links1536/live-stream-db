@@ -154,6 +154,11 @@ export default {
 					? await AdminService.handleRequest(request, env)
 					: methodNotAllowed("GET");
 
+			if (adminPath === "/lives.json")
+				return request.method === "GET"
+					? await AdminService.downloadLivesJsonAsync(env)
+					: methodNotAllowed("GET");
+
 			const adminPostHandler = adminPostHandlers[adminPath];
 			if (adminPostHandler) {
 				if (request.method !== "POST")

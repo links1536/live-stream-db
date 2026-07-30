@@ -262,6 +262,7 @@ wrangler deploy
 Basic 認証つきで次を利用できます
 
 - `GET /admin`: 管理画面
+- `GET /admin/lives.json`: `KV_OUTPUT` に保存されている最新の `lives.json` をダウンロード
 - `POST /admin/youtube-websub-register`: WebSub 再登録
 - `POST /admin/youtube-fetch-rss`: RSS 手動取得
 - `POST /admin/youtube-update`: スケジュール更新
