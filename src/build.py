@@ -52,8 +52,8 @@ enabled = false
 
 [triggers]
 crons = [
-	"0 19 * * *",	# YouTube WebSub 登録 1日1回
-	"15 19 * * *",	# TwitCasting 整合更新 1日1回
+	"30 23 * * *",	# YouTube WebSub 登録 1日1回
+	"45 23 * * *",	# TwitCasting 整合更新 1日1回
 	#"45 * * * *",	# RSS更新 45分おき
 	"*/5 * * * *",	# YouTube / Twitch API更新 5分おき
 ]
