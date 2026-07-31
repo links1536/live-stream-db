@@ -7,8 +7,9 @@ import { YouTubeScheduleUpdater } from "./updater/youtube_schedule_updater.js";
 import { TwitchStreamUpdater } from "./updater/twitch_stream_updater.js";
 import { TwitCastingStreamUpdater } from "./updater/twitcasting_stream_updater.js";
 import { TwitCastingWebhookUpdater } from "./updater/twitcasting_webhook_updater.js";
+import { TwitchEventSubUpdater } from "./updater/twitch_eventsub_updater.js";
+import { WebhookSubscriptionUpdater } from "./updater/webhook_subscription_updater.js";
 import { LivesJsonUpdater } from "./updater/lives_json_updater.js";
-import { YouTubeWebSub } from "./api/youtube_websub.js";
 import { AdminService } from "./admin_service.js";
 
 // Durable Object のエクスポート（必須）
@@ -88,6 +89,13 @@ export default {
 			return await updater.handleWebhookAsync(request);
 		}
 
+		if (path === "/webhooks/twitch") {
+			if (request.method !== "POST")
+				return methodNotAllowed("POST");
+			const updater = new TwitchEventSubUpdater(env);
+			return await updater.handleWebhookAsync(request);
+		}
+
 		// 管理機能
 		if (path.startsWith("/admin")) {
 			const adminPath = path.slice("/admin".length) || "/";
@@ -123,6 +131,11 @@ export default {
 				"/twitcasting-webhook-register": async () => {
 					const updater = new TwitCastingWebhookUpdater(env);
 					const result = await updater.registerAllAsync();
+					return Response.json(result);
+				},
+				"/webhook-subscriptions-sync": async () => {
+					const updater = new WebhookSubscriptionUpdater(env);
+					const result = await updater.scheduleAllAsync();
 					return Response.json(result);
 				},
 				"/full-update": async () => {
@@ -176,19 +189,20 @@ export default {
 	 */
 	async scheduled(controller, env, ctx)
 	{
-		if (controller.cron === "0 19 * * *") {
-			// 毎日 UTC19:00 - YouTube WebSub 再登録
-			const youtubeUpdater = new YouTubeWebSubUpdater(env);
-			await youtubeUpdater.registerWebsub(env.YOUTUBE_WEBSUB_CALLBACK_URL);
-			console.log("✅ YouTube WebSub registration completed (scheduled)");
-
+		if (controller.cron === "30 23 * * *") {
+			// 毎日 UTC23:30 - 全プラットフォームの通知購読同期
+			const updater = new WebhookSubscriptionUpdater(env);
+			await updater.scheduleAllAsync();
+			console.log("✅ Webhook subscription synchronization completed (scheduled)");
 		}
-		else if (controller.cron === "15 19 * * *") {
-			// 毎日 UTC19:15 - TwitCasting の通知漏れを整合
-			const { outputRunId } = await initializeOutputRunAsync(env, [ "twitcasting" ]);
-			const updater = new TwitCastingStreamUpdater(env);
-			await updater.scheduleTrigger(outputRunId);
-			console.log("✅ TwitCasting reconciliation triggered (scheduled)");
+		else if (controller.cron === "45 23 * * *") {
+			// 毎日 UTC23:45 - Twitch / TwitCasting の通知漏れを整合
+			const { outputRunId } = await initializeOutputRunAsync(env, [ "twitch", "twitcasting" ]);
+			const twitchUpdater = new TwitchStreamUpdater(env);
+			await twitchUpdater.scheduleTrigger(outputRunId);
+			const twitcastingUpdater = new TwitCastingStreamUpdater(env);
+			await twitcastingUpdater.scheduleTrigger(outputRunId);
+			console.log("✅ Twitch / TwitCasting reconciliation triggered (scheduled)");
 		}
 		else if (controller.cron === "45 * * * *") {
 			// 毎時45分 - RSS フィード取得
@@ -196,14 +210,15 @@ export default {
 			await updater.scheduleTrigger();
 			console.log("✅ RSS feed fetch completed (scheduled)");
 		}
-		else {
-			// その他（デフォルト） - YouTube / Twitch のスケジュール更新
-			const { outputRunId } = await initializeOutputRunAsync(env, [ "youtube", "twitch" ]);
+		else if (controller.cron === "*/5 * * * *") {
+			// 5分ごと - YouTube のスケジュール更新
+			const { outputRunId } = await initializeOutputRunAsync(env, [ "youtube" ]);
 			const youtubeUpdater = new YouTubeScheduleUpdater(env);
 			await youtubeUpdater.scheduleTrigger(outputRunId);
-			const twitchUpdater = new TwitchStreamUpdater(env);
-			await twitchUpdater.scheduleTrigger(outputRunId);
-			console.log("✅ Schedule update completed (scheduled)");
+			console.log("✅ YouTube schedule update completed (scheduled)");
+		}
+		else {
+			console.warn(`[WARN] Unknown cron trigger: ${controller.cron}`);
 		}
 	},
 
@@ -216,18 +231,30 @@ export default {
 
 		switch (batch.queue) {
 			case env.QUEUE_NAME_YOUTUBE_WEBSUB_REGISTER:
-				const youtube_websub = new YouTubeWebSub(
-					env.YOUTUBE_WEBSUB_VERIFY_TOKEN,
-					env.YOUTUBE_WEBSUB_SECRETS
-				);
+				const youtubeWebSubUpdater = new YouTubeWebSubUpdater(env);
 				for (const msg of batch.messages) {
 					console.log(`Processing queue message: ${msg.body}`);
 					
 					try {
-						await youtube_websub.registerWebSub(
-							env.YOUTUBE_WEBSUB_CALLBACK_URL,
-							msg.body
+						let action = "subscribe";
+						let channelId = msg.body;
+						try {
+							const operation = JSON.parse(msg.body);
+							action = operation.action ?? action;
+							channelId = operation.channel_id;
+						}
+						catch {
+							// 旧形式のチャンネルID文字列も引き続き処理する
+						}
+						if (!channelId)
+							throw new Error("Missing YouTube channel ID");
+						const success = await youtubeWebSubUpdater.processSubscriptionOperationAsync(
+							action,
+							channelId,
+							env.YOUTUBE_WEBSUB_CALLBACK_URL
 						);
+						if (!success)
+							throw new Error(`YouTube WebSub ${action} failed: ${channelId}`);
 						// 成功時は ack
 						msg.ack();
 					}
@@ -275,6 +302,81 @@ export default {
 						if (runState?.is_last) {
 							await enqueueLivesJsonUpdateAsync(env, runState.output_run_id, runState.source, runState.dirty);
 						}
+						continue;
+					}
+
+					if (body.type === "twitch_eventsub_notification") {
+						if (!body.message_id)
+							continue;
+						const updater = new TwitchEventSubUpdater(env);
+						await updater.processStoredNotificationAsync(body.message_id);
+						continue;
+					}
+
+					if (body.type === "twitch_live_refresh") {
+						if (!body.user_login || !body.stream_id)
+							continue;
+						const updater = new TwitchEventSubUpdater(env);
+						await updater.refreshLiveAsync(body.user_login, body.stream_id);
+						continue;
+					}
+
+					if (body.type === "twitch_archive_retry") {
+						if (!body.user_login || !body.source_stream_id || !body.attempt)
+							continue;
+						const updater = new TwitchEventSubUpdater(env);
+						await updater.processArchiveRetryAsync(
+							body.user_login,
+							body.source_stream_id,
+							body.attempt
+						);
+						continue;
+					}
+
+					if (body.type === "twitch_eventsub_create") {
+						const updater = new WebhookSubscriptionUpdater(env);
+						const success = await updater.processTwitchCreateAsync(
+							body.event_type,
+							body.broadcaster_user_id
+						);
+						if (!success)
+							throw new Error("Twitch EventSub creation failed");
+						continue;
+					}
+
+					if (body.type === "twitch_eventsub_delete") {
+						const updater = new WebhookSubscriptionUpdater(env);
+						const success = await updater.processTwitchDeleteAsync(body.subscription_id);
+						if (!success)
+							throw new Error("Twitch EventSub deletion failed");
+						continue;
+					}
+
+					if (body.type === "twitch_eventsub_replace") {
+						const updater = new WebhookSubscriptionUpdater(env);
+						const success = await updater.processTwitchReplaceAsync(
+							body.subscription_id,
+							body.event_type,
+							body.broadcaster_user_id
+						);
+						if (!success)
+							throw new Error("Twitch EventSub replacement failed");
+						continue;
+					}
+
+					if (body.type === "twitcasting_webhook_register") {
+						const updater = new WebhookSubscriptionUpdater(env);
+						const success = await updater.processTwitCastingRegisterAsync(body.user_id, body.events);
+						if (!success)
+							throw new Error("TwitCasting WebHook registration failed");
+						continue;
+					}
+
+					if (body.type === "twitcasting_webhook_remove") {
+						const updater = new WebhookSubscriptionUpdater(env);
+						const success = await updater.processTwitCastingRemoveAsync(body.user_id, body.events);
+						if (!success)
+							throw new Error("TwitCasting WebHook removal failed");
 						continue;
 					}
 

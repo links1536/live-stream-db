@@ -4,7 +4,7 @@
 
 YouTube、Twitch、ツイキャスの配信予定と配信状態を収集し、公開用 `lives.json` を生成する Cloudflare Workers アプリケーションです
 
-各プラットフォームの API と YouTube WebSub / RSS、TwitCasting WebHook を使って配信情報を収集し、Cloudflare D1 に保存した上で Cloudflare KV に `lives.json` を出力します
+各プラットフォームの API と YouTube WebSub / RSS、Twitch EventSub、TwitCasting WebHook を使って配信情報を収集し、Cloudflare D1 に保存した上で Cloudflare KV に `lives.json` を出力します
 
 `live-stream-db-pages` はこの `KV_OUTPUT` を参照して公開画面を表示します
 
@@ -27,7 +27,7 @@ YouTube、Twitch、ツイキャスの配信予定と配信状態を収集し、�
 - Runtime: Cloudflare Workers
 - 言語: JavaScript
 - 主な処理:
-  - YouTube WebSub / TwitCasting WebHook 通知受信
+  - YouTube WebSub / Twitch EventSub / TwitCasting WebHook 通知受信
   - RSS 巡回
   - YouTube Data API 更新
   - Twitch / TwitCasting API 更新
@@ -59,7 +59,7 @@ YouTube、Twitch、ツイキャスの配信予定と配信状態を収集し、�
 | `KV_OUTPUT` | Cloudflare KV | 公開用 `lives.json` の保存 |
 | `YOUTUBE_NOTICES_CACHE` | Durable Object Storage | WebSub / RSS で見つけた新着動画 ID の一時保持 |
 | WebSub 登録用 Queue | Cloudflare Queue | WebSub 登録要求の非同期処理 |
-| 統合更新用 Queue | Cloudflare Queue | YouTube / Twitch 更新と `lives.json` 最終生成の直列処理 |
+| 統合更新用 Queue | Cloudflare Queue | 配信更新、Webhookイベント、購読操作と `lives.json` 最終生成の直列処理 |
 | RSS 取得用 Queue | Cloudflare Queue | RSS 取得対象チャンネルの非同期処理 |
 
 ## 必要な設定値
@@ -90,6 +90,8 @@ YouTube、Twitch、ツイキャスの配信予定と配信状態を収集し、�
 | `YOUTUBE_WEBSUB_SECRETS` | WebSub 署名検証シークレット |
 | `TWITCH_CLIENT_ID` | Twitch アプリケーションの Client ID |
 | `TWITCH_CLIENT_SECRET` | Twitch アプリケーションの Client Secret |
+| `TWITCH_EVENTSUB_CALLBACK_URL` | `https://<Workerのホスト>/webhooks/twitch` |
+| `TWITCH_EVENTSUB_SECRET` | EventSub署名用の10～100文字のランダムな文字列 |
 | `TWITCASTING_CLIENT_ID` | TwitCasting API v2 アプリケーションの Client ID |
 | `TWITCASTING_CLIENT_SECRET` | TwitCasting API v2 アプリケーションの Client Secret |
 | `TWITCASTING_WEBHOOK_SIGNATURE` | TwitCasting アプリケーションに設定した WebHook 署名キー |
@@ -206,6 +208,8 @@ Cloudflare ダッシュボードで次を開きます
 - `YOUTUBE_WEBSUB_SECRETS`
 - `TWITCH_CLIENT_ID`
 - `TWITCH_CLIENT_SECRET`
+- `TWITCH_EVENTSUB_CALLBACK_URL`
+- `TWITCH_EVENTSUB_SECRET`
 - `TWITCASTING_CLIENT_ID`
 - `TWITCASTING_CLIENT_SECRET`
 - `TWITCASTING_WEBHOOK_SIGNATURE`
@@ -221,6 +225,8 @@ wrangler secret put YOUTUBE_WEBSUB_VERIFY_TOKEN
 wrangler secret put YOUTUBE_WEBSUB_SECRETS
 wrangler secret put TWITCH_CLIENT_ID
 wrangler secret put TWITCH_CLIENT_SECRET
+wrangler secret put TWITCH_EVENTSUB_CALLBACK_URL
+wrangler secret put TWITCH_EVENTSUB_SECRET
 wrangler secret put TWITCASTING_CLIENT_ID
 wrangler secret put TWITCASTING_CLIENT_SECRET
 wrangler secret put TWITCASTING_WEBHOOK_SIGNATURE
@@ -238,22 +244,23 @@ wrangler deploy
 - `Triggers` に Cron が入っていること
 - `/admin` に Basic 認証でアクセスできること
 - `/webhooks/youtube` が公開されていること
+- `/webhooks/twitch` が公開され、EventSub challengeに応答できること
 - `/webhooks/twitcasting` が公開されており、TwitCasting アプリケーションの WebHook URL に設定されていること
 
 初回動作確認の順番:
 
 1. `/admin` に Basic 認証で入れることを確認します
 2. 管理画面から WebSub 再登録を実行し、Queue に流せることを確認します
-3. 管理画面から TwitCasting WebHook 登録を実行し、全対象の登録結果を確認します
+3. 管理画面から Webhook Subscription Sync を実行し、YouTube、Twitch、ツイキャスの購読結果を確認します
 4. 管理画面から RSS 取得を実行し、起動できることを確認します
 5. 管理画面からスケジュール更新を実行し、`KV_OUTPUT` に `lives.json` が生成されることを確認します
 
 ## 運用フロー
 
-- Cron で YouTube WebSub 再登録、RSS 取得、スケジュール更新を回します
-- TwitCasting WebHook は管理画面から手動登録します
+- 毎日 UTC 23:30 にYouTube WebSub、Twitch EventSub、TwitCasting WebHookをマスターと同期します
+- Twitch EventSubは配信開始・終了を即時受信し、終了時のVOD取得に失敗した場合は1分後、5分後、15分後に再試行します
 - WebSub と RSS で見つけた動画 ID を Durable Object / Queue に積みます
-- YouTube / Twitch は5分ごと、TwitCasting の整合更新は1日1回、更新チャンクと `lives.json` 最終処理を統合 Queue で順次処理します
+- YouTubeは5分ごと、Twitch / TwitCasting の整合更新は毎日 UTC 23:45 に実行し、更新チャンクと `lives.json` 最終処理を統合 Queue で順次処理します
 - TwitCasting の開始・終了・配信予定イベントは WebHook で即時受信し、変更時だけ D1 と `lives.json` を直接更新します
 - 更新結果を D1 に保存し、最後に表示対象期間のデータを `lives.json` に変換して `KV_OUTPUT` に保存します
 
@@ -269,6 +276,7 @@ Basic 認証つきで次を利用できます
 - `POST /admin/twitch-update`: Twitch 配信更新
 - `POST /admin/twitcasting-update`: TwitCasting 配信更新
 - `POST /admin/twitcasting-webhook-register`: TwitCasting WebHook 手動登録
+- `POST /admin/webhook-subscriptions-sync`: 全プラットフォームの通知購読同期
 - `POST /admin/full-update`: 全プラットフォーム更新
 
 ## TwitCasting API の運用
@@ -276,14 +284,26 @@ Basic 認証つきで次を利用できます
 - [TwitCasting API v2 のアプリケーション登録](https://twitcasting.tv/applications.php)で Client ID / Client Secret を取得します
 - 読み取り API はアプリケーション単位の Basic 認証で呼び出します。ユーザーごとの OAuth 認可は不要です
 - アプリケーションの WebHook URL に `https://<Workerのホスト>/webhooks/twitcasting` を設定し、署名キーを `TWITCASTING_WEBHOOK_SIGNATURE` に同じ値で登録します
-- 初回構築時に管理画面から、全対象の `livestart`、`liveend`、`liveschedulecreate`、`livescheduleupdate`、`livescheduledelete` を登録します
-- 配信者の追加、アプリケーションの WebHook URL 変更、または通知不達からの復旧時にも、管理画面から手動登録します
-- 毎日 UTC 19:15 に通知漏れを整合する全件更新を実行します。60 requests / 60 sec 制限を超えないよう、対象を15ユーザー単位に分割し、Queue で1分ずつ遅延させます
+- `livestart`、`liveend`、`liveschedulecreate`、`livescheduleupdate`、`livescheduledelete` を毎日 UTC 23:30 にマスターと同期します
+- 初回構築、WebHook URL変更、通知不達からの復旧時は、管理画面の Webhook Subscription Sync で即時同期できます
+- 毎日 UTC 23:45 に通知漏れを整合する全件更新を実行します。60 requests / 60 sec 制限を超えないよう、対象を15ユーザー単位に分割し、Queue で1分ずつ遅延させます
 - 現在配信、直近7日の配信予定、表示期間内の過去配信を取得します
 - 新規環境では `setup-d1.sql`、既存環境では `migrate-twitcasting.sql` を D1 に適用してからデプロイしてください
 
 ```powershell
 wrangler d1 execute <DATABASE_NAME> --remote --file=migrate-twitcasting.sql
+```
+
+## Twitch EventSub の運用
+
+- TwitchアプリケーションのEventSub callbackとして `https://<Workerのホスト>/webhooks/twitch` を使用します
+- `TWITCH_EVENTSUB_SECRET`は10～100文字のランダムな値をSecretとして登録します
+- `stream.online`と`stream.offline`を配信者ごとに購読し、毎日 UTC 23:30 にマスターとの差分、失効、重複を同期します
+- 配信終了後は対応するTwitch VODの`stream_id`を照合してアーカイブへ置き換えます
+- 新規環境では`setup-d1.sql`、既存環境では`migrate-twitch-eventsub.sql`をD1へ適用してからデプロイしてください
+
+```powershell
+wrangler d1 execute <DATABASE_NAME> --remote --file=migrate-twitch-eventsub.sql
 ```
 
 ## 補足

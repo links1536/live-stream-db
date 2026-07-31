@@ -52,10 +52,10 @@ enabled = false
 
 [triggers]
 crons = [
-	"30 23 * * *",	# YouTube WebSub 登録 1日1回
-	"45 23 * * *",	# TwitCasting 整合更新 1日1回
+	"30 23 * * *",	# 全プラットフォームの通知購読同期 1日1回
+	"45 23 * * *",	# Twitch / TwitCasting 整合更新 1日1回
 	#"45 * * * *",	# RSS更新 45分おき
-	"*/5 * * * *",	# YouTube / Twitch API更新 5分おき
+	"*/5 * * * *",	# YouTube API更新 5分おき
 ]
 
 # 通知受け取り用DurableObject

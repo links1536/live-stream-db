@@ -33,6 +33,21 @@ CREATE TABLE twitcasting_streams (
 	url TEXT,
 	status TEXT
 );
+CREATE TABLE webhook_subscription_targets (
+	platform TEXT,
+	target_key TEXT,
+	external_user_id TEXT,
+	updated_at_iso TEXT,
+	PRIMARY KEY (platform, target_key)
+);
+CREATE TABLE webhook_messages (
+	platform TEXT,
+	message_id TEXT,
+	payload TEXT,
+	received_at_iso TEXT,
+	processed_at_iso TEXT,
+	PRIMARY KEY (platform, message_id)
+);
 
 -- インデックス作成
 
@@ -65,3 +80,6 @@ CREATE INDEX IF NOT EXISTS idx_twitcasting_streams_status ON twitcasting_streams
 
 DROP INDEX IF EXISTS idx_twitcasting_streams_screen_id;
 CREATE INDEX IF NOT EXISTS idx_twitcasting_streams_screen_id ON twitcasting_streams (screen_id);
+
+DROP INDEX IF EXISTS idx_webhook_messages_received_at;
+CREATE INDEX IF NOT EXISTS idx_webhook_messages_received_at ON webhook_messages (received_at_iso);

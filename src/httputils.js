@@ -28,6 +28,19 @@ export class HttpUtils
 	}
 
 	/**
+	* DELETE リクエストを送信する
+	*/
+	static async delete(url, headers = {}, body = null)
+	{
+		const request = new Request(url, {
+			method: "DELETE",
+			headers: headers,
+			body: body,
+		});
+		return await fetch(request);
+	}
+
+	/**
 	* レスポンスオブジェクトを簡単に作成する
 	*/
 	static response(status, body = "", headers = {})

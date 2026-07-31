@@ -28,6 +28,21 @@ export class YouTubeWebSub
 	 */
 	async registerWebSub(callbackUrl, channelId)
 	{
+		return await this.changeWebSub("subscribe", callbackUrl, channelId);
+	}
+
+	async unregisterWebSub(callbackUrl, channelId)
+	{
+		return await this.changeWebSub("unsubscribe", callbackUrl, channelId);
+	}
+
+	async changeWebSub(mode, callbackUrl, channelId)
+	{
+		if (!callbackUrl || (mode !== "subscribe" && mode !== "unsubscribe")) {
+			console.error(`[WebSub] 無効な購読操作です: mode=${mode}`);
+			return false;
+		}
+
 		// チャンネルID検証
 		if (!YouTubeDataAPI.validateChannelId(channelId)) {
 			console.error(`[WebSub] 無効なチャンネルIDです: ${channelId}`);
@@ -51,12 +66,13 @@ export class YouTubeWebSub
 		const topicUrl = `https://www.youtube.com/xml/feeds/videos.xml?channel_id=${channelId}`;
 
 		const params = new URLSearchParams({
-			"hub.mode": "subscribe",
+			"hub.mode": mode,
 			"hub.topic": topicUrl,
 			"hub.callback": callbackUrl,
-			"hub.verify": "async",
-			"hub.lease_seconds": "432000" // 5日間
+			"hub.verify": "async"
 		});
+		if (mode === "subscribe")
+			params.append("hub.lease_seconds", "432000"); // 5日間
 
 		if (this.verifyToken) {
 			params.append("hub.verify_token", this.verifyToken);
@@ -84,25 +100,39 @@ export class YouTubeWebSub
 		const topic = searchParams.get("hub.topic");
 		const challenge = searchParams.get("hub.challenge");
 
-		if (mode === "subscribe") {
-			if (challenge) {
-				const verifyToken = searchParams.get("hub.verify_token");
-				if (verifyToken !== this.verifyToken) {
-					console.error(`[WebSub] Invalid verify token: topic=${topic}`);
-					return HttpUtils.response(403, "Forbidden");
-				}
-
-				console.log(`[WebSub] Subscribe request: topic=${topic}`);
-				return HttpUtils.response(200, challenge, { "Content-Type": "text/plain" });
+		if (mode === "subscribe" || mode === "unsubscribe") {
+			const verifyToken = searchParams.get("hub.verify_token");
+			if (verifyToken !== this.verifyToken) {
+				console.error(`[WebSub] Invalid verify token: topic=${topic}`);
+				return HttpUtils.response(403, "Forbidden");
 			}
-		}
-		else if (mode === "unsubscribe") {
-			console.log(`[WebSub] Unsubscribe request: topic=${topic}`);
-			return HttpUtils.response(200, "OK", { "Content-Type": "text/plain" });
+			if (!challenge || !this.isValidTopic(topic)) {
+				console.error(`[WebSub] Invalid verification request: mode=${mode}, topic=${topic}`);
+				return HttpUtils.response(400, "Bad Request");
+			}
+
+			console.log(`[WebSub] ${mode} request: topic=${topic}`);
+			return HttpUtils.response(200, challenge, { "Content-Type": "text/plain" });
 		}
 
 		console.error(`[WebSub] Unknown mode: mode=${mode}`);
 		return HttpUtils.response(404, "Not Found");
+	}
+
+	isValidTopic(topic)
+	{
+		if (!topic)
+			return false;
+		try {
+			const topicUrl = new URL(topic);
+			const channelId = topicUrl.searchParams.get("channel_id");
+			return topicUrl.hostname === "www.youtube.com"
+				&& topicUrl.pathname === "/xml/feeds/videos.xml"
+				&& YouTubeDataAPI.validateChannelId(channelId);
+		}
+		catch {
+			return false;
+		}
 	}
 
 	/**

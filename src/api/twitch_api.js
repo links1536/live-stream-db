@@ -5,6 +5,7 @@ const TWITCH_TOKEN_ENDPOINT = "https://id.twitch.tv/oauth2/token";
 const TWITCH_STREAMS_ENDPOINT = "https://api.twitch.tv/helix/streams";
 const TWITCH_USERS_ENDPOINT = "https://api.twitch.tv/helix/users";
 const TWITCH_VIDEOS_ENDPOINT = "https://api.twitch.tv/helix/videos";
+const TWITCH_EVENTSUB_ENDPOINT = "https://api.twitch.tv/helix/eventsub/subscriptions";
 const TWITCH_MAX_USERS_PER_REQUEST = 50;
 
 export class TwitchAPI
@@ -187,6 +188,88 @@ export class TwitchAPI
 		}
 
 		return archivedVideos;
+	}
+
+	async getEventSubSubscriptionsAsync()
+	{
+		const headers = await this.getAuthHeadersAsync();
+		if (!headers)
+			return null;
+
+		const subscriptions = [];
+		let cursor = null;
+		let totalCost = 0;
+		let maxTotalCost = 0;
+
+		do {
+			const params = new URLSearchParams({ first: "100" });
+			if (cursor)
+				params.append("after", cursor);
+
+			const response = await HttpUtils.get(`${TWITCH_EVENTSUB_ENDPOINT}?${params.toString()}`, headers);
+			if (!response.ok) {
+				Log.error("TwitchAPI", `EventSub List Error: ${response.status} ${await response.text()}`);
+				return null;
+			}
+
+			const json = await response.json();
+			subscriptions.push(...(json.data ?? []));
+			totalCost = json.total_cost ?? totalCost;
+			maxTotalCost = json.max_total_cost ?? maxTotalCost;
+			cursor = json.pagination?.cursor ?? null;
+		}
+		while (cursor);
+
+		return { subscriptions, totalCost, maxTotalCost };
+	}
+
+	async createEventSubSubscriptionAsync(type, broadcasterUserId, callbackUrl, secret)
+	{
+		const headers = await this.getAuthHeadersAsync();
+		if (!headers)
+			return false;
+
+		const response = await HttpUtils.post(
+			TWITCH_EVENTSUB_ENDPOINT,
+			{
+				...headers,
+				"Content-Type": "application/json"
+			},
+			JSON.stringify({
+				type,
+				version: "1",
+				condition: {
+					broadcaster_user_id: String(broadcasterUserId)
+				},
+				transport: {
+					method: "webhook",
+					callback: callbackUrl,
+					secret
+				}
+			})
+		);
+		if (!response.ok && response.status !== 409) {
+			Log.error("TwitchAPI", `EventSub Create Error (${type}/${broadcasterUserId}): ${response.status} ${await response.text()}`);
+			return false;
+		}
+
+		return true;
+	}
+
+	async deleteEventSubSubscriptionAsync(subscriptionId)
+	{
+		const headers = await this.getAuthHeadersAsync();
+		if (!headers)
+			return false;
+
+		const params = new URLSearchParams({ id: subscriptionId });
+		const response = await HttpUtils.delete(`${TWITCH_EVENTSUB_ENDPOINT}?${params.toString()}`, headers);
+		if (!response.ok && response.status !== 404) {
+			Log.error("TwitchAPI", `EventSub Delete Error (${subscriptionId}): ${response.status} ${await response.text()}`);
+			return false;
+		}
+
+		return true;
 	}
 
 	async getAuthHeadersAsync()

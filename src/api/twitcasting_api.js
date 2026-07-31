@@ -69,6 +69,60 @@ export class TwitCastingAPI
 		return true;
 	}
 
+	async getWebhooksAsync()
+	{
+		const webhooks = [];
+		let offset = 0;
+		const limit = 50;
+		let allCount = 0;
+
+		do {
+			const params = new URLSearchParams({
+				limit: String(limit),
+				offset: String(offset)
+			});
+			const response = await this.getAsync(`/webhooks?${params.toString()}`);
+			if (response == null)
+				return null;
+			if (!response.ok) {
+				Log.error("TwitCastingAPI", `WebHook List Error: ${response.status} ${await response.text()}`);
+				return null;
+			}
+
+			const json = await response.json();
+			const page = json.webhooks ?? [];
+			webhooks.push(...page);
+			allCount = json.all_count ?? webhooks.length;
+			offset += page.length;
+			if (page.length === 0)
+				break;
+		}
+		while (offset < allCount);
+
+		return webhooks;
+	}
+
+	async removeWebhookAsync(userId, events = TWITCASTING_WEBHOOK_EVENTS)
+	{
+		const headers = this.getAuthHeaders();
+		if (!headers)
+			return false;
+
+		const params = new URLSearchParams({ user_id: String(userId) });
+		for (const event of events)
+			params.append("events[]", event);
+		const response = await HttpUtils.delete(
+			`${TWITCASTING_API_ENDPOINT}/webhooks?${params.toString()}`,
+			headers
+		);
+		if (!response.ok && response.status !== 404) {
+			Log.error("TwitCastingAPI", `WebHook Removal Error (${userId}): ${response.status} ${await response.text()}`);
+			return false;
+		}
+
+		return true;
+	}
+
 	async getCurrentLiveAsync(screenId)
 	{
 		const response = await this.getAsync(`/users/${encodeURIComponent(screenId)}/current_live`);

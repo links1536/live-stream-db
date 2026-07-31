@@ -3,6 +3,7 @@
 import { YouTubeWebSub } from "../api/youtube_websub.js";
 import { VTuberRepository } from "../repository/vtuber_repository.js";
 import { HttpUtils } from "../httputils.js";
+import { WebhookStateRepository } from "../repository/webhook_state_repository.js";
 
 export class YouTubeWebSubUpdater
 {
@@ -14,6 +15,7 @@ export class YouTubeWebSubUpdater
 			env.YOUTUBE_WEBSUB_SECRETS
 		);
 		this.youtubeWebsubQueue = env.QUEUE_YOUTUBE_WEBSUB_REGISTER;
+		this.webhookStateRepository = new WebhookStateRepository(env.DB);
 
 		const doId = env.YOUTUBE_NOTICES_CACHE.idFromName("rss-key-cache");
 		this.youtubeNoticesCache = env.YOUTUBE_NOTICES_CACHE.get(doId);
@@ -75,5 +77,54 @@ export class YouTubeWebSubUpdater
 
 		// 成功レスポンス
 		return HttpUtils.response(200, "", { "Content-Type": "text/plain" });
+	}
+
+	async scheduleSubscriptionSyncAsync()
+	{
+		const youtubeMap = await this.vtuberRepository.loadYouTubeMapAsync();
+		const desiredChannelIds = Object.keys(youtubeMap);
+		const desiredSet = new Set(desiredChannelIds);
+		const storedTargets = await this.webhookStateRepository.loadTargetsAsync("youtube");
+
+		for (const channelId of desiredChannelIds) {
+			await this.youtubeWebsubQueue.send(JSON.stringify({
+				action: "subscribe",
+				channel_id: channelId
+			}));
+		}
+
+		let unsubscribeCount = 0;
+		for (const target of storedTargets) {
+			if (desiredSet.has(target.target_key))
+				continue;
+			unsubscribeCount++;
+			await this.youtubeWebsubQueue.send(JSON.stringify({
+				action: "unsubscribe",
+				channel_id: target.target_key
+			}));
+		}
+
+		return {
+			subscribeCount: desiredChannelIds.length,
+			unsubscribeCount
+		};
+	}
+
+	async processSubscriptionOperationAsync(action, channelId, callbackUrl)
+	{
+		if (action !== "subscribe" && action !== "unsubscribe")
+			return false;
+
+		const success = action === "unsubscribe"
+			? await this.youtubeWebsub.unregisterWebSub(callbackUrl, channelId)
+			: await this.youtubeWebsub.registerWebSub(callbackUrl, channelId);
+		if (!success)
+			return false;
+
+		if (action === "unsubscribe")
+			await this.webhookStateRepository.deleteTargetAsync("youtube", channelId);
+		else
+			await this.webhookStateRepository.upsertTargetAsync("youtube", channelId, channelId);
+		return true;
 	}
 }

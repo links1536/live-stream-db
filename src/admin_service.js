@@ -402,6 +402,18 @@ export class AdminService {
 				</button>
 			</div>
 
+			<!-- 全プラットフォーム通知購読同期 -->
+			<div class="action-card">
+				<div class="action-info">
+					<h3>Webhook Subscription Sync</h3>
+					<p>YouTube、Twitch、ツイキャスの通知購読をマスターと同期します</p>
+				</div>
+				<button class="btn-trigger" onclick="runTask(this, '/admin/webhook-subscriptions-sync')">
+					<div class="spinner"></div>
+					<span class="btn-text">Execute</span>
+				</button>
+			</div>
+
 			<!-- 全体同期 -->
 			<div class="action-card">
 				<div class="action-info">
