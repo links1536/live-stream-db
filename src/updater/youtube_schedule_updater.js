@@ -39,8 +39,14 @@ export class YouTubeScheduleUpdater
 		// 出来るだけ同じ数になるように分割
 		const requestTargetIds = Array.from(requestIds);
 		if (requestTargetIds.length === 0) {
-			if (outputRunId)
-				await this.streamUpdateCoordinator.completeOutputSourceAsync(outputRunId, "youtube", false);
+			if (outputRunId) {
+				await this.updateSchedulesQueue.send(JSON.stringify({
+					type: "stream_source_complete",
+					output_run_id: outputRunId,
+					source: "youtube",
+					dirty: false
+				}));
+			}
 			return;
 		}
 
