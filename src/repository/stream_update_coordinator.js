@@ -20,23 +20,41 @@ export class StreamUpdateCoordinator extends DurableObject
 	{
 		await this.ctx.storage.put(this.getStreamRunKey(runId), {
 			pending_count: pendingCount,
+			completed_item_ids: [],
 			dirty: false,
 			source,
 			output_run_id: outputRunId
 		});
 	}
 
-	async completeRunItemAsync(runId, itemDirty = false)
+	async completeRunItemAsync(runId, itemId, itemDirty = false)
 	{
 		const runKey = this.getStreamRunKey(runId);
 		const runState = await this.ctx.storage.get(runKey);
 		if (runState == null)
 			return null;
+		const completedItemIds = runState.completed_item_ids ?? [];
+		if (completedItemIds.includes(itemId) || runState.pending_count <= 0) {
+			return {
+				is_last: runState.pending_count <= 0,
+				pending_count: Math.max(0, runState.pending_count),
+				dirty: runState.dirty,
+				source: runState.source,
+				output_run_id: runState.output_run_id
+			};
+		}
 
 		const nextPendingCount = runState.pending_count - 1;
 		const nextDirty = runState.dirty || itemDirty;
+		const nextCompletedItemIds = [...completedItemIds, itemId];
 		if (nextPendingCount <= 0) {
-			await this.ctx.storage.delete(runKey);
+			await this.ctx.storage.put(runKey, {
+				pending_count: 0,
+				completed_item_ids: nextCompletedItemIds,
+				dirty: nextDirty,
+				source: runState.source,
+				output_run_id: runState.output_run_id
+			});
 			return {
 				is_last: true,
 				pending_count: 0,
@@ -48,6 +66,7 @@ export class StreamUpdateCoordinator extends DurableObject
 
 		await this.ctx.storage.put(runKey, {
 			pending_count: nextPendingCount,
+			completed_item_ids: nextCompletedItemIds,
 			dirty: nextDirty,
 			source: runState.source,
 			output_run_id: runState.output_run_id
@@ -59,6 +78,11 @@ export class StreamUpdateCoordinator extends DurableObject
 			source: runState.source,
 			output_run_id: runState.output_run_id
 		};
+	}
+
+	async finalizeRunAsync(runId)
+	{
+		await this.ctx.storage.delete(this.getStreamRunKey(runId));
 	}
 
 	async initializeOutputRunAsync(runId, sources)
@@ -91,7 +115,11 @@ export class StreamUpdateCoordinator extends DurableObject
 		const nextDirty = runState.dirty || sourceDirty;
 
 		if (pendingSources.length === 0) {
-			await this.ctx.storage.delete(runKey);
+			await this.ctx.storage.put(runKey, {
+				pending_sources: [],
+				completed_sources: completedSources,
+				dirty: nextDirty
+			});
 			return {
 				is_last: true,
 				should_update: nextDirty,
@@ -111,5 +139,10 @@ export class StreamUpdateCoordinator extends DurableObject
 			dirty: nextDirty,
 			completed_sources: completedSources
 		};
+	}
+
+	async finalizeOutputRunAsync(runId)
+	{
+		await this.ctx.storage.delete(this.getOutputRunKey(runId));
 	}
 }

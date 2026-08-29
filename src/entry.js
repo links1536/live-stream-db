@@ -36,30 +36,27 @@ async function initializeOutputRunAsync(env, sources)
 	return { outputCoordinator, outputRunId };
 }
 
-async function completeOutputSourceAsync(env, outputRunId, source, dirty)
+async function enqueueLivesJsonUpdateAsync(env, outputRunId, source, dirty)
 {
 	if (!outputRunId)
 		return false;
-
 	const doId = env.STREAM_UPDATE_COORDINATOR.idFromName("stream-update-coordinator");
 	const outputCoordinator = env.STREAM_UPDATE_COORDINATOR.get(doId);
 	const completion = await outputCoordinator.completeOutputSourceAsync(outputRunId, source, dirty);
-	return completion?.should_update === true;
-}
-
-async function enqueueLivesJsonUpdateAsync(env, outputRunId, source, dirty)
-{
-	const shouldUpdateOutput = await completeOutputSourceAsync(env, outputRunId, source, dirty);
-	if (!shouldUpdateOutput)
+	if (completion == null)
 		return false;
 
-	await env.QUEUE_STREAM_UPDATE_TARGET.send(JSON.stringify({
-		type: "lives_json_update",
-		output_run_id: outputRunId,
-		source,
-		dirty
-	}));
-	return true;
+	if (completion.should_update) {
+		await env.QUEUE_STREAM_UPDATE_TARGET.send(JSON.stringify({
+			type: "lives_json_update",
+			output_run_id: outputRunId,
+			source,
+			dirty
+		}));
+	}
+	if (completion.is_last)
+		await outputCoordinator.finalizeOutputRunAsync(outputRunId);
+	return completion.should_update;
 }
 
 export default {
@@ -280,7 +277,7 @@ export default {
 
 						const scheduleUpdater = new YouTubeScheduleUpdater(env);
 						const dirty = await scheduleUpdater.updateSchedules(body.video_ids);
-						const runState = await scheduleUpdater.streamUpdateCoordinator.completeRunItemAsync(body.run_id, dirty);
+						const runState = await scheduleUpdater.streamUpdateCoordinator.completeRunItemAsync(body.run_id, msg.id, dirty);
 						if (!runState?.is_last)
 							continue;
 
@@ -288,6 +285,7 @@ export default {
 							await scheduleUpdater.youtubeRepository.updateScheduleIdsAsync();
 						}
 						await enqueueLivesJsonUpdateAsync(env, runState.output_run_id, runState.source, runState.dirty);
+						await scheduleUpdater.streamUpdateCoordinator.finalizeRunAsync(body.run_id);
 						continue;
 					}
 
@@ -298,9 +296,10 @@ export default {
 
 						const twitchUpdater = new TwitchStreamUpdater(env);
 						const dirty = await twitchUpdater.updateStreamsByUserLogins(body.user_logins);
-						const runState = await twitchUpdater.streamUpdateCoordinator.completeRunItemAsync(body.run_id, dirty);
+						const runState = await twitchUpdater.streamUpdateCoordinator.completeRunItemAsync(body.run_id, msg.id, dirty);
 						if (runState?.is_last) {
 							await enqueueLivesJsonUpdateAsync(env, runState.output_run_id, runState.source, runState.dirty);
+							await twitchUpdater.streamUpdateCoordinator.finalizeRunAsync(body.run_id);
 						}
 						continue;
 					}
@@ -380,6 +379,11 @@ export default {
 						continue;
 					}
 
+					if (body.type === "stream_source_complete") {
+						await enqueueLivesJsonUpdateAsync(env, body.output_run_id, body.source, body.dirty === true);
+						continue;
+					}
+
 					// Twitchの配信をすべて削除
 					if (body.type === "twitch_clear_all") {
 						const twitchUpdater = new TwitchStreamUpdater(env);
@@ -395,9 +399,10 @@ export default {
 
 						const twitcastingUpdater = new TwitCastingStreamUpdater(env);
 						const dirty = await twitcastingUpdater.updateStreamsByScreenIds(body.screen_ids);
-						const runState = await twitcastingUpdater.streamUpdateCoordinator.completeRunItemAsync(body.run_id, dirty);
+						const runState = await twitcastingUpdater.streamUpdateCoordinator.completeRunItemAsync(body.run_id, msg.id, dirty);
 						if (runState?.is_last) {
 							await enqueueLivesJsonUpdateAsync(env, runState.output_run_id, runState.source, runState.dirty);
+							await twitcastingUpdater.streamUpdateCoordinator.finalizeRunAsync(body.run_id);
 						}
 						continue;
 					}
