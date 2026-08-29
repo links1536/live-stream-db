@@ -3,6 +3,6 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"test": "node tests/twitcasting_webhook_updater.test.mjs"
+		"test": "node tests/run.mjs"
 	}
 }
