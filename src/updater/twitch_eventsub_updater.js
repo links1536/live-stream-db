@@ -107,23 +107,23 @@ export class TwitchEventSubUpdater
 			return false;
 
 		const payload = JSON.parse(stored.payload);
-		let dirty = false;
+		let result = { handled: false, dirty: false };
 		if (payload.subscription_type === "stream.online")
-			dirty = await this.processOnlineAsync(payload.event);
+			result = await this.processOnlineAsync(payload.event);
 		else if (payload.subscription_type === "stream.offline")
-			dirty = await this.processOfflineAsync(payload.event, payload.message_timestamp);
+			result = await this.processOfflineAsync(payload.event, payload.message_timestamp);
 
-		if (dirty)
+		if (result.handled)
 			await this.livesJsonUpdater.saveDataJsonAsync();
 		await this.webhookStateRepository.markMessageProcessedAsync("twitch", messageId);
-		return dirty;
+		return result.dirty;
 	}
 
 	async processOnlineAsync(event)
 	{
 		const userLogin = event.broadcaster_user_login.toLowerCase();
 		if (!await this.isRegisteredUserAsync(userLogin))
-			return false;
+			return { handled: false, dirty: false };
 
 		const streams = await this.twitchApi.getLiveStreamsAsync([userLogin]);
 		const stream = streams?.find(item => item.twitch_id === String(event.id))
@@ -152,7 +152,7 @@ export class TwitchEventSubUpdater
 				{ delaySeconds: 60 }
 			);
 		}
-		return dirty;
+		return { handled: true, dirty };
 	}
 
 	async refreshLiveAsync(userLogin, streamId)
@@ -178,7 +178,7 @@ export class TwitchEventSubUpdater
 	{
 		const userLogin = event.broadcaster_user_login.toLowerCase();
 		if (!await this.isRegisteredUserAsync(userLogin))
-			return false;
+			return { handled: false, dirty: false };
 
 		const deletion = await this.twitchStreamRepository.deleteLiveStreamsByUserLoginAsync(
 			userLogin,
@@ -192,13 +192,13 @@ export class TwitchEventSubUpdater
 			if (!archiveResult.found)
 				await this.enqueueArchiveRetryAsync(userLogin, sourceStreamId, 1);
 		}
-		return dirty;
+		return { handled: true, dirty };
 	}
 
 	async processArchiveRetryAsync(userLogin, sourceStreamId, attempt)
 	{
 		const archiveResult = await this.tryArchiveAsync(userLogin, sourceStreamId);
-		if (archiveResult.dirty)
+		if (archiveResult.found)
 			await this.livesJsonUpdater.saveDataJsonAsync();
 		if (!archiveResult.found && attempt < ARCHIVE_RETRY_DELAYS.length)
 			await this.enqueueArchiveRetryAsync(userLogin, sourceStreamId, attempt + 1);
