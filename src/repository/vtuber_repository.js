@@ -67,7 +67,7 @@ export class VTuberRepository
 		}
 		catch (e) {
 			Log.error("VTuberRepository", `Failed to load master data: ${e.message}`);
-			return [];
+			throw e;
 		}
 	}
 
@@ -104,7 +104,7 @@ export class VTuberRepository
 		}
 		catch (e) {
 			Log.error("VTuberRepository", `Failed to load YouTube map: ${e.message}`);
-			return {};
+			throw e;
 		}
 	}
 
@@ -136,7 +136,7 @@ export class VTuberRepository
 		}
 		catch (e) {
 			Log.error("VTuberRepository", `Failed to load Twitch map: ${e.message}`);
-			return {};
+			throw e;
 		}
 	}
 
@@ -168,7 +168,7 @@ export class VTuberRepository
 		}
 		catch (e) {
 			Log.error("VTuberRepository", `Failed to load TwitCasting map: ${e.message}`);
-			return {};
+			throw e;
 		}
 	}
 
@@ -187,7 +187,7 @@ export class VTuberRepository
 		}
 		catch (e) {
 			Log.error("VTuberRepository", `Failed to load last updated: ${e.message}`);
-			return {};
+			throw e;
 		}
 	}
 
