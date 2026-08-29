@@ -79,7 +79,8 @@ export class TwitCastingWebhookUpdater
 			return new Response(validationError, { status: 400 });
 
 		const dirty = await this.applyEventAsync(payload);
-		if (dirty)
+		// D1更新後に出力保存だけ失敗した再送でも、終了状態をlives.jsonへ反映する
+		if (dirty === true || (dirty === false && payload.event === "liveend"))
 			await this.livesJsonUpdater.saveDataJsonAsync();
 
 		return new Response(null, { status: 204 });
@@ -95,7 +96,7 @@ export class TwitCastingWebhookUpdater
 		const twitcastingMap = await this.vtuberRepository.loadTwitCastingMapAsync();
 		if (!Object.prototype.hasOwnProperty.call(twitcastingMap, screenId)) {
 			Log.info("TwitCastingWebhookUpdater", `Ignored WebHook for unregistered user: ${screenId}`);
-			return false;
+			return null;
 		}
 
 		if (payload.event === "livestart") {
