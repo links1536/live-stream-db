@@ -12,6 +12,12 @@ export class VTuberRepository
 		this.db = db;
 	}
 
+	async countVTubersAsync()
+	{
+		const result = await this.db.prepare("SELECT COUNT(*) AS creator_count FROM vtubers").first();
+		return Number(result?.creator_count ?? 0);
+	}
+
 	/**
 	 * DBからマスターデータを読み込む
 	 * merge.pyのスキーマに基づいて、VTuberと関連データを統合して返す
