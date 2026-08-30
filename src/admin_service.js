@@ -1,4 +1,6 @@
 import { Log } from "./log.js";
+import { estimateFreeTierUsage } from "./free_tier_usage_estimator.js";
+import { VTuberRepository } from "./repository/vtuber_repository.js";
 
 /**
  * 管理画面（ダッシュボード）を表示・制御するサービス
@@ -54,7 +56,17 @@ export class AdminService {
 			});
 		}
 
-		const html = this.getHtml();
+		let estimate = null;
+		try {
+			const repository = new VTuberRepository(env.DB);
+			const creatorCount = await repository.countVTubersAsync();
+			estimate = estimateFreeTierUsage(creatorCount);
+		}
+		catch (e) {
+			Log.error("AdminService", `無料枠の消費量試算に失敗しました: ${e}`);
+		}
+
+		const html = this.getHtml(estimate);
 		return new Response(html, {
 			headers: { "Content-Type": "text/html; charset=utf-8" }
 		});
@@ -100,7 +112,26 @@ export class AdminService {
 	 * 
 	 * @returns {string} HTML文字列
 	 */
-	static getHtml() {
+	static getHtml(estimate = null) {
+		const formatNumber = value => new Intl.NumberFormat("ja-JP", { maximumFractionDigits: 1 }).format(value);
+		const formatPercentage = value => `${value.toFixed(2)}%`;
+		const usageRows = estimate === null
+			? '<p class="estimate-unavailable">マスターデータを取得できなかったため、試算を表示できません。</p>'
+			: `
+			<div class="estimate-summary">
+				<span><strong>${formatNumber(estimate.creatorCount)}</strong> 人</span>
+				<span>配信 <strong>${formatNumber(estimate.workload.streams)}</strong> 件/日</span>
+				<span>動画 <strong>${formatNumber(estimate.workload.videos)}</strong> 件/日</span>
+				<span>合計 <strong>${formatNumber(estimate.workload.items)}</strong> 件/日</span>
+				<span><strong>${formatNumber(estimate.workload.monthlyItems)}</strong> 件/30日</span>
+			</div>
+			<div class="estimate-grid">
+				<div><span>Workers requests</span><strong>${formatPercentage(estimate.usage.workersRequests.percentage)}</strong></div>
+				<div><span>Queue operations</span><strong>${formatPercentage(estimate.usage.queueOperations.percentage)}</strong></div>
+				<div><span>D1 rows written</span><strong>${formatPercentage(estimate.usage.d1RowsWritten.percentage)}</strong></div>
+				<div><span>KV writes</span><strong>${formatPercentage(estimate.usage.kvWrites.percentage)}</strong></div>
+			</div>`;
+
 		return `
 <!DOCTYPE html>
 <html lang="ja">
@@ -189,6 +220,52 @@ export class AdminService {
 			gap: 16px;
 			margin-bottom: 32px;
 		}
+
+		.estimate-container {
+			background: var(--surface);
+			border: 1px solid var(--border);
+			border-radius: 4px;
+			padding: 16px;
+			margin-bottom: 32px;
+		}
+
+		.estimate-container h2 {
+			font-size: 16px;
+			margin: 0 0 6px;
+		}
+
+		.estimate-description, .estimate-note, .estimate-unavailable {
+			color: var(--text-muted);
+			font-size: 12px;
+			margin: 0;
+		}
+
+		.estimate-summary {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8px 20px;
+			margin: 16px 0;
+			font-size: 13px;
+		}
+
+		.estimate-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+			gap: 8px;
+			margin-bottom: 12px;
+		}
+
+		.estimate-grid div {
+			background: var(--bg);
+			padding: 10px;
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+		}
+
+		.estimate-grid span { color: var(--text-muted); font-size: 11px; }
+		.estimate-grid strong { font-size: 16px; }
+		.estimate-unavailable { margin-top: 16px; }
 
 		.action-card {
 			background: var(--surface);
@@ -327,6 +404,13 @@ export class AdminService {
 				<span class="stat-value" style="color:var(--primary)">Basic Auth</span>
 			</div>
 		</div>
+
+		<section class="estimate-container">
+			<h2>Cloudflare Free Tier Estimate</h2>
+			<p class="estimate-description">現在のマスター人数を基準に、1人につき配信1件/日、5人につき動画1件/日として計算した目安です。</p>
+			${usageRows}
+			<p class="estimate-note">1件につき Worker 1回、Queue 1メッセージ（3操作）、D1 1行書き込み、KV 1回書き込みの単純モデル。ポーリング、再試行、購読同期などは含みません。</p>
+		</section>
 
 		<!-- 実行アクションエリア -->
 		<main class="actions-grid">
