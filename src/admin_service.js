@@ -114,7 +114,9 @@ export class AdminService {
 	 */
 	static getHtml(estimate = null) {
 		const formatNumber = value => new Intl.NumberFormat("ja-JP", { maximumFractionDigits: 1 }).format(value);
-		const formatPercentage = value => `${value.toFixed(2)}%`;
+		const formatPercentage = value => value.maximumPercentage === undefined
+			? `${value.percentage.toFixed(2)}%`
+			: `${value.percentage.toFixed(2)}–${value.maximumPercentage.toFixed(2)}%`;
 		const usageRows = estimate === null
 			? '<p class="estimate-unavailable">マスターデータを取得できなかったため、試算を表示できません。</p>'
 			: `
@@ -125,12 +127,16 @@ export class AdminService {
 				<span>合計 <strong>${formatNumber(estimate.workload.items)}</strong> 件/日</span>
 				<span><strong>${formatNumber(estimate.workload.monthlyItems)}</strong> 件/30日</span>
 			</div>
+			<p class="estimate-note">配信内訳: YouTube ${formatNumber(estimate.workload.platformStreams.youtube)}件、Twitch ${formatNumber(estimate.workload.platformStreams.twitch)}件、TwitCasting ${formatNumber(estimate.workload.platformStreams.twitcasting)}件/日</p>
 			<div class="estimate-grid">
-				<div><span>Workers requests</span><strong>${formatPercentage(estimate.usage.workersRequests.percentage)}</strong></div>
-				<div><span>Queue operations</span><strong>${formatPercentage(estimate.usage.queueOperations.percentage)}</strong></div>
-				<div><span>D1 rows written</span><strong>${formatPercentage(estimate.usage.d1RowsWritten.percentage)}</strong></div>
-				<div><span>KV reads</span><strong>${formatPercentage(estimate.usage.kvReads.percentage)}</strong></div>
-				<div><span>KV writes</span><strong>${formatPercentage(estimate.usage.kvWrites.percentage)}</strong></div>
+				<div><span>Workers requests</span><strong>${formatPercentage(estimate.usage.workersRequests)}</strong></div>
+				<div><span>Queue operations</span><strong>${formatPercentage(estimate.usage.queueOperations)}</strong></div>
+				<div><span>D1 rows written</span><strong>${formatPercentage(estimate.usage.d1RowsWritten)}</strong></div>
+				<div><span>KV reads</span><strong>${formatPercentage(estimate.usage.kvReads)}</strong></div>
+				<div><span>KV writes</span><strong>${formatPercentage(estimate.usage.kvWrites)}</strong></div>
+				<div><span>DO requests</span><strong>${formatPercentage(estimate.usage.durableObjectRequests)}</strong></div>
+				<div><span>DO rows read</span><strong>${formatPercentage(estimate.usage.durableObjectRowsRead)}</strong></div>
+				<div><span>DO rows written</span><strong>${formatPercentage(estimate.usage.durableObjectRowsWritten)}</strong></div>
 			</div>`;
 
 		return `
@@ -408,9 +414,10 @@ export class AdminService {
 
 		<section class="estimate-container">
 			<h2>Cloudflare Free Tier Estimate</h2>
-			<p class="estimate-description">現在のマスター人数を基準に、1人につき配信1件/日、5人につき動画1件/日として計算した目安です。</p>
+			<p class="estimate-description">現在のマスターとYouTube追跡件数を基準に、実コードのCron・Queue・Worker・ストレージ操作を積み上げた目安です。</p>
 			${usageRows}
-			<p class="estimate-note">通知1件を受信・処理・出力のWorker 3回、処理・出力のQueue 2メッセージとして安全側に試算。5分ごとのYouTube更新と日次処理、購読同期も含みます。再試行、D1のインデックス書き込み・読み取り、データ容量、YouTube更新が複数バッチになる場合は含みません。</p>
+			${estimate === null ? "" : `<p class="estimate-note">Cron ${formatNumber(estimate.operations.scheduledWorkerInvocations)}回、YouTube追跡 ${formatNumber(estimate.master.youtubeTrackedItemCount)}件・${formatNumber(estimate.operations.youtubeBatchCount)}バッチ/回、変更発生更新 ${formatNumber(estimate.operations.youtubeDirtyRuns)}回、Queue ${formatNumber(estimate.operations.totalQueueMessages)}メッセージ/日の想定です。</p>`}
+			<p class="estimate-note">複数プラットフォーム登録者は登録先から均等に1つを選ぶと仮定しています。再試行、手動実行、追加の状態遷移、D1のインデックス書き込み・読み取り、CPU時間、DOの実行時間・保存容量は含みません。</p>
 		</section>
 
 		<!-- 実行アクションエリア -->

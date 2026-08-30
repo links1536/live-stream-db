@@ -313,22 +313,24 @@ wrangler d1 execute <DATABASE_NAME> --remote --file=migrate-twitch-eventsub.sql
 
 ## 無料枠の消費量を試算する
 
-隣接する `live-stream-db-data/data` の現在の登録者数を読み取り、1人につき1日1件の配信、5人につき1日1件の動画があるものとして試算します。配信にはYouTube、Twitch、TwitCastingのいずれか1つを使うものとし、配信先の内訳は計算しません。
+隣接する `live-stream-db-data/data` の現在の登録者数を読み取り、1人につき1日1件の配信、5人につき1日1件の動画があるものとして試算します。複数プラットフォームを登録している配信者は、登録先から均等に1つを選ぶものとしてYouTube、Twitch、TwitCastingの通知数へ配分します。動画はYouTube通知として扱います。
 
 ```powershell
 npm run estimate:free-tier
 ```
 
-別のマスターデータを使う場合は、データディレクトリを引数で指定できます。
+別のマスターデータを使う場合は、データディレクトリを第1引数で指定できます。CLIではD1の現在値を取得できないため、YouTube追跡件数は通知想定から推定します。実測した `youtube_schedules` の件数がある場合は第2引数で指定できます。
 
 ```powershell
-node tools/estimate-free-tier-usage.mjs ..\live-stream-db-data\data
+node tools/estimate-free-tier-usage.mjs ..\live-stream-db-data\data 164
 ```
 
-Cloudflare無料枠との比較では、配信・動画の件数を通知量として扱います。通知1件につき、受信・処理・出力のWorker 3回、処理・出力のQueue 2メッセージ（各メッセージは書き込み・読み取り・削除の3操作）として安全側に試算します。さらに、5分ごとのYouTube更新、日次2回のCron、WebSub購読同期、TwitchとTwitCastingの整合更新を加算します。D1は通知ごとの1行と日次購読対象更新、KVは通知ごとの2書き込みとYouTube定期更新の288読み取りとして計算します。
+Cloudflare無料枠との比較は、実コードの処理経路に基づいて積み上げます。Cronは5分ごとのYouTube更新288回と日次処理2回です。YouTube更新は追跡件数を50件単位、Twitch整合更新は50人単位、TwitCasting整合更新は15人単位のQueueへ分割します。WebSub購読同期はYouTube IDごとに1メッセージを投入し、consumerはCloudflare Queues既定の最大10件単位です。実際のバッチ充填数は保証されないため、WebSub consumerに由来するWorker実行数は、最大件数まで詰まる場合と1件ずつ処理する場合の範囲で表示します。Queue操作は1メッセージにつき書き込み・読み取り・削除の3操作です。
 
-再試行、D1のインデックス書き込み・読み取り、データ容量、YouTube更新対象が50件を超えて複数Queueバッチになる場合は含みません。
+YouTube通知は一日に均等・独立に発生すると仮定し、変更がある5分枠の期待値から `lives.json` 出力Queue、KVキャッシュ、KV出力の更新回数を計算します。TwitchとTwitCastingの日次整合処理は、安全側に1日1回の変更が発生するものとします。Durable Objectsは実装上のRPC呼び出し数とSQLiteストレージの基本行操作、D1は購読対象の同期と通知経路で変更する基本行数を計上します。
 
-同じ試算は管理コンソールにも表示されます。CLIはマスターデータのJSONファイル、管理コンソールはデプロイ先D1の `vtubers` 件数を基準にします。
+D1書き込みは購読対象の同期、通知に対応する基本状態変更、Twitch通知履歴の保存・処理済み更新・定常的な削除を計上します。再試行、手動実行、通知後に発生する追加の状態遷移、D1のインデックス書き込み・読み取り、CPU時間、データ容量、Durable Objectsの実行時間と保存容量は含みません。D1 rows readとDurable Objectsの実行時間はクエリプラン、実データの分布、実行時間に左右されるため、厳密な上限は実環境のメトリクスで確認してください。
 
-無料枠はCloudflare公式の [Workers](https://developers.cloudflare.com/workers/platform/limits/)、[Queues](https://developers.cloudflare.com/queues/platform/pricing/)、[D1](https://developers.cloudflare.com/d1/platform/pricing/)、[KV](https://developers.cloudflare.com/kv/platform/pricing/) に記載された日次上限を使用しています。
+同じ試算は管理コンソールにも表示されます。CLIはマスターデータのJSONファイル、管理コンソールはデプロイ先D1のマスター構成と `youtube_schedules` の現在件数を基準にします。
+
+無料枠はCloudflare公式の [Workers](https://developers.cloudflare.com/workers/platform/limits/)、[Queues](https://developers.cloudflare.com/queues/platform/pricing/)、[Queuesのバッチ設定](https://developers.cloudflare.com/queues/configuration/batching-retries/)、[D1](https://developers.cloudflare.com/d1/platform/pricing/)、[KV](https://developers.cloudflare.com/kv/platform/pricing/)、[Durable Objects](https://developers.cloudflare.com/durable-objects/platform/pricing/) に記載された日次上限と既定値を使用しています。

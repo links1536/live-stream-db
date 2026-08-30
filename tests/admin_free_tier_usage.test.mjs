@@ -31,6 +31,14 @@ test("管理コンソールに現在のマスター件数による無料枠試�
 			youtube_channel_count: 154,
 			twitch_user_count: 19,
 			twitcasting_user_count: 23,
+			youtube_tracked_item_count: 164,
+			youtube_only: 114,
+			twitch_only: 0,
+			twitcasting_only: 0,
+			youtube_twitch: 16,
+			youtube_twitcasting: 20,
+			twitch_twitcasting: 0,
+			all_three: 3,
 		})),
 	);
 	const html = await response.text();
@@ -39,8 +47,14 @@ test("管理コンソールに現在のマスター件数による無料枠試�
 	assert.match(html, /153<\/strong> 人/);
 	assert.match(html, /配信 <strong>153<\/strong> 件\/日/);
 	assert.match(html, /動画 <strong>30\.6<\/strong> 件\/日/);
-	assert.match(html, /Queue operations<\/span><strong>24\.37%/);
-	assert.match(html, /KV writes<\/span><strong>36\.72%/);
+	assert.match(html, /配信内訳: YouTube 133件、Twitch 9件、TwitCasting 11件/);
+	assert.match(html, /Workers requests<\/span><strong>1\.78–1\.92%/);
+	assert.match(html, /Queue operations<\/span><strong>43\.32%/);
+	assert.match(html, /KV writes<\/span><strong>27\.09%/);
+	assert.match(html, /DO requests<\/span><strong>4\.49%/);
+	assert.match(html, /DO rows read<\/span><strong>0\.04%/);
+	assert.match(html, /DO rows written<\/span><strong>2\.93%/);
+	assert.match(html, /Cron 290回、YouTube追跡 164件・4バッチ\/回/);
 });
 
 test("マスター件数を取得できなくても管理コンソールを表示する", async () => {
