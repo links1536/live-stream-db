@@ -17,9 +17,14 @@ async function findJsonFiles(directory) {
 	return files;
 }
 
-export async function countCreators(dataDirectory) {
+export async function loadMasterStatistics(dataDirectory) {
 	const files = await findJsonFiles(dataDirectory);
-	let creatorCount = 0;
+	const statistics = {
+		creatorCount: 0,
+		youtubeChannelCount: 0,
+		twitchUserCount: 0,
+		twitcastingUserCount: 0,
+	};
 
 	for (const file of files) {
 		const json = (await readFile(file, "utf8")).replace(/^\uFEFF/, "");
@@ -28,8 +33,17 @@ export async function countCreators(dataDirectory) {
 			throw new TypeError(`${file} のルート要素は配列である必要があります`);
 		}
 
-		creatorCount += entries.length;
+		statistics.creatorCount += entries.length;
+		for (const entry of entries) {
+			statistics.youtubeChannelCount += entry.YouTubeID?.length ?? 0;
+			statistics.twitchUserCount += entry.TwitchID?.length ?? 0;
+			statistics.twitcastingUserCount += entry.TwitCastingID?.length ?? 0;
+		}
 	}
 
-	return creatorCount;
+	return statistics;
+}
+
+export async function countCreators(dataDirectory) {
+	return (await loadMasterStatistics(dataDirectory)).creatorCount;
 }

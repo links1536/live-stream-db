@@ -16,7 +16,7 @@ function createEnvironment(first) {
 		ADMIN_PASSWORD: "password",
 		DB: {
 			prepare(sql) {
-				assert.match(sql, /COUNT\(\*\).*FROM vtubers/);
+				assert.match(sql, /FROM vtubers/);
 				return { first };
 			},
 		},
@@ -26,7 +26,12 @@ function createEnvironment(first) {
 test("管理コンソールに現在のマスター件数による無料枠試算を表示する", async () => {
 	const response = await AdminService.handleRequest(
 		createRequest(),
-		createEnvironment(async () => ({ creator_count: 153 })),
+		createEnvironment(async () => ({
+			creator_count: 153,
+			youtube_channel_count: 154,
+			twitch_user_count: 19,
+			twitcasting_user_count: 23,
+		})),
 	);
 	const html = await response.text();
 
@@ -34,8 +39,8 @@ test("管理コンソールに現在のマスター件数による無料枠試�
 	assert.match(html, /153<\/strong> 人/);
 	assert.match(html, /配信 <strong>153<\/strong> 件\/日/);
 	assert.match(html, /動画 <strong>30\.6<\/strong> 件\/日/);
-	assert.match(html, /Queue operations<\/span><strong>5\.51%/);
-	assert.match(html, /KV writes<\/span><strong>18\.36%/);
+	assert.match(html, /Queue operations<\/span><strong>24\.37%/);
+	assert.match(html, /KV writes<\/span><strong>36\.72%/);
 });
 
 test("マスター件数を取得できなくても管理コンソールを表示する", async () => {
