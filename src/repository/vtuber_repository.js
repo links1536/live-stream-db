@@ -12,10 +12,21 @@ export class VTuberRepository
 		this.db = db;
 	}
 
-	async countVTubersAsync()
+	async loadUsageStatisticsAsync()
 	{
-		const result = await this.db.prepare("SELECT COUNT(*) AS creator_count FROM vtubers").first();
-		return Number(result?.creator_count ?? 0);
+		const result = await this.db.prepare(`
+			SELECT
+				(SELECT COUNT(*) FROM vtubers) AS creator_count,
+				(SELECT COUNT(*) FROM youtube_channels) AS youtube_channel_count,
+				(SELECT COUNT(*) FROM twitch_users) AS twitch_user_count,
+				(SELECT COUNT(*) FROM twitcasting_users) AS twitcasting_user_count
+		`).first();
+		return {
+			creatorCount: Number(result?.creator_count ?? 0),
+			youtubeChannelCount: Number(result?.youtube_channel_count ?? 0),
+			twitchUserCount: Number(result?.twitch_user_count ?? 0),
+			twitcastingUserCount: Number(result?.twitcasting_user_count ?? 0),
+		};
 	}
 
 	/**

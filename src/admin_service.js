@@ -59,8 +59,8 @@ export class AdminService {
 		let estimate = null;
 		try {
 			const repository = new VTuberRepository(env.DB);
-			const creatorCount = await repository.countVTubersAsync();
-			estimate = estimateFreeTierUsage(creatorCount);
+			const master = await repository.loadUsageStatisticsAsync();
+			estimate = estimateFreeTierUsage(master.creatorCount, master);
 		}
 		catch (e) {
 			Log.error("AdminService", `無料枠の消費量試算に失敗しました: ${e}`);
@@ -129,6 +129,7 @@ export class AdminService {
 				<div><span>Workers requests</span><strong>${formatPercentage(estimate.usage.workersRequests.percentage)}</strong></div>
 				<div><span>Queue operations</span><strong>${formatPercentage(estimate.usage.queueOperations.percentage)}</strong></div>
 				<div><span>D1 rows written</span><strong>${formatPercentage(estimate.usage.d1RowsWritten.percentage)}</strong></div>
+				<div><span>KV reads</span><strong>${formatPercentage(estimate.usage.kvReads.percentage)}</strong></div>
 				<div><span>KV writes</span><strong>${formatPercentage(estimate.usage.kvWrites.percentage)}</strong></div>
 			</div>`;
 
@@ -409,7 +410,7 @@ export class AdminService {
 			<h2>Cloudflare Free Tier Estimate</h2>
 			<p class="estimate-description">現在のマスター人数を基準に、1人につき配信1件/日、5人につき動画1件/日として計算した目安です。</p>
 			${usageRows}
-			<p class="estimate-note">1件につき Worker 1回、Queue 1メッセージ（3操作）、D1 1行書き込み、KV 1回書き込みの単純モデル。ポーリング、再試行、購読同期などは含みません。</p>
+			<p class="estimate-note">通知1件を受信・処理・出力のWorker 3回、処理・出力のQueue 2メッセージとして安全側に試算。5分ごとのYouTube更新と日次処理、購読同期も含みます。再試行、D1のインデックス書き込み・読み取り、データ容量、YouTube更新が複数バッチになる場合は含みません。</p>
 		</section>
 
 		<!-- 実行アクションエリア -->

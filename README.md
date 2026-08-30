@@ -325,7 +325,9 @@ npm run estimate:free-tier
 node tools/estimate-free-tier-usage.mjs ..\live-stream-db-data\data
 ```
 
-Cloudflare無料枠との比較は、各配信・動画につき Worker 1回、Queueメッセージ1件（書き込み・読み取り・削除の3操作）、D1書き込み1行、KV書き込み1回とする単純モデルです。ポーリング、再試行、購読同期、D1読み取り、データ容量は含みません。
+Cloudflare無料枠との比較では、配信・動画の件数を通知量として扱います。通知1件につき、受信・処理・出力のWorker 3回、処理・出力のQueue 2メッセージ（各メッセージは書き込み・読み取り・削除の3操作）として安全側に試算します。さらに、5分ごとのYouTube更新、日次2回のCron、WebSub購読同期、TwitchとTwitCastingの整合更新を加算します。D1は通知ごとの1行と日次購読対象更新、KVは通知ごとの2書き込みとYouTube定期更新の288読み取りとして計算します。
+
+再試行、D1のインデックス書き込み・読み取り、データ容量、YouTube更新対象が50件を超えて複数Queueバッチになる場合は含みません。
 
 同じ試算は管理コンソールにも表示されます。CLIはマスターデータのJSONファイル、管理コンソールはデプロイ先D1の `vtubers` 件数を基準にします。
 
