@@ -3,6 +3,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
+		"estimate:free-tier": "node tools/estimate-free-tier-usage.mjs",
 		"test": "node tests/run.mjs"
 	}
 }

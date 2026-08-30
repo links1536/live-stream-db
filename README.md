@@ -310,3 +310,23 @@ wrangler d1 execute <DATABASE_NAME> --remote --file=migrate-twitch-eventsub.sql
 
 - `wrangler.toml` は `src/build.py` で生成します。生成物は `.gitignore` 対象です
 - Queue は分割更新のために利用しており、実行時間制限に収まるよう設計しています
+
+## 無料枠の消費量を試算する
+
+隣接する `live-stream-db-data/data` の現在の登録者数を読み取り、1人につき1日1件の配信、5人につき1日1件の動画があるものとして試算します。配信にはYouTube、Twitch、TwitCastingのいずれか1つを使うものとし、配信先の内訳は計算しません。
+
+```powershell
+npm run estimate:free-tier
+```
+
+別のマスターデータを使う場合は、データディレクトリを引数で指定できます。
+
+```powershell
+node tools/estimate-free-tier-usage.mjs ..\live-stream-db-data\data
+```
+
+Cloudflare無料枠との比較は、各配信・動画につき Worker 1回、Queueメッセージ1件（書き込み・読み取り・削除の3操作）、D1書き込み1行、KV書き込み1回とする単純モデルです。ポーリング、再試行、購読同期、D1読み取り、データ容量は含みません。
+
+同じ試算は管理コンソールにも表示されます。CLIはマスターデータのJSONファイル、管理コンソールはデプロイ先D1の `vtubers` 件数を基準にします。
+
+無料枠はCloudflare公式の [Workers](https://developers.cloudflare.com/workers/platform/limits/)、[Queues](https://developers.cloudflare.com/queues/platform/pricing/)、[D1](https://developers.cloudflare.com/d1/platform/pricing/)、[KV](https://developers.cloudflare.com/kv/platform/pricing/) に記載された日次上限を使用しています。
