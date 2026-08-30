@@ -371,6 +371,14 @@ export default {
 						continue;
 					}
 
+					if (body.type === "twitcasting_user_resolve_batch") {
+						if (!Array.isArray(body.screen_ids) || body.screen_ids.length === 0)
+							continue;
+						const updater = new WebhookSubscriptionUpdater(env);
+						await updater.processTwitCastingUserResolutionAsync(body.screen_ids);
+						continue;
+					}
+
 					if (body.type === "twitcasting_webhook_remove") {
 						const updater = new WebhookSubscriptionUpdater(env);
 						const success = await updater.processTwitCastingRemoveAsync(body.user_id, body.events);

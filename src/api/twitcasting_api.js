@@ -69,7 +69,7 @@ export class TwitCastingAPI
 		return true;
 	}
 
-	async getWebhooksAsync()
+	async getWebhooksAsync(userId = null)
 	{
 		const webhooks = [];
 		let offset = 0;
@@ -77,10 +77,9 @@ export class TwitCastingAPI
 		let allCount = 0;
 
 		do {
-			const params = new URLSearchParams({
-				limit: String(limit),
-				offset: String(offset)
-			});
+			const params = userId == null
+				? new URLSearchParams({ limit: String(limit), offset: String(offset) })
+				: new URLSearchParams({ user_id: String(userId) });
 			const response = await this.getAsync(`/webhooks?${params.toString()}`);
 			if (response == null)
 				return null;
@@ -97,7 +96,7 @@ export class TwitCastingAPI
 			if (page.length === 0)
 				break;
 		}
-		while (offset < allCount);
+		while (userId == null && offset < allCount);
 
 		return webhooks;
 	}

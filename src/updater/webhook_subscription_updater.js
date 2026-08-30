@@ -6,6 +6,39 @@ import { YouTubeWebSubUpdater } from "./youtube_websub_updater.js";
 import { Log } from "../log.js";
 
 const TWITCH_EVENT_TYPES = [ "stream.online", "stream.offline" ];
+const TWITCASTING_TARGET_REVALIDATION_MS = 30 * 24 * 60 * 60 * 1000;
+const TWITCASTING_RESOLUTION_BATCH_SIZE = 5;
+const TWITCASTING_RESOLUTION_BATCHES_PER_WINDOW = 2;
+const TWITCASTING_RATE_LIMIT_WINDOW_SECONDS = 60;
+
+function isReusableTwitCastingTarget(target, nowMs = Date.now())
+{
+	if (!target?.external_user_id || !target.updated_at_iso)
+		return false;
+	const updatedAtMs = Date.parse(target.updated_at_iso);
+	return Number.isFinite(updatedAtMs)
+		&& nowMs - updatedAtMs < TWITCASTING_TARGET_REVALIDATION_MS;
+}
+
+function addTwitCastingDesiredEvents(desired, userId)
+{
+	for (const event of TwitCastingAPI.WEBHOOK_EVENTS)
+		desired.set(`${userId}:${event}`, { userId, event });
+}
+
+function groupTwitCastingEventsByUser(webhooks, predicate)
+{
+	const byUser = new Map();
+	for (const webhook of webhooks) {
+		const userId = String(webhook.user_id);
+		if (!predicate(userId, webhook.event))
+			continue;
+		if (!byUser.has(userId))
+			byUser.set(userId, []);
+		byUser.get(userId).push(webhook.event);
+	}
+	return byUser;
+}
 
 export class WebhookSubscriptionUpdater
 {
@@ -155,31 +188,42 @@ export class WebhookSubscriptionUpdater
 
 		const twitcastingMap = await this.vtuberRepository.loadTwitCastingMapAsync();
 		const screenIds = Object.keys(twitcastingMap);
+		const desiredScreenIds = new Set(screenIds);
+		const storedTargets = await this.webhookStateRepository.loadTargetsAsync("twitcasting");
+		const storedByScreenId = new Map(storedTargets.map(target => [ target.target_key, target ]));
 		const desired = new Map();
-		let resolutionComplete = true;
+		const unresolvedScreenIds = [];
 		for (const screenId of screenIds) {
-			const user = await this.twitcastingApi.getUserInfoAsync(screenId);
-			if (!user?.id) {
-				resolutionComplete = false;
-				Log.warning("WebhookSubscriptionUpdater", `TwitCasting user resolution failed: ${screenId}`);
+			const target = storedByScreenId.get(screenId);
+			if (!isReusableTwitCastingTarget(target)) {
+				unresolvedScreenIds.push(screenId);
 				continue;
 			}
-			await this.webhookStateRepository.upsertTargetAsync("twitcasting", screenId, String(user.id));
-			for (const event of TwitCastingAPI.WEBHOOK_EVENTS)
-				desired.set(`${user.id}:${event}`, { userId: String(user.id), event });
+			addTwitCastingDesiredEvents(desired, String(target.external_user_id));
+		}
+		const resolutionComplete = unresolvedScreenIds.length === 0;
+
+		for (let i = 0; i < unresolvedScreenIds.length; i += TWITCASTING_RESOLUTION_BATCH_SIZE) {
+			const batchIndex = Math.floor(i / TWITCASTING_RESOLUTION_BATCH_SIZE);
+			const delaySeconds = (Math.floor(batchIndex / TWITCASTING_RESOLUTION_BATCHES_PER_WINDOW) + 1)
+				* TWITCASTING_RATE_LIMIT_WINDOW_SECONDS;
+			await this.operationQueue.send(JSON.stringify({
+				type: "twitcasting_user_resolve_batch",
+				screen_ids: unresolvedScreenIds.slice(i, i + TWITCASTING_RESOLUTION_BATCH_SIZE)
+			}), { delaySeconds });
 		}
 
+		const removedTargets = storedTargets.filter(target => !desiredScreenIds.has(target.target_key));
+		const removedUserIds = new Set(removedTargets
+			.map(target => target.external_user_id == null ? null : String(target.external_user_id))
+			.filter(Boolean));
+
 		const remote = new Set();
-		const removeByUser = new Map();
-		for (const webhook of remoteWebhooks) {
-			const key = `${webhook.user_id}:${webhook.event}`;
+		const removeByUser = groupTwitCastingEventsByUser(remoteWebhooks, (userId, event) => {
+			const key = `${userId}:${event}`;
 			remote.add(key);
-			if (desired.has(key) || !resolutionComplete)
-				continue;
-			if (!removeByUser.has(String(webhook.user_id)))
-				removeByUser.set(String(webhook.user_id), []);
-			removeByUser.get(String(webhook.user_id)).push(webhook.event);
-		}
+			return !desired.has(key) && (resolutionComplete || removedUserIds.has(userId));
+		});
 
 		const addByUser = new Map();
 		for (const [key, target] of desired) {
@@ -205,19 +249,96 @@ export class WebhookSubscriptionUpdater
 			}));
 		}
 
-		if (resolutionComplete) {
-			const desiredScreenIds = new Set(screenIds);
-			for (const target of await this.webhookStateRepository.loadTargetsAsync("twitcasting")) {
-				if (!desiredScreenIds.has(target.target_key))
-					await this.webhookStateRepository.deleteTargetAsync("twitcasting", target.target_key);
-			}
-		}
+		for (const target of removedTargets)
+			await this.webhookStateRepository.deleteTargetAsync("twitcasting", target.target_key);
 
 		return {
 			targetCount: desired.size / TwitCastingAPI.WEBHOOK_EVENTS.length,
+			unresolvedCount: unresolvedScreenIds.length,
+			resolutionBatchCount: Math.ceil(unresolvedScreenIds.length / TWITCASTING_RESOLUTION_BATCH_SIZE),
 			registerCount: addByUser.size,
 			removeCount: removeByUser.size,
 			resolutionComplete
+		};
+	}
+
+	async processTwitCastingUserResolutionAsync(screenIds)
+	{
+		const uniqueScreenIds = [...new Set(screenIds.filter(value => typeof value === "string" && value.length > 0))];
+		if (uniqueScreenIds.length === 0)
+			return { resolvedCount: 0, registerCount: 0, removeCount: 0 };
+		if (uniqueScreenIds.length > TWITCASTING_RESOLUTION_BATCH_SIZE)
+			throw new Error("TwitCasting user resolution batch is too large");
+
+		const storedTargets = await this.webhookStateRepository.loadTargetsAsync("twitcasting");
+		const storedByScreenId = new Map(storedTargets.map(target => [ target.target_key, target ]));
+		const resolved = new Map();
+		const previousUserIds = new Set();
+		const failedScreenIds = [];
+
+		for (const screenId of uniqueScreenIds) {
+			const stored = storedByScreenId.get(screenId);
+			if (isReusableTwitCastingTarget(stored)) {
+				resolved.set(screenId, String(stored.external_user_id));
+				continue;
+			}
+
+			const user = await this.twitcastingApi.getUserInfoAsync(screenId);
+			if (!user?.id) {
+				failedScreenIds.push(screenId);
+				continue;
+			}
+
+			const userId = String(user.id);
+			if (stored?.external_user_id != null && String(stored.external_user_id) !== userId)
+				previousUserIds.add(String(stored.external_user_id));
+			await this.webhookStateRepository.upsertTargetAsync("twitcasting", screenId, userId);
+			resolved.set(screenId, userId);
+		}
+
+		const resolvedUserIds = new Set(resolved.values());
+		const removeByUser = new Map();
+		for (const userId of previousUserIds) {
+			if (resolvedUserIds.has(userId))
+				continue;
+			const webhooks = await this.twitcastingApi.getWebhooksAsync(userId);
+			if (webhooks == null)
+				throw new Error(`Failed to load TwitCasting WebHooks for previous user: ${userId}`);
+			if (webhooks.length > 0)
+				removeByUser.set(userId, webhooks.map(webhook => webhook.event));
+		}
+		const addByUser = new Map();
+		for (const userId of resolvedUserIds) {
+			const webhooks = await this.twitcastingApi.getWebhooksAsync(userId);
+			if (webhooks == null)
+				throw new Error(`Failed to load TwitCasting WebHooks for resolved user: ${userId}`);
+			const remoteEvents = new Set(webhooks.map(webhook => webhook.event));
+			const missingEvents = TwitCastingAPI.WEBHOOK_EVENTS.filter(event => !remoteEvents.has(event));
+			if (missingEvents.length > 0)
+				addByUser.set(userId, missingEvents);
+		}
+
+		for (const [userId, events] of removeByUser) {
+			await this.operationQueue.send(JSON.stringify({
+				type: "twitcasting_webhook_remove",
+				user_id: userId,
+				events
+			}));
+		}
+		for (const [userId, events] of addByUser) {
+			await this.operationQueue.send(JSON.stringify({
+				type: "twitcasting_webhook_register",
+				user_id: userId,
+				events
+			}));
+		}
+		if (failedScreenIds.length > 0)
+			throw new Error(`TwitCasting user resolution failed: ${failedScreenIds.join(",")}`);
+
+		return {
+			resolvedCount: resolved.size,
+			registerCount: addByUser.size,
+			removeCount: removeByUser.size
 		};
 	}
 
