@@ -135,6 +135,8 @@ export class AdminService {
 				<div><span>KV reads</span><strong>${formatPercentage(estimate.usage.kvReads)}</strong></div>
 				<div><span>KV writes</span><strong>${formatPercentage(estimate.usage.kvWrites)}</strong></div>
 				<div><span>DO requests</span><strong>${formatPercentage(estimate.usage.durableObjectRequests)}</strong></div>
+				<div><span>DO rows read</span><strong>${formatPercentage(estimate.usage.durableObjectRowsRead)}</strong></div>
+				<div><span>DO rows written</span><strong>${formatPercentage(estimate.usage.durableObjectRowsWritten)}</strong></div>
 			</div>`;
 
 		return `
@@ -415,7 +417,7 @@ export class AdminService {
 			<p class="estimate-description">現在のマスターとYouTube追跡件数を基準に、実コードのCron・Queue・Worker・ストレージ操作を積み上げた目安です。</p>
 			${usageRows}
 			${estimate === null ? "" : `<p class="estimate-note">Cron ${formatNumber(estimate.operations.scheduledWorkerInvocations)}回、YouTube追跡 ${formatNumber(estimate.master.youtubeTrackedItemCount)}件・${formatNumber(estimate.operations.youtubeBatchCount)}バッチ/回、変更発生更新 ${formatNumber(estimate.operations.youtubeDirtyRuns)}回、Queue ${formatNumber(estimate.operations.totalQueueMessages)}メッセージ/日の想定です。</p>`}
-			<p class="estimate-note">複数プラットフォーム登録者は登録先から均等に1つを選ぶと仮定しています。再試行、手動実行、追加の状態遷移、D1のインデックス書き込み・読み取り、CPU時間、DOストレージは含みません。</p>
+			<p class="estimate-note">複数プラットフォーム登録者は登録先から均等に1つを選ぶと仮定しています。再試行、手動実行、追加の状態遷移、D1のインデックス書き込み・読み取り、CPU時間、DOの実行時間・保存容量は含みません。</p>
 		</section>
 
 		<!-- 実行アクションエリア -->

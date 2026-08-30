@@ -89,6 +89,8 @@ test("実コードの処理経路と現在のマスター構成を加味して�
 	assert.equal(estimate.usage.kvReads.amount, 288);
 	assert.ok(Math.abs(estimate.usage.kvWrites.amount - (expectedDirtyRuns * 2 + 21)) < 1e-9);
 	assert.equal(estimate.usage.durableObjectRequests.amount, 4_494.6);
+	assert.ok(Math.abs(estimate.usage.durableObjectRowsRead.amount - (1_896.6 - expectedDirtyRuns)) < 1e-9);
+	assert.equal(estimate.usage.durableObjectRowsWritten.amount, 2_930.2);
 });
 
 test("Cloudflare無料枠に対する割合を算出する", () => {
@@ -97,6 +99,8 @@ test("Cloudflare無料枠に対する割合を算出する", () => {
 	assert.equal(estimate.usage.workersRequests.limit, FREE_TIER_LIMITS.workersRequests);
 	assert.equal(estimate.usage.queueOperations.limit, FREE_TIER_LIMITS.queueOperations);
 	assert.equal(estimate.usage.durableObjectRequests.limit, FREE_TIER_LIMITS.durableObjectRequests);
+	assert.equal(estimate.usage.durableObjectRowsRead.limit, FREE_TIER_LIMITS.durableObjectRowsRead);
+	assert.equal(estimate.usage.durableObjectRowsWritten.limit, FREE_TIER_LIMITS.durableObjectRowsWritten);
 	assert.ok(estimate.usage.queueOperations.percentage > 0);
 });
 
@@ -118,6 +122,8 @@ test("試算定数が生成設定と更新実装に一致する", async () => {
 	const activeCrons = [...cronBlock.matchAll(/^\s*"([^"]+)"/gm)].map(match => match[1]);
 	assert.deepEqual(activeCrons, [ "30 23 * * *", "45 23 * * *", "*/5 * * * *" ]);
 	assert.match(buildSource, /max_batch_size = 1/);
+	assert.match(buildSource, /new_sqlite_classes = \[ "YouTubeNoticesCache" \]/);
+	assert.match(buildSource, /new_sqlite_classes = \[ "StreamUpdateCoordinator" \]/);
 	assert.match(youtubeSource, /static get CHUNK_SIZE\(\)\s*\{\s*return 50;/);
 	assert.match(twitchSource, /TWITCH_MAX_USERS_PER_REQUEST = 50/);
 	assert.match(twitcastingSource, /TWITCASTING_MAX_USERS_PER_BATCH = 15/);

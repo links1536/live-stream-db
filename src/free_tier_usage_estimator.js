@@ -5,6 +5,8 @@ export const FREE_TIER_LIMITS = Object.freeze({
 	kvReads: 100_000,
 	kvWrites: 1_000,
 	durableObjectRequests: 100_000,
+	durableObjectRowsRead: 5_000_000,
+	durableObjectRowsWritten: 100_000,
 });
 
 export const CODE_PATH_ASSUMPTIONS = Object.freeze({
@@ -137,6 +139,27 @@ export function estimateFreeTierUsage(creatorCount, master = {}) {
 	const durableObjectRequests = youtubeNotifications
 		+ youtubeDurableObjectRequests
 		+ reconciliationDurableObjectRequests;
+	const youtubeNoticeCacheRowsRead = youtubeNotifications
+		+ CODE_PATH_ASSUMPTIONS.youtubeUpdatesPerDay
+		- youtubeDirtyRuns;
+	const youtubeCoordinatorRowsRead = youtubeHasTrackedItems
+		? CODE_PATH_ASSUMPTIONS.youtubeUpdatesPerDay * (youtubeBatchCount + 1)
+		: CODE_PATH_ASSUMPTIONS.youtubeUpdatesPerDay;
+	const reconciliationCoordinatorRowsRead = 2
+		+ (twitchUserCount > 0 ? twitchReconciliationBatches : 0)
+		+ (twitcastingUserCount > 0 ? twitcastingReconciliationBatches : 0);
+	const durableObjectRowsRead = youtubeNoticeCacheRowsRead
+		+ youtubeCoordinatorRowsRead
+		+ reconciliationCoordinatorRowsRead;
+	const youtubeCoordinatorRowsWritten = youtubeHasTrackedItems
+		? CODE_PATH_ASSUMPTIONS.youtubeUpdatesPerDay * (youtubeBatchCount + 5)
+		: CODE_PATH_ASSUMPTIONS.youtubeUpdatesPerDay * 3;
+	const reconciliationCoordinatorRowsWritten = 2
+		+ (twitchUserCount > 0 ? twitchReconciliationBatches + 3 : 1)
+		+ (twitcastingUserCount > 0 ? twitcastingReconciliationBatches + 3 : 1);
+	const durableObjectRowsWritten = youtubeNotifications * 2
+		+ youtubeCoordinatorRowsWritten
+		+ reconciliationCoordinatorRowsWritten;
 
 	const subscriptionTargetWrites = youtubeChannelCount + twitchUserCount + twitcastingUserCount;
 	const d1RowsWritten = subscriptionTargetWrites
@@ -183,6 +206,8 @@ export function estimateFreeTierUsage(creatorCount, master = {}) {
 			youtubeDirtyRuns,
 			totalQueueMessages,
 			durableObjectRequests,
+			durableObjectRowsRead,
+			durableObjectRowsWritten,
 		},
 		usage: {
 			workersRequests: usage(
@@ -198,6 +223,8 @@ export function estimateFreeTierUsage(creatorCount, master = {}) {
 			kvReads: usage(CODE_PATH_ASSUMPTIONS.youtubeUpdatesPerDay, FREE_TIER_LIMITS.kvReads),
 			kvWrites: usage(kvWrites, FREE_TIER_LIMITS.kvWrites),
 			durableObjectRequests: usage(durableObjectRequests, FREE_TIER_LIMITS.durableObjectRequests),
+			durableObjectRowsRead: usage(durableObjectRowsRead, FREE_TIER_LIMITS.durableObjectRowsRead),
+			durableObjectRowsWritten: usage(durableObjectRowsWritten, FREE_TIER_LIMITS.durableObjectRowsWritten),
 		},
 	};
 }

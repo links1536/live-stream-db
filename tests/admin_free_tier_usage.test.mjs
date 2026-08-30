@@ -52,6 +52,8 @@ test("管理コンソールに現在のマスター件数による無料枠試�
 	assert.match(html, /Queue operations<\/span><strong>43\.32%/);
 	assert.match(html, /KV writes<\/span><strong>27\.09%/);
 	assert.match(html, /DO requests<\/span><strong>4\.49%/);
+	assert.match(html, /DO rows read<\/span><strong>0\.04%/);
+	assert.match(html, /DO rows written<\/span><strong>2\.93%/);
 	assert.match(html, /Cron 290回、YouTube追跡 164件・4バッチ\/回/);
 });
 

@@ -45,6 +45,8 @@ console.log(formatUsage("D1 rows written", estimate.usage.d1RowsWritten));
 console.log(formatUsage("KV reads", estimate.usage.kvReads));
 console.log(formatUsage("KV writes", estimate.usage.kvWrites));
 console.log(formatUsage("DO requests", estimate.usage.durableObjectRequests));
+console.log(formatUsage("DO rows read", estimate.usage.durableObjectRowsRead));
+console.log(formatUsage("DO rows written", estimate.usage.durableObjectRowsWritten));
 console.log("");
 console.log("実行内訳");
 console.log(`  Cron: ${formatNumber(estimate.operations.scheduledWorkerInvocations)}回/日（YouTube 288回 + 日次2回）`);
@@ -59,4 +61,4 @@ console.log("前提: 複数プラットフォーム登録者は登録先から�
 console.log("YouTube通知は一日に均等・独立に発生すると仮定し、変更がある5分枠の期待値を算出しています。");
 console.log("Queueは1メッセージにつき書き込み・読み取り・削除の3操作、WebSub consumerは既定の最大10件バッチです。");
 console.log("D1書き込みは通知の基本状態遷移とTwitch通知履歴の定常的な削除を含みます。");
-console.log("再試行、手動実行、追加の状態遷移、D1のインデックス書き込み・読み取り、CPU時間、DOストレージは含みません。");
+console.log("再試行、手動実行、追加の状態遷移、D1のインデックス書き込み・読み取り、CPU時間、DOの実行時間・保存容量は含みません。");
