@@ -15,17 +15,44 @@ export class VTuberRepository
 	async loadUsageStatisticsAsync()
 	{
 		const result = await this.db.prepare(`
+			WITH platform_flags AS (
+				SELECT
+					v.id,
+					EXISTS(SELECT 1 FROM youtube_channels yc WHERE yc.vtuber_id = v.id) AS has_youtube,
+					EXISTS(SELECT 1 FROM twitch_users tu WHERE tu.vtuber_id = v.id) AS has_twitch,
+					EXISTS(SELECT 1 FROM twitcasting_users tc WHERE tc.vtuber_id = v.id) AS has_twitcasting
+				FROM vtubers v
+			)
 			SELECT
 				(SELECT COUNT(*) FROM vtubers) AS creator_count,
 				(SELECT COUNT(*) FROM youtube_channels) AS youtube_channel_count,
 				(SELECT COUNT(*) FROM twitch_users) AS twitch_user_count,
-				(SELECT COUNT(*) FROM twitcasting_users) AS twitcasting_user_count
+				(SELECT COUNT(*) FROM twitcasting_users) AS twitcasting_user_count,
+				(SELECT COUNT(*) FROM youtube_schedules) AS youtube_tracked_item_count,
+				SUM(has_youtube = 1 AND has_twitch = 0 AND has_twitcasting = 0) AS youtube_only,
+				SUM(has_youtube = 0 AND has_twitch = 1 AND has_twitcasting = 0) AS twitch_only,
+				SUM(has_youtube = 0 AND has_twitch = 0 AND has_twitcasting = 1) AS twitcasting_only,
+				SUM(has_youtube = 1 AND has_twitch = 1 AND has_twitcasting = 0) AS youtube_twitch,
+				SUM(has_youtube = 1 AND has_twitch = 0 AND has_twitcasting = 1) AS youtube_twitcasting,
+				SUM(has_youtube = 0 AND has_twitch = 1 AND has_twitcasting = 1) AS twitch_twitcasting,
+				SUM(has_youtube = 1 AND has_twitch = 1 AND has_twitcasting = 1) AS all_three
+			FROM platform_flags
 		`).first();
 		return {
 			creatorCount: Number(result?.creator_count ?? 0),
 			youtubeChannelCount: Number(result?.youtube_channel_count ?? 0),
 			twitchUserCount: Number(result?.twitch_user_count ?? 0),
 			twitcastingUserCount: Number(result?.twitcasting_user_count ?? 0),
+			youtubeTrackedItemCount: Number(result?.youtube_tracked_item_count ?? 0),
+			platformCombinations: {
+				youtubeOnly: Number(result?.youtube_only ?? 0),
+				twitchOnly: Number(result?.twitch_only ?? 0),
+				twitcastingOnly: Number(result?.twitcasting_only ?? 0),
+				youtubeTwitch: Number(result?.youtube_twitch ?? 0),
+				youtubeTwitcasting: Number(result?.youtube_twitcasting ?? 0),
+				twitchTwitcasting: Number(result?.twitch_twitcasting ?? 0),
+				allThree: Number(result?.all_three ?? 0),
+			},
 		};
 	}
 

@@ -24,6 +24,15 @@ export async function loadMasterStatistics(dataDirectory) {
 		youtubeChannelCount: 0,
 		twitchUserCount: 0,
 		twitcastingUserCount: 0,
+		platformCombinations: {
+			youtubeOnly: 0,
+			twitchOnly: 0,
+			twitcastingOnly: 0,
+			youtubeTwitch: 0,
+			youtubeTwitcasting: 0,
+			twitchTwitcasting: 0,
+			allThree: 0,
+		},
 	};
 
 	for (const file of files) {
@@ -38,6 +47,29 @@ export async function loadMasterStatistics(dataDirectory) {
 			statistics.youtubeChannelCount += entry.YouTubeID?.length ?? 0;
 			statistics.twitchUserCount += entry.TwitchID?.length ?? 0;
 			statistics.twitcastingUserCount += entry.TwitCastingID?.length ?? 0;
+
+			const hasYoutube = (entry.YouTubeID?.length ?? 0) > 0;
+			const hasTwitch = (entry.TwitchID?.length ?? 0) > 0;
+			const hasTwitcasting = (entry.TwitCastingID?.length ?? 0) > 0;
+			let combination;
+			if (hasYoutube && hasTwitch && hasTwitcasting)
+				combination = "allThree";
+			else if (hasYoutube && hasTwitch)
+				combination = "youtubeTwitch";
+			else if (hasYoutube && hasTwitcasting)
+				combination = "youtubeTwitcasting";
+			else if (hasTwitch && hasTwitcasting)
+				combination = "twitchTwitcasting";
+			else if (hasYoutube)
+				combination = "youtubeOnly";
+			else if (hasTwitch)
+				combination = "twitchOnly";
+			else if (hasTwitcasting)
+				combination = "twitcastingOnly";
+			else
+				throw new TypeError(`${file} の ${entry.Name ?? "名称未設定"} に配信プラットフォームがありません`);
+
+			statistics.platformCombinations[combination]++;
 		}
 	}
 
