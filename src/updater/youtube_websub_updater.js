@@ -4,6 +4,8 @@ import { YouTubeWebSub } from "../api/youtube_websub.js";
 import { VTuberRepository } from "../repository/vtuber_repository.js";
 import { HttpUtils } from "../httputils.js";
 import { WebhookStateRepository } from "../repository/webhook_state_repository.js";
+import { Log } from "../log.js";
+import { LOG_FLAGS } from "../constants/log_flags.js";
 
 export class YouTubeWebSubUpdater
 {
@@ -45,14 +47,14 @@ export class YouTubeWebSubUpdater
 				if (!channelId)
 					continue;
 
-				console.log(`${streamerName}: ${channelId} (${index} / ${vtuberCount}) enqueue`);
+				Log.rawInfo(LOG_FLAGS.YOUTUBE_WEBSUB_UPDATER, `${streamerName}: ${channelId} (${index} / ${vtuberCount}) enqueue`);
 
 				// Queue にチャンネルIDを送信
 				await this.youtubeWebsubQueue.send(channelId);
 			}
 		}
 
-		console.log(`✅ WebSub registration enqueued for ${vtuberCount} VTubers`);
+		Log.rawInfo(LOG_FLAGS.YOUTUBE_WEBSUB_UPDATER, `✅ WebSub registration enqueued for ${vtuberCount} VTubers`);
 	}
 
 	/**
@@ -72,7 +74,7 @@ export class YouTubeWebSubUpdater
 			for (const videoId of videoIds) {
 				await this.youtubeNoticesCache.addAsync(videoId);
 			}
-			console.log(`✅ Received ${videoIds.length} new video(s) from WebSub`);
+			Log.rawInfo(LOG_FLAGS.YOUTUBE_WEBSUB_NEW_NOTIFICATION, `✅ Received ${videoIds.length} new video(s) from WebSub`);
 		}
 
 		// 成功レスポンス

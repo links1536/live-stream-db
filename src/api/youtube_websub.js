@@ -1,5 +1,7 @@
 import { HttpUtils } from '../httputils.js'
 import { YouTubeDataAPI } from './youtube_data_api.js';
+import { Log } from "../log.js";
+import { LOG_FLAGS } from "../constants/log_flags.js";
 
 /**
  * YouTube WebSub (PubSubHubbub) の通知を解析するクラス
@@ -39,24 +41,24 @@ export class YouTubeWebSub
 	async changeWebSub(mode, callbackUrl, channelId)
 	{
 		if (!callbackUrl || (mode !== "subscribe" && mode !== "unsubscribe")) {
-			console.error(`[WebSub] 無効な購読操作です: mode=${mode}`);
+			Log.rawError(`[WebSub] 無効な購読操作です: mode=${mode}`);
 			return false;
 		}
 
 		// チャンネルID検証
 		if (!YouTubeDataAPI.validateChannelId(channelId)) {
-			console.error(`[WebSub] 無効なチャンネルIDです: ${channelId}`);
+			Log.rawError(`[WebSub] 無効なチャンネルIDです: ${channelId}`);
 			return;
 		}
 
 		// 検証用の情報チェック
 		let error = false;
 		if (!this.verifyToken) {
-			console.error("[WebSub] VerifyToken が設定されていません");
+			Log.rawError("[WebSub] VerifyToken が設定されていません");
 			error = true;
 		}
 		if (!this.secret) {
-			console.error("[WebSub] Secret が設定されていません");
+			Log.rawError("[WebSub] Secret が設定されていません");
 			error = true;
 		}
 		if (error)
@@ -103,19 +105,19 @@ export class YouTubeWebSub
 		if (mode === "subscribe" || mode === "unsubscribe") {
 			const verifyToken = searchParams.get("hub.verify_token");
 			if (verifyToken !== this.verifyToken) {
-				console.error(`[WebSub] Invalid verify token: topic=${topic}`);
+				Log.rawError(`[WebSub] Invalid verify token: topic=${topic}`);
 				return HttpUtils.response(403, "Forbidden");
 			}
 			if (!challenge || !this.isValidTopic(topic)) {
-				console.error(`[WebSub] Invalid verification request: mode=${mode}, topic=${topic}`);
+				Log.rawError(`[WebSub] Invalid verification request: mode=${mode}, topic=${topic}`);
 				return HttpUtils.response(400, "Bad Request");
 			}
 
-			console.log(`[WebSub] ${mode} request: topic=${topic}`);
+			Log.rawInfo(LOG_FLAGS.YOUTUBE_WEBSUB, `[WebSub] ${mode} request: topic=${topic}`);
 			return HttpUtils.response(200, challenge, { "Content-Type": "text/plain" });
 		}
 
-		console.error(`[WebSub] Unknown mode: mode=${mode}`);
+		Log.rawError(`[WebSub] Unknown mode: mode=${mode}`);
 		return HttpUtils.response(404, "Not Found");
 	}
 
@@ -146,18 +148,18 @@ export class YouTubeWebSub
 
 		const signature = request.headers.get("x-hub-signature");
 		if (!signature) {
-			console.error("[WebSub] No signature");
+			Log.rawError("[WebSub] No signature");
 			return null;
 		}
 
 		// HMAC-SHA1 署名の検証
 		const isValid = await this.verifySignature(body, signature);
 		if (!isValid) {
-			console.error("[WebSub] Invalid signature");
+			Log.rawError("[WebSub] Invalid signature");
 			return null;
 		}
 
-		console.log(`[WebSub] Update notification received: ${body.length} bytes`);
+		Log.rawInfo(LOG_FLAGS.YOUTUBE_WEBSUB_NEW_NOTIFICATION, `[WebSub] Update notification received: ${body.length} bytes`);
 		return this.parseNotification(body);
 	}
 
@@ -168,7 +170,7 @@ export class YouTubeWebSub
 	{
 		// Secretが設定されていない場合は検証スキップ
 		if (!this.secret) {
-			console.error("[WebSub] Secretが設定されていません");
+			Log.rawError("[WebSub] Secretが設定されていません");
 			return false;
 		}
 
@@ -212,7 +214,7 @@ export class YouTubeWebSub
 			}
 		}
 		catch (e) {
-			console.error(`[WebSub] XML Parse Error: ${e.message}`);
+			Log.rawError(`[WebSub] XML Parse Error: ${e.message}`);
 		}
 		return videoIds;
 	}
