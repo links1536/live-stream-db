@@ -69,8 +69,10 @@ export class YouTubeWebSubUpdater
 
 		// POST リクエスト（通知受信）
 		const videoIds = await this.youtubeWebsub.processPost(request);
+		if (videoIds == null)
+			return HttpUtils.response(400, "Bad Request", { "Content-Type": "text/plain" });
 
-		if (videoIds && videoIds.length > 0) {
+		if (videoIds.length > 0) {
 			for (const videoId of videoIds) {
 				await this.youtubeNoticesCache.addAsync(videoId);
 			}

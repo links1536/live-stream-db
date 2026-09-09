@@ -44,7 +44,7 @@ QUEUE_NAME_YOUTUBE_RSS_FEED = "{yr_rss_feed_queue}"
 [observability]
 [observability.logs]
 enabled = true
-invocation_logs = false
+invocation_logs = true
 
 [observability.traces]
 enabled = false
