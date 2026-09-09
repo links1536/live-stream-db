@@ -11,6 +11,8 @@ import { TwitchEventSubUpdater } from "./updater/twitch_eventsub_updater.js";
 import { WebhookSubscriptionUpdater } from "./updater/webhook_subscription_updater.js";
 import { LivesJsonUpdater } from "./updater/lives_json_updater.js";
 import { AdminService } from "./admin_service.js";
+import { Log } from "./log.js";
+import { LOG_FLAGS } from "./constants/log_flags.js";
 
 // Durable Object のエクスポート（必須）
 export { YouTubeNoticesCache } from "./repository/youtube_notices_cache.js";
@@ -190,7 +192,7 @@ export default {
 			// 毎日 UTC23:30 - 全プラットフォームの通知購読同期
 			const updater = new WebhookSubscriptionUpdater(env);
 			await updater.scheduleAllAsync();
-			console.log("✅ Webhook subscription synchronization completed (scheduled)");
+			Log.rawInfo(LOG_FLAGS.ENTRY, "✅ Webhook subscription synchronization completed (scheduled)");
 		}
 		else if (controller.cron === "45 23 * * *") {
 			// 毎日 UTC23:45 - Twitch / TwitCasting の通知漏れを整合
@@ -199,23 +201,23 @@ export default {
 			await twitchUpdater.scheduleTrigger(outputRunId);
 			const twitcastingUpdater = new TwitCastingStreamUpdater(env);
 			await twitcastingUpdater.scheduleTrigger(outputRunId);
-			console.log("✅ Twitch / TwitCasting reconciliation triggered (scheduled)");
+			Log.rawInfo(LOG_FLAGS.ENTRY, "✅ Twitch / TwitCasting reconciliation triggered (scheduled)");
 		}
 		else if (controller.cron === "45 * * * *") {
 			// 毎時45分 - RSS フィード取得
 			const updater = new YouTubeRssFeedUpdater(env);
 			await updater.scheduleTrigger();
-			console.log("✅ RSS feed fetch completed (scheduled)");
+			Log.rawInfo(LOG_FLAGS.ENTRY, "✅ RSS feed fetch completed (scheduled)");
 		}
 		else if (controller.cron === "*/5 * * * *") {
 			// 5分ごと - YouTube のスケジュール更新
 			const { outputRunId } = await initializeOutputRunAsync(env, [ "youtube" ]);
 			const youtubeUpdater = new YouTubeScheduleUpdater(env);
 			await youtubeUpdater.scheduleTrigger(outputRunId);
-			console.log("✅ YouTube schedule update completed (scheduled)");
+			Log.rawInfo(LOG_FLAGS.ENTRY, "✅ YouTube schedule update completed (scheduled)");
 		}
 		else {
-			console.warn(`[WARN] Unknown cron trigger: ${controller.cron}`);
+			Log.rawWarning(`[WARN] Unknown cron trigger: ${controller.cron}`);
 		}
 	},
 
@@ -224,13 +226,13 @@ export default {
 	 */
 	async queue(batch, env, ctx)
 	{
-		console.log(`Processing queue: ${batch.queue}`);
+		Log.rawInfo(LOG_FLAGS.ENTRY, `Processing queue: ${batch.queue}`);
 
 		switch (batch.queue) {
 			case env.QUEUE_NAME_YOUTUBE_WEBSUB_REGISTER:
 				const youtubeWebSubUpdater = new YouTubeWebSubUpdater(env);
 				for (const msg of batch.messages) {
-					console.log(`Processing queue message: ${msg.body}`);
+					Log.rawInfo(LOG_FLAGS.ENTRY, `Processing queue message: ${msg.body}`);
 					
 					try {
 						let action = "subscribe";
@@ -256,7 +258,7 @@ export default {
 						msg.ack();
 					}
 					catch (err) {
-						console.error(`Failed to process message ${msg.body}:`, err);
+						Log.rawError(`Failed to process message ${msg.body}:`, err);
 						// 失敗時は retry
 						msg.retry();
 					}
@@ -422,7 +424,7 @@ export default {
 						continue;
 					}
 
-					console.warn(`[WARN] Unknown stream update message type: ${body.type}`);
+					Log.rawWarning(`[WARN] Unknown stream update message type: ${body.type}`);
 				}
 
 				batch.ackAll();
@@ -436,7 +438,7 @@ export default {
 					if (channelId)
 						channelIds.push(channelId);
 					else {
-						console.warn("[WARN] Empty channel ID in queue message");
+						Log.rawWarning("[WARN] Empty channel ID in queue message");
 						msg.ack();
 					}
 				}
@@ -448,11 +450,11 @@ export default {
 					for (const msg of batch.messages) {
 						msg.ack();
 					}
-					console.info(`[INFO] Processed ${channelIds.length} channels`);
+					Log.rawInfo(LOG_FLAGS.ENTRY, `[INFO] Processed ${channelIds.length} channels`);
 				}
 				break;
 			default:
-				console.error(`Unknown queue: ${batch.queue}`);
+				Log.rawError(`Unknown queue: ${batch.queue}`);
 				break;
 		}
 	},
