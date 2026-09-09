@@ -286,6 +286,8 @@ Basic 認証つきで次を利用できます
 - アプリケーションの WebHook URL に `https://<Workerのホスト>/webhooks/twitcasting` を設定し、署名キーを `TWITCASTING_WEBHOOK_SIGNATURE` に同じ値で登録します
 - `livestart`、`liveend`、`liveschedulecreate`、`livescheduleupdate`、`livescheduledelete` を毎日 UTC 23:30 にマスターと同期します
 - 初回構築、WebHook URL変更、通知不達からの復旧時は、管理画面の Webhook Subscription Sync で即時同期できます
+- WebHook同期ではD1に保存した数値user IDを30日間再利用し、新規追加または再検証期限を迎えたscreen IDだけをAPIで解決します
+- user ID解決は5人単位のQueueへ分割し、1分あたり最大2バッチに遅延します。一部が失敗した場合、成功済みIDはD1から再利用し、未解決分だけをQueueの再配信で処理します
 - 毎日 UTC 23:45 に通知漏れを整合する全件更新を実行します。60 requests / 60 sec 制限を超えないよう、対象を15ユーザー単位に分割し、Queue で1分ずつ遅延させます
 - 現在配信、直近7日の配信予定、表示期間内の過去配信を取得します
 - 新規環境では `setup-d1.sql`、既存環境では `migrate-twitcasting.sql` を D1 に適用してからデプロイしてください
