@@ -7,6 +7,8 @@ import { WebhookStateRepository } from "../repository/webhook_state_repository.j
 import { Log } from "../log.js";
 import { LOG_FLAGS } from "../constants/log_flags.js";
 
+const WEBSUB_RENEWAL_THRESHOLD_MS = 2 * 24 * 60 * 60 * 1000;
+
 export class YouTubeWebSubUpdater
 {
 	constructor(env)
@@ -64,7 +66,16 @@ export class YouTubeWebSubUpdater
 	{
 		// GET リクエスト（検証用）
 		if (request.method === "GET") {
-			return await this.youtubeWebsub.processGet(request);
+			const response = await this.youtubeWebsub.processGet(request);
+			if (response.ok) {
+				try {
+					await this.saveSubscriptionVerificationAsync(request);
+				}
+				catch (e) {
+					Log.rawError(`[WebSub] Failed to save subscription verification: ${e?.message ?? String(e)}`);
+				}
+			}
+			return response;
 		}
 
 		// POST リクエスト（通知受信）
@@ -83,14 +94,53 @@ export class YouTubeWebSubUpdater
 		return HttpUtils.response(200, "", { "Content-Type": "text/plain" });
 	}
 
-	async scheduleSubscriptionSyncAsync()
+	async saveSubscriptionVerificationAsync(request, nowMs = Date.now())
+	{
+		const { searchParams } = new URL(request.url);
+		const mode = searchParams.get("hub.mode");
+		const topic = searchParams.get("hub.topic");
+		const channelId = new URL(topic).searchParams.get("channel_id");
+
+		if (mode === "unsubscribe") {
+			await this.webhookStateRepository.deleteTargetAsync("youtube", channelId);
+			return;
+		}
+
+		const leaseSeconds = Number(searchParams.get("hub.lease_seconds"));
+		const expiresAtMs = nowMs + leaseSeconds * 1000;
+		if (!Number.isSafeInteger(leaseSeconds)
+			|| leaseSeconds <= 0
+			|| !Number.isFinite(expiresAtMs)
+			|| Math.abs(expiresAtMs) > 8_640_000_000_000_000) {
+			Log.rawWarning(`[WARN] [WebSub] Invalid lease seconds: channel_id=${channelId}, lease_seconds=${searchParams.get("hub.lease_seconds")}`);
+			return;
+		}
+
+		const expiresAtIso = new Date(expiresAtMs).toISOString();
+		await this.webhookStateRepository.upsertTargetAsync(
+			"youtube",
+			channelId,
+			channelId,
+			expiresAtIso
+		);
+	}
+
+	async scheduleSubscriptionSyncAsync(nowMs = Date.now())
 	{
 		const youtubeMap = await this.vtuberRepository.loadYouTubeMapAsync();
 		const desiredChannelIds = Object.keys(youtubeMap);
 		const desiredSet = new Set(desiredChannelIds);
 		const storedTargets = await this.webhookStateRepository.loadTargetsAsync("youtube");
+		const storedByChannelId = new Map(storedTargets.map(target => [ target.target_key, target ]));
+		const renewalThresholdMs = nowMs + WEBSUB_RENEWAL_THRESHOLD_MS;
+		let subscribeCount = 0;
 
 		for (const channelId of desiredChannelIds) {
+			const expiresAtMs = Date.parse(storedByChannelId.get(channelId)?.expires_at_iso);
+			if (Number.isFinite(expiresAtMs) && expiresAtMs > renewalThresholdMs)
+				continue;
+
+			subscribeCount++;
 			const operation = {
 				action: "subscribe",
 				channel_id: channelId
@@ -113,7 +163,7 @@ export class YouTubeWebSubUpdater
 		}
 
 		return {
-			subscribeCount: desiredChannelIds.length,
+			subscribeCount,
 			unsubscribeCount
 		};
 	}

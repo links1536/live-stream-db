@@ -48,23 +48,33 @@ export class WebhookStateRepository
 	async loadTargetsAsync(platform)
 	{
 		const { results } = await this.db.prepare(`
-			SELECT platform, target_key, external_user_id, updated_at_iso
+			SELECT platform, target_key, external_user_id, updated_at_iso, expires_at_iso
 			FROM webhook_subscription_targets
 			WHERE platform = ?
 		`).bind(platform).all();
 		return results || [];
 	}
 
-	async upsertTargetAsync(platform, targetKey, externalUserId)
+	async upsertTargetAsync(platform, targetKey, externalUserId, expiresAtIso = null)
 	{
 		await this.db.prepare(`
 			INSERT INTO webhook_subscription_targets (
-				platform, target_key, external_user_id, updated_at_iso
-			) VALUES (?, ?, ?, ?)
+				platform, target_key, external_user_id, updated_at_iso, expires_at_iso
+			) VALUES (?, ?, ?, ?, ?)
 			ON CONFLICT(platform, target_key) DO UPDATE SET
 				external_user_id = excluded.external_user_id,
-				updated_at_iso = excluded.updated_at_iso
-		`).bind(platform, targetKey, externalUserId ?? null, new Date().toISOString()).run();
+				updated_at_iso = excluded.updated_at_iso,
+				expires_at_iso = COALESCE(
+					excluded.expires_at_iso,
+					webhook_subscription_targets.expires_at_iso
+				)
+		`).bind(
+			platform,
+			targetKey,
+			externalUserId ?? null,
+			new Date().toISOString(),
+			expiresAtIso
+		).run();
 	}
 
 	async deleteTargetAsync(platform, targetKey)
