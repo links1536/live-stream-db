@@ -88,7 +88,21 @@ export class YouTubeWebSub
 		};
 
 		const response = await HttpUtils.post(hubUrl, headers, params.toString());
-		return response.status === 202 || response.status === 204;
+		const success = response.status === 202 || response.status === 204;
+		if (!success) {
+			let responseBody;
+			try {
+				responseBody = await response.text();
+			}
+			catch (e) {
+				responseBody = `[response body unavailable: ${e?.message ?? String(e)}]`;
+			}
+			Log.rawError(
+				`[WebSub] Subscription failure response: action=${mode}, channel_id=${channelId}, `
+				+ `status=${response.status}, status_text=${response.statusText}, body=${JSON.stringify(responseBody)}`
+			);
+		}
+		return success;
 	}
 
 	/**
