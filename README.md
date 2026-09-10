@@ -271,6 +271,7 @@ Basic 認証つきで次を利用できます
 - `GET /admin`: 管理画面
 - `GET /admin/lives.json`: `KV_OUTPUT` に保存されている最新の `lives.json` をダウンロード
 - `POST /admin/youtube-websub-register`: WebSub 再登録
+- `POST /admin/youtube-websub-register-missing`: 未登録、期限情報未取得、または期限切れのWebSubだけを登録
 - `POST /admin/youtube-fetch-rss`: RSS 手動取得
 - `POST /admin/youtube-update`: スケジュール更新
 - `POST /admin/twitch-update`: Twitch 配信更新
@@ -283,6 +284,7 @@ Basic 認証つきで次を利用できます
 
 - 購読要求では5日間のリースを指定し、Google Hubの検証GETで通知された実際の`hub.lease_seconds`から有効期限をD1へ保存します
 - 毎日 UTC 23:30 の購読同期では、未登録、期限不明、または有効期限まで2日以下のチャンネルだけを再登録します
+- 管理画面の YouTube WebSub Register Missing は、D1に登録がない、期限情報がない、または期限切れのチャンネルだけを再登録し、検証GETで期限情報を補完します
 - 初回構築、コールバックURL変更、通知不達からの復旧時は、管理画面の WebSub 再登録または Webhook Subscription Sync で即時同期できます
 - 新規環境では`setup-d1.sql`、既存環境では`migrate-youtube-websub-expiration.sql`をD1へ適用してからデプロイしてください
 

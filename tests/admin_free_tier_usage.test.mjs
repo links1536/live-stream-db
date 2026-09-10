@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { AdminService } from "../src/admin_service.js";
 
@@ -55,6 +56,8 @@ test("管理コンソールに現在のマスター件数による無料枠試�
 	assert.match(html, /DO rows read<\/span><strong>0\.04%/);
 	assert.match(html, /DO rows written<\/span><strong>2\.93%/);
 	assert.match(html, /Cron 290回、YouTube追跡 164件・4バッチ\/回/);
+	assert.match(html, /YouTube WebSub Register Missing/);
+	assert.match(html, /\/admin\/youtube-websub-register-missing/);
 });
 
 test("マスター件数を取得できなくても管理コンソールを表示する", async () => {
@@ -66,4 +69,14 @@ test("マスター件数を取得できなくても管理コンソールを表�
 
 	assert.equal(response.status, 200);
 	assert.match(html, /試算を表示できません/);
+});
+
+test("未登録のYouTube WebSub登録用エンドポイントを提供する", async () => {
+	const entrySource = await readFile(new URL("../src/entry.js", import.meta.url), "utf8");
+	const handler = entrySource.match(
+		/"\/youtube-websub-register-missing": async \(\) => \{([\s\S]*?)\n\s*\},/
+	)?.[1] ?? "";
+
+	assert.match(handler, /registerMissingWebsubAsync\(\)/);
+	assert.match(handler, /return Response\.json\(result\)/);
 });
