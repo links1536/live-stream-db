@@ -25,7 +25,13 @@ for (const status of [ 202, 204 ]) {
 
 test("YouTube WebSub購読要求のエラー応答を失敗扱いする", async () => {
 	const originalFetch = globalThis.fetch;
-	globalThis.fetch = async () => new Response(null, { status: 400 });
+	const originalError = console.error;
+	const errors = [];
+	globalThis.fetch = async () => new Response("Hub unavailable\nRetry later", {
+		status: 503,
+		statusText: "Service Unavailable"
+	});
+	console.error = message => errors.push(message);
 
 	try {
 		const webSub = new YouTubeWebSub("verify-token", "test-secret");
@@ -35,7 +41,43 @@ test("YouTube WebSub購読要求のエラー応答を失敗扱いする", async 
 	}
 	finally {
 		globalThis.fetch = originalFetch;
+		console.error = originalError;
 	}
+
+	assert.deepEqual(errors, [
+		`[WebSub] Subscription failure response: action=subscribe, channel_id=${CHANNEL_ID}, `
+			+ "status=503, status_text=Service Unavailable, body=\"Hub unavailable\\nRetry later\""
+	]);
+});
+
+test("YouTube WebSub購読の本文を読めないエラー応答にもステータスを出力する", async () => {
+	const originalFetch = globalThis.fetch;
+	const originalError = console.error;
+	const errors = [];
+	globalThis.fetch = async () => ({
+		status: 502,
+		statusText: "Bad Gateway",
+		text: async () => {
+			throw new Error("Body stream failed");
+		}
+	});
+	console.error = message => errors.push(message);
+
+	try {
+		const webSub = new YouTubeWebSub("verify-token", "test-secret");
+		const success = await webSub.registerWebSub("https://example.com/webhooks/youtube", CHANNEL_ID);
+
+		assert.equal(success, false);
+	}
+	finally {
+		globalThis.fetch = originalFetch;
+		console.error = originalError;
+	}
+
+	assert.deepEqual(errors, [
+		`[WebSub] Subscription failure response: action=subscribe, channel_id=${CHANNEL_ID}, `
+			+ "status=502, status_text=Bad Gateway, body=\"[response body unavailable: Body stream failed]\""
+	]);
 });
 
 test("YouTube WebSub登録キューの同時実行数を1に制限する", async () => {
