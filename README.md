@@ -279,6 +279,17 @@ Basic 認証つきで次を利用できます
 - `POST /admin/webhook-subscriptions-sync`: 全プラットフォームの通知購読同期
 - `POST /admin/full-update`: 全プラットフォーム更新
 
+## YouTube WebSub の運用
+
+- 購読要求では5日間のリースを指定し、Google Hubの検証GETで通知された実際の`hub.lease_seconds`から有効期限をD1へ保存します
+- 毎日 UTC 23:30 の購読同期では、未登録、期限不明、または有効期限まで2日以下のチャンネルだけを再登録します
+- 初回構築、コールバックURL変更、通知不達からの復旧時は、管理画面の WebSub 再登録または Webhook Subscription Sync で即時同期できます
+- 新規環境では`setup-d1.sql`、既存環境では`migrate-youtube-websub-expiration.sql`をD1へ適用してからデプロイしてください
+
+```powershell
+wrangler d1 execute <DATABASE_NAME> --remote --file=migrate-youtube-websub-expiration.sql
+```
+
 ## TwitCasting API の運用
 
 - [TwitCasting API v2 のアプリケーション登録](https://twitcasting.tv/applications.php)で Client ID / Client Secret を取得します
@@ -327,7 +338,7 @@ npm run estimate:free-tier
 node tools/estimate-free-tier-usage.mjs ..\live-stream-db-data\data 164
 ```
 
-Cloudflare無料枠との比較は、実コードの処理経路に基づいて積み上げます。Cronは5分ごとのYouTube更新288回と日次処理2回です。YouTube更新は追跡件数を50件単位、Twitch整合更新は50人単位、TwitCasting整合更新は15人単位のQueueへ分割します。WebSub購読同期はYouTube IDごとに1メッセージを投入し、consumerはCloudflare Queues既定の最大10件単位です。実際のバッチ充填数は保証されないため、WebSub consumerに由来するWorker実行数は、最大件数まで詰まる場合と1件ずつ処理する場合の範囲で表示します。Queue操作は1メッセージにつき書き込み・読み取り・削除の3操作です。
+Cloudflare無料枠との比較は、実コードの処理経路に基づいて積み上げます。Cronは5分ごとのYouTube更新288回と日次処理2回です。YouTube更新は追跡件数を50件単位、Twitch整合更新は50人単位、TwitCasting整合更新は15人単位のQueueへ分割します。WebSub購読同期は安全側の上限として全YouTube IDが更新対象になる日を想定し、IDごとに1メッセージを計上します。consumerはCloudflare Queues既定の最大10件単位です。実際のバッチ充填数は保証されないため、WebSub consumerに由来するWorker実行数は、最大件数まで詰まる場合と1件ずつ処理する場合の範囲で表示します。Queue操作は1メッセージにつき書き込み・読み取り・削除の3操作です。
 
 YouTube通知は一日に均等・独立に発生すると仮定し、変更がある5分枠の期待値から `lives.json` 出力Queue、KVキャッシュ、KV出力の更新回数を計算します。TwitchとTwitCastingの日次整合処理は、安全側に1日1回の変更が発生するものとします。Durable Objectsは実装上のRPC呼び出し数とSQLiteストレージの基本行操作、D1は購読対象の同期と通知経路で変更する基本行数を計上します。
 
