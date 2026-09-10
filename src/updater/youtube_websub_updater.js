@@ -60,6 +60,44 @@ export class YouTubeWebSubUpdater
 	}
 
 	/**
+	 * 未登録、期限不明、または期限切れのWebSubだけを登録する
+	 */
+	async registerMissingWebsubAsync(nowMs = Date.now())
+	{
+		const youtubeMap = await this.vtuberRepository.loadYouTubeMapAsync();
+		const channelIds = Object.keys(youtubeMap);
+		const storedTargets = await this.webhookStateRepository.loadTargetsAsync("youtube");
+		const storedByChannelId = new Map(storedTargets.map(target => [ target.target_key, target ]));
+		let subscribeCount = 0;
+
+		for (const channelId of channelIds) {
+			const expiresAtMs = Date.parse(storedByChannelId.get(channelId)?.expires_at_iso);
+			if (Number.isFinite(expiresAtMs) && expiresAtMs > nowMs)
+				continue;
+
+			subscribeCount++;
+			await this.enqueueSubscriptionAsync(channelId, youtubeMap[channelId]);
+		}
+
+		return {
+			targetCount: channelIds.length,
+			subscribeCount
+		};
+	}
+
+	async enqueueSubscriptionAsync(channelId, vtuber)
+	{
+		const operation = {
+			action: "subscribe",
+			channel_id: channelId
+		};
+		const streamerName = vtuber?.Name;
+		if (streamerName)
+			operation.streamer_name = streamerName;
+		await this.youtubeWebsubQueue.send(JSON.stringify(operation));
+	}
+
+	/**
 	 * YouTube からの WebSub (PubSubHubbub) 通知を処理する
 	 */
 	async handleYoutubeWebhook(request)
@@ -141,14 +179,7 @@ export class YouTubeWebSubUpdater
 				continue;
 
 			subscribeCount++;
-			const operation = {
-				action: "subscribe",
-				channel_id: channelId
-			};
-			const streamerName = youtubeMap[channelId]?.Name;
-			if (streamerName)
-				operation.streamer_name = streamerName;
-			await this.youtubeWebsubQueue.send(JSON.stringify(operation));
+			await this.enqueueSubscriptionAsync(channelId, youtubeMap[channelId]);
 		}
 
 		let unsubscribeCount = 0;
