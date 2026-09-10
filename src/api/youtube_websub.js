@@ -88,7 +88,7 @@ export class YouTubeWebSub
 		};
 
 		const response = await HttpUtils.post(hubUrl, headers, params.toString());
-		return response.status === 202;
+		return response.status === 202 || response.status === 204;
 	}
 
 	/**
