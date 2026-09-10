@@ -88,3 +88,13 @@ test("YouTube WebSub登録キューの同時実行数を1に制限する", async
 
 	assert.match(consumerBlock, /max_concurrency = 1/);
 });
+
+test("YouTube WebSub登録失敗時はキューメッセージを再試行しない", async () => {
+	const entrySource = await readFile(new URL("../src/entry.js", import.meta.url), "utf8");
+	const consumerBlock = entrySource.match(
+		/case env\.QUEUE_NAME_YOUTUBE_WEBSUB_REGISTER:([\s\S]*?)\n\s*break;/
+	)?.[1] ?? "";
+
+	assert.match(consumerBlock, /catch \(err\) \{[\s\S]*?msg\.ack\(\);[\s\S]*?\}/);
+	assert.doesNotMatch(consumerBlock, /msg\.retry\(/);
+});
