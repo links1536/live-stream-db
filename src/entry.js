@@ -262,8 +262,8 @@ export default {
 					}
 					catch (err) {
 						Log.rawError(`Failed to process message ${msg.body}:`, err);
-						// 失敗時は retry
-						msg.retry();
+						// 一括登録時に同じ失敗要因へリクエストを繰り返さない
+						msg.ack();
 					}
 				}
 				break;
