@@ -80,13 +80,13 @@ test("YouTube WebSub購読の本文を読めないエラー応答にもステー
 	]);
 });
 
-test("YouTube WebSub登録キューの同時実行数を1に制限する", async () => {
+test("YouTube WebSub登録キューの同時実行数を3に制限する", async () => {
 	const buildSource = await readFile(new URL("../src/build.py", import.meta.url), "utf8");
 	const consumerBlock = buildSource.match(
 		/\[\[queues\.consumers\]\]\s*\nqueue = "\{yt_register_websub_queue\}"([\s\S]*?)(?=\n\[\[queues\.)/
 	)?.[1] ?? "";
 
-	assert.match(consumerBlock, /max_concurrency = 1/);
+	assert.match(consumerBlock, /max_concurrency = 3/);
 });
 
 test("YouTube WebSub登録失敗時はキューメッセージを再試行しない", async () => {
