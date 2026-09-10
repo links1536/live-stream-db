@@ -237,10 +237,12 @@ export default {
 					try {
 						let action = "subscribe";
 						let channelId = msg.body;
+						let streamerName = null;
 						try {
 							const operation = JSON.parse(msg.body);
 							action = operation.action ?? action;
 							channelId = operation.channel_id;
+							streamerName = operation.streamer_name ?? null;
 						}
 						catch {
 							// 旧形式のチャンネルID文字列も引き続き処理する
@@ -250,7 +252,8 @@ export default {
 						const success = await youtubeWebSubUpdater.processSubscriptionOperationAsync(
 							action,
 							channelId,
-							env.YOUTUBE_WEBSUB_CALLBACK_URL
+							env.YOUTUBE_WEBSUB_CALLBACK_URL,
+							streamerName
 						);
 						if (!success)
 							throw new Error(`YouTube WebSub ${action} failed: ${channelId}`);

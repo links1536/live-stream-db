@@ -91,10 +91,14 @@ export class YouTubeWebSubUpdater
 		const storedTargets = await this.webhookStateRepository.loadTargetsAsync("youtube");
 
 		for (const channelId of desiredChannelIds) {
-			await this.youtubeWebsubQueue.send(JSON.stringify({
+			const operation = {
 				action: "subscribe",
 				channel_id: channelId
-			}));
+			};
+			const streamerName = youtubeMap[channelId]?.Name;
+			if (streamerName)
+				operation.streamer_name = streamerName;
+			await this.youtubeWebsubQueue.send(JSON.stringify(operation));
 		}
 
 		let unsubscribeCount = 0;
@@ -114,21 +118,42 @@ export class YouTubeWebSubUpdater
 		};
 	}
 
-	async processSubscriptionOperationAsync(action, channelId, callbackUrl)
+	async processSubscriptionOperationAsync(action, channelId, callbackUrl, streamerName = null)
 	{
 		if (action !== "subscribe" && action !== "unsubscribe")
 			return false;
 
-		const success = action === "unsubscribe"
-			? await this.youtubeWebsub.unregisterWebSub(callbackUrl, channelId)
-			: await this.youtubeWebsub.registerWebSub(callbackUrl, channelId);
-		if (!success)
-			return false;
+		const subscriptionTargetLog = `action=${action}, channel_id=${channelId}`
+			+ (streamerName ? `, streamer_name=${streamerName}` : "");
+		Log.rawInfo(
+			LOG_FLAGS.YOUTUBE_WEBSUB_SUBSCRIPTION_REQUEST,
+			`[WebSub] Subscription request: ${subscriptionTargetLog}`
+		);
 
-		if (action === "unsubscribe")
-			await this.webhookStateRepository.deleteTargetAsync("youtube", channelId);
-		else
-			await this.webhookStateRepository.upsertTargetAsync("youtube", channelId, channelId);
-		return true;
+		try {
+			const success = action === "unsubscribe"
+				? await this.youtubeWebsub.unregisterWebSub(callbackUrl, channelId)
+				: await this.youtubeWebsub.registerWebSub(callbackUrl, channelId);
+			if (!success) {
+				Log.rawError(`[WebSub] Subscription failure: ${subscriptionTargetLog}`);
+				return false;
+			}
+
+			if (action === "unsubscribe")
+				await this.webhookStateRepository.deleteTargetAsync("youtube", channelId);
+			else
+				await this.webhookStateRepository.upsertTargetAsync("youtube", channelId, channelId);
+
+			Log.rawInfo(
+				LOG_FLAGS.YOUTUBE_WEBSUB_SUBSCRIPTION_SUCCESS,
+				`[WebSub] Subscription success: ${subscriptionTargetLog}`
+			);
+			return true;
+		}
+		catch (e) {
+			const errorMessage = e?.message ?? String(e);
+			Log.rawError(`[WebSub] Subscription failure: ${subscriptionTargetLog}, error=${errorMessage}`);
+			throw e;
+		}
 	}
 }
