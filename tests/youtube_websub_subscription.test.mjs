@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { YouTubeWebSub } from "../src/api/youtube_websub.js";
@@ -35,4 +36,13 @@ test("YouTube WebSub購読要求のエラー応答を失敗扱いする", async 
 	finally {
 		globalThis.fetch = originalFetch;
 	}
+});
+
+test("YouTube WebSub登録キューの同時実行数を1に制限する", async () => {
+	const buildSource = await readFile(new URL("../src/build.py", import.meta.url), "utf8");
+	const consumerBlock = buildSource.match(
+		/\[\[queues\.consumers\]\]\s*\nqueue = "\{yt_register_websub_queue\}"([\s\S]*?)(?=\n\[\[queues\.)/
+	)?.[1] ?? "";
+
+	assert.match(consumerBlock, /max_concurrency = 1/);
 });
