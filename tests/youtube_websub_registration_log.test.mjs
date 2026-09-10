@@ -64,7 +64,8 @@ test("YouTube WebSub購読要求にチャンネルIDと配信者名を出力す�
 	}
 
 	assert.deepEqual(output, [
-		`[WebSub] Subscription request: action=subscribe, channel_id=${CHANNEL_ID}, streamer_name=配信者名`
+		`[WebSub] Subscription request: action=subscribe, channel_id=${CHANNEL_ID}, streamer_name=配信者名`,
+		`[WebSub] Subscription success: action=subscribe, channel_id=${CHANNEL_ID}, streamer_name=配信者名`
 	]);
 });
 
@@ -95,6 +96,88 @@ test("配信者名がないYouTube WebSub購読要求にもチャンネルIDを�
 	}
 
 	assert.deepEqual(output, [
-		`[WebSub] Subscription request: action=unsubscribe, channel_id=${REMOVED_CHANNEL_ID}`
+		`[WebSub] Subscription request: action=unsubscribe, channel_id=${REMOVED_CHANNEL_ID}`,
+		`[WebSub] Subscription success: action=unsubscribe, channel_id=${REMOVED_CHANNEL_ID}`
+	]);
+});
+
+test("失敗したYouTube WebSub購読要求の対象をエラー出力する", async () => {
+	const output = [];
+	const errors = [];
+	const originalLog = console.log;
+	const originalError = console.error;
+	console.log = message => output.push(message);
+	console.error = message => errors.push(message);
+
+	try {
+		const updater = Object.create(YouTubeWebSubUpdater.prototype);
+		updater.youtubeWebsub = {
+			registerWebSub: async () => false
+		};
+		updater.webhookStateRepository = {
+			upsertTargetAsync: async () => assert.fail("失敗した購読要求を保存してはいけません")
+		};
+
+		const success = await updater.processSubscriptionOperationAsync(
+			"subscribe",
+			CHANNEL_ID,
+			"https://example.com/webhooks/youtube",
+			"配信者名"
+		);
+
+		assert.equal(success, false);
+	}
+	finally {
+		console.log = originalLog;
+		console.error = originalError;
+	}
+
+	assert.deepEqual(output, [
+		`[WebSub] Subscription request: action=subscribe, channel_id=${CHANNEL_ID}, streamer_name=配信者名`
+	]);
+	assert.deepEqual(errors, [
+		`[WebSub] Subscription failure: action=subscribe, channel_id=${CHANNEL_ID}, streamer_name=配信者名`
+	]);
+});
+
+test("例外になったYouTube WebSub購読要求の対象と原因をエラー出力する", async () => {
+	const output = [];
+	const errors = [];
+	const originalLog = console.log;
+	const originalError = console.error;
+	console.log = message => output.push(message);
+	console.error = message => errors.push(message);
+
+	try {
+		const updater = Object.create(YouTubeWebSubUpdater.prototype);
+		updater.youtubeWebsub = {
+			registerWebSub: async () => {
+				throw new Error("Hub unavailable");
+			}
+		};
+		updater.webhookStateRepository = {
+			upsertTargetAsync: async () => assert.fail("例外になった購読要求を保存してはいけません")
+		};
+
+		await assert.rejects(
+			updater.processSubscriptionOperationAsync(
+				"subscribe",
+				CHANNEL_ID,
+				"https://example.com/webhooks/youtube",
+				"配信者名"
+			),
+			/Hub unavailable/
+		);
+	}
+	finally {
+		console.log = originalLog;
+		console.error = originalError;
+	}
+
+	assert.deepEqual(output, [
+		`[WebSub] Subscription request: action=subscribe, channel_id=${CHANNEL_ID}, streamer_name=配信者名`
+	]);
+	assert.deepEqual(errors, [
+		`[WebSub] Subscription failure: action=subscribe, channel_id=${CHANNEL_ID}, streamer_name=配信者名, error=Hub unavailable`
 	]);
 });
