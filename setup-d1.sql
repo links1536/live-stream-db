@@ -38,6 +38,7 @@ CREATE TABLE webhook_subscription_targets (
 	target_key TEXT,
 	external_user_id TEXT,
 	updated_at_iso TEXT,
+	expires_at_iso TEXT,
 	PRIMARY KEY (platform, target_key)
 );
 CREATE TABLE webhook_messages (
