@@ -12,6 +12,8 @@ const DUE_CHANNEL_ID = "UC2222222222222222222222";
 const UNKNOWN_CHANNEL_ID = "UC3333333333333333333333";
 const NEW_CHANNEL_ID = "UC4444444444444444444444";
 const REMOVED_CHANNEL_ID = "UC5555555555555555555555";
+const EXPIRED_CHANNEL_ID = "UC6666666666666666666666";
+const INVALID_EXPIRY_CHANNEL_ID = "UC7777777777777777777777";
 
 function createVerificationRequest(channelId, leaseSeconds = "432000", mode = "subscribe")
 {
@@ -86,6 +88,81 @@ test("YouTube WebSubは期限まで2日以下の購読だけを更新する", as
 	assert.deepEqual(result, {
 		subscribeCount: 3,
 		unsubscribeCount: 1
+	});
+});
+
+test("YouTube WebSubは未登録、期限不明、または期限切れだけを手動登録する", async () => {
+	const messages = [];
+	const updater = Object.create(YouTubeWebSubUpdater.prototype);
+	updater.vtuberRepository = {
+		loadYouTubeMapAsync: async () => ({
+			[ACTIVE_CHANNEL_ID]: { Name: "有効" },
+			[DUE_CHANNEL_ID]: { Name: "期限2日以内" },
+			[UNKNOWN_CHANNEL_ID]: { Name: "期限不明" },
+			[NEW_CHANNEL_ID]: { Name: "未登録" },
+			[EXPIRED_CHANNEL_ID]: { Name: "期限切れ" },
+			[INVALID_EXPIRY_CHANNEL_ID]: { Name: "期限不正" }
+		})
+	};
+	updater.webhookStateRepository = {
+		loadTargetsAsync: async () => [
+			{
+				target_key: ACTIVE_CHANNEL_ID,
+				expires_at_iso: new Date(NOW_MS + 5 * DAY_MS).toISOString()
+			},
+			{
+				target_key: DUE_CHANNEL_ID,
+				expires_at_iso: new Date(NOW_MS + DAY_MS).toISOString()
+			},
+			{
+				target_key: UNKNOWN_CHANNEL_ID,
+				expires_at_iso: null
+			},
+			{
+				target_key: EXPIRED_CHANNEL_ID,
+				expires_at_iso: new Date(NOW_MS).toISOString()
+			},
+			{
+				target_key: INVALID_EXPIRY_CHANNEL_ID,
+				expires_at_iso: "invalid"
+			},
+			{
+				target_key: REMOVED_CHANNEL_ID,
+				expires_at_iso: new Date(NOW_MS - DAY_MS).toISOString()
+			}
+		]
+	};
+	updater.youtubeWebsubQueue = {
+		send: async message => messages.push(JSON.parse(message))
+	};
+
+	const result = await updater.registerMissingWebsubAsync(NOW_MS);
+
+	assert.deepEqual(messages, [
+		{
+			action: "subscribe",
+			channel_id: UNKNOWN_CHANNEL_ID,
+			streamer_name: "期限不明"
+		},
+		{
+			action: "subscribe",
+			channel_id: NEW_CHANNEL_ID,
+			streamer_name: "未登録"
+		},
+		{
+			action: "subscribe",
+			channel_id: EXPIRED_CHANNEL_ID,
+			streamer_name: "期限切れ"
+		},
+		{
+			action: "subscribe",
+			channel_id: INVALID_EXPIRY_CHANNEL_ID,
+			streamer_name: "期限不正"
+		}
+	]);
+	assert.deepEqual(result, {
+		targetCount: 6,
+		subscribeCount: 4
 	});
 });
 

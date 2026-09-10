@@ -104,6 +104,11 @@ export default {
 					await updater.registerWebsub();
 					return new Response("WebSub registration triggered");
 				},
+				"/youtube-websub-register-missing": async () => {
+					const updater = new YouTubeWebSubUpdater(env);
+					const result = await updater.registerMissingWebsubAsync();
+					return Response.json(result);
+				},
 				"/youtube-fetch-rss": async () => {
 					const updater = new YouTubeRssFeedUpdater(env);
 					await updater.scheduleTrigger();

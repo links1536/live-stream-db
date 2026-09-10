@@ -434,6 +434,18 @@ export class AdminService {
 				</button>
 			</div>
 
+			<!-- WebSub未登録のみ登録 -->
+			<div class="action-card">
+				<div class="action-info">
+					<h3>YouTube WebSub Register Missing</h3>
+					<p>未登録、期限情報未取得、または期限切れのYouTube配信者だけを登録します</p>
+				</div>
+				<button class="btn-trigger" onclick="runTask(this, '/admin/youtube-websub-register-missing')">
+					<div class="spinner"></div>
+					<span class="btn-text">Execute</span>
+				</button>
+			</div>
+
 			<!-- RSS手動フェッチ -->
 			<div class="action-card">
 				<div class="action-info">
