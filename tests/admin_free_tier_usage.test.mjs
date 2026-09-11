@@ -58,6 +58,8 @@ test("管理コンソールに現在のマスター件数による無料枠試�
 	assert.match(html, /Cron 290回、YouTube追跡 164件・4バッチ\/回/);
 	assert.match(html, /YouTube WebSub Register Missing/);
 	assert.match(html, /\/admin\/youtube-websub-register-missing/);
+	assert.match(html, /YouTube WebSub Spread Expirations/);
+	assert.match(html, /\/admin\/youtube-websub-spread-expirations/);
 });
 
 test("マスター件数を取得できなくても管理コンソールを表示する", async () => {
@@ -78,5 +80,15 @@ test("未登録のYouTube WebSub登録用エンドポイントを提供する", 
 	)?.[1] ?? "";
 
 	assert.match(handler, /registerMissingWebsubAsync\(\)/);
+	assert.match(handler, /return Response\.json\(result\)/);
+});
+
+test("YouTube WebSub有効期限を分散する管理用エンドポイントを提供する", async () => {
+	const entrySource = await readFile(new URL("../src/entry.js", import.meta.url), "utf8");
+	const handler = entrySource.match(
+		/"\/youtube-websub-spread-expirations": async \(\) => \{([\s\S]*?)\n\s*\},/
+	)?.[1] ?? "";
+
+	assert.match(handler, /spreadFutureExpirationsAsync\("youtube"\)/);
 	assert.match(handler, /return Response\.json\(result\)/);
 });

@@ -291,6 +291,53 @@ test("Webhook購読状態のupsertで既存の有効期限を保持できる", a
 	assert.equal(values[4], null);
 });
 
+test("Webhook購読状態の有効期限を現在時刻から既存期限までに分散できる", async () => {
+	const calls = [];
+	const repository = new WebhookStateRepository({
+		prepare: statement => ({
+			bind: (...parameters) => ({
+				run: async () => calls.push({ statement, parameters })
+			})
+		})
+	});
+	repository.loadTargetsAsync = async () => [
+		{ target_key: ACTIVE_CHANNEL_ID, expires_at_iso: new Date(NOW_MS + 5 * DAY_MS).toISOString() },
+		{ target_key: DUE_CHANNEL_ID, expires_at_iso: new Date(NOW_MS + 2 * DAY_MS).toISOString() },
+		{ target_key: UNKNOWN_CHANNEL_ID, expires_at_iso: null },
+		{ target_key: EXPIRED_CHANNEL_ID, expires_at_iso: new Date(NOW_MS).toISOString() }
+	];
+
+	const result = await repository.spreadFutureExpirationsAsync("youtube", NOW_MS, () => 0.5);
+
+	assert.deepEqual(result, { targetCount: 4, updatedCount: 2, skippedCount: 2 });
+	assert.equal(calls[0].parameters[0], new Date(NOW_MS).toISOString());
+	assert.equal(calls[0].parameters[3], ACTIVE_CHANNEL_ID);
+	const distributedExpirationMs = Date.parse(calls[1].parameters[0]);
+	assert.ok(distributedExpirationMs >= NOW_MS);
+	assert.ok(distributedExpirationMs <= NOW_MS + 2 * DAY_MS);
+	assert.equal(calls[1].parameters[3], DUE_CHANNEL_ID);
+});
+
+test("Webhook購読状態の分散後の有効期限は既存期限を超えない", async () => {
+	const calls = [];
+	const repository = new WebhookStateRepository({
+		prepare: () => ({
+			bind: (...parameters) => ({
+				run: async () => calls.push(parameters)
+			})
+		})
+	});
+	const existingExpirationMs = NOW_MS + DAY_MS;
+	repository.loadTargetsAsync = async () => [
+		{ target_key: ACTIVE_CHANNEL_ID, expires_at_iso: new Date(NOW_MS + 2 * DAY_MS).toISOString() },
+		{ target_key: DUE_CHANNEL_ID, expires_at_iso: new Date(existingExpirationMs).toISOString() }
+	];
+
+	await repository.spreadFutureExpirationsAsync("youtube", NOW_MS, () => 1);
+
+	assert.equal(Date.parse(calls[1][0]), existingExpirationMs);
+});
+
 test("D1の初期スキーマと既存環境向け移行SQLに有効期限列を定義する", async () => {
 	const [setupSql, migrationSql] = await Promise.all([
 		readFile(new URL("../setup-d1.sql", import.meta.url), "utf8"),

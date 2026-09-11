@@ -446,6 +446,18 @@ export class AdminService {
 				</button>
 			</div>
 
+			<!-- WebSub有効期限の疑似分散 -->
+			<div class="action-card">
+				<div class="action-info">
+					<h3>YouTube WebSub Spread Expirations</h3>
+					<p>検証用に、有効期限を現在時刻から既存期限までの範囲で分散させます。1件は期限切れにします。</p>
+				</div>
+				<button class="btn-trigger" onclick="runTask(this, '/admin/youtube-websub-spread-expirations')">
+					<div class="spinner"></div>
+					<span class="btn-text">Execute</span>
+				</button>
+			</div>
+
 			<!-- RSS手動フェッチ -->
 			<div class="action-card">
 				<div class="action-info">

@@ -77,6 +77,41 @@ export class WebhookStateRepository
 		).run();
 	}
 
+	async spreadFutureExpirationsAsync(platform, nowMs = Date.now(), random = Math.random)
+	{
+		const targets = await this.loadTargetsAsync(platform);
+		let updatedCount = 0;
+		let skippedCount = 0;
+
+		for (const target of targets) {
+			const currentExpirationMs = Date.parse(target.expires_at_iso);
+			if (!Number.isFinite(currentExpirationMs) || currentExpirationMs <= nowMs) {
+				skippedCount++;
+				continue;
+			}
+
+			const expirationMs = updatedCount === 0
+				? nowMs
+				: Math.min(
+					currentExpirationMs,
+					Math.floor(nowMs + random() * (currentExpirationMs - nowMs + 1))
+				);
+			await this.db.prepare(`
+				UPDATE webhook_subscription_targets
+				SET expires_at_iso = ?, updated_at_iso = ?
+				WHERE platform = ? AND target_key = ?
+			`).bind(
+				new Date(expirationMs).toISOString(),
+				new Date(nowMs).toISOString(),
+				platform,
+				target.target_key
+			).run();
+			updatedCount++;
+		}
+
+		return { targetCount: targets.length, updatedCount, skippedCount };
+	}
+
 	async deleteTargetAsync(platform, targetKey)
 	{
 		await this.db.prepare(`
