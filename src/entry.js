@@ -11,6 +11,7 @@ import { TwitchEventSubUpdater } from "./updater/twitch_eventsub_updater.js";
 import { WebhookSubscriptionUpdater } from "./updater/webhook_subscription_updater.js";
 import { LivesJsonUpdater } from "./updater/lives_json_updater.js";
 import { AdminService } from "./admin_service.js";
+import { WebhookStateRepository } from "./repository/webhook_state_repository.js";
 import { Log } from "./log.js";
 import { LOG_FLAGS } from "./constants/log_flags.js";
 
@@ -107,6 +108,11 @@ export default {
 				"/youtube-websub-register-missing": async () => {
 					const updater = new YouTubeWebSubUpdater(env);
 					const result = await updater.registerMissingWebsubAsync();
+					return Response.json(result);
+				},
+				"/youtube-websub-spread-expirations": async () => {
+					const webhookStateRepository = new WebhookStateRepository(env.DB);
+					const result = await webhookStateRepository.spreadFutureExpirationsAsync("youtube");
 					return Response.json(result);
 				},
 				"/youtube-fetch-rss": async () => {
