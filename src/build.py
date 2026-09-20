@@ -100,7 +100,7 @@ delivery_delay = 60
 [[queues.consumers]]
 queue = "{yt_register_websub_queue}"
 retry_delay = 300
-max_concurrency = 3
+max_concurrency = 1
 
 
 # スケジュール情報更新用キュー
