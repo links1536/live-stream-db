@@ -74,7 +74,7 @@ export class YouTubeWebSub
 			"hub.verify": "async"
 		});
 		if (mode === "subscribe")
-			params.append("hub.lease_seconds", "432000"); // 5日間
+			params.append("hub.lease_seconds", "864000"); // 10日間
 
 		if (this.verifyToken) {
 			params.append("hub.verify_token", this.verifyToken);
