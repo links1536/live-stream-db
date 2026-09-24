@@ -182,6 +182,17 @@ export default {
 					? await AdminService.downloadLivesJsonAsync(env)
 					: methodNotAllowed("GET");
 
+			const adminTableDownloadNames = {
+				"/youtube_schedules.json": "youtube_schedules",
+				"/twitcasting_streams.json": "twitcasting_streams",
+				"/twitch_streams.json": "twitch_streams"
+			};
+			const tableDownloadName = adminTableDownloadNames[adminPath];
+			if (tableDownloadName)
+				return request.method === "GET"
+					? await AdminService.downloadTableJsonAsync(env, tableDownloadName)
+					: methodNotAllowed("GET");
+
 			const adminPostHandler = adminPostHandlers[adminPath];
 			if (adminPostHandler) {
 				if (request.method !== "POST")

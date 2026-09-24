@@ -6,6 +6,12 @@ import { VTuberRepository } from "./repository/vtuber_repository.js";
  * 管理画面（ダッシュボード）を表示・制御するサービス
  */
 export class AdminService {
+	static tableDownloadNames = new Set([
+		"youtube_schedules",
+		"twitcasting_streams",
+		"twitch_streams"
+	]);
+
 	/**
 	 * KVに保存されているlives.jsonをダウンロード用レスポンスとして返す
 	 *
@@ -34,6 +40,40 @@ export class AdminService {
 		catch (e) {
 			Log.error("AdminService", `lives.jsonの取得に失敗しました: ${e}`);
 			return new Response("Failed to load lives.json", {
+				status: 500,
+				headers: { "Content-Type": "text/plain; charset=utf-8" }
+			});
+		}
+	}
+
+	/**
+	 * D1テーブルの内容をJSONダウンロード用レスポンスとして返す
+	 *
+	 * @param {Object} env - 環境変数
+	 * @param {"youtube_schedules" | "twitcasting_streams" | "twitch_streams"} tableName - ダウンロード対象のテーブル名
+	 * @returns {Promise<Response>} テーブル内容のJSONダウンロードレスポンス
+	 */
+	static async downloadTableJsonAsync(env, tableName) {
+		if (!this.tableDownloadNames.has(tableName))
+			return new Response("Unknown table", {
+				status: 404,
+				headers: { "Content-Type": "text/plain; charset=utf-8" }
+			});
+
+		try {
+			const { results } = await env.DB.prepare(`SELECT * FROM ${tableName}`).all();
+			return new Response(JSON.stringify(results), {
+				headers: {
+					"Content-Type": "application/json; charset=utf-8",
+					"Content-Disposition": `attachment; filename="${tableName}.json"`,
+					"Cache-Control": "no-store",
+					"X-Content-Type-Options": "nosniff"
+				}
+			});
+		}
+		catch (e) {
+			Log.error("AdminService", `${tableName}の取得に失敗しました: ${e}`);
+			return new Response(`Failed to load ${tableName}`, {
 				status: 500,
 				headers: { "Content-Type": "text/plain; charset=utf-8" }
 			});
@@ -549,6 +589,39 @@ export class AdminService {
 					<p>KV_OUTPUTに保存されている最新の lives.json をダウンロードします</p>
 				</div>
 				<a class="btn-trigger" href="/admin/lives.json" download="lives.json">
+					<span class="btn-text">Download</span>
+				</a>
+			</div>
+
+			<!-- YouTubeスケジュールダウンロード -->
+			<div class="action-card">
+				<div class="action-info">
+					<h3>Download youtube_schedules.json</h3>
+					<p>D1の youtube_schedules テーブル内容をそのままJSONでダウンロードします</p>
+				</div>
+				<a class="btn-trigger" href="/admin/youtube_schedules.json" download="youtube_schedules.json">
+					<span class="btn-text">Download</span>
+				</a>
+			</div>
+
+			<!-- TwitCasting配信ダウンロード -->
+			<div class="action-card">
+				<div class="action-info">
+					<h3>Download twitcasting_streams.json</h3>
+					<p>D1の twitcasting_streams テーブル内容をそのままJSONでダウンロードします</p>
+				</div>
+				<a class="btn-trigger" href="/admin/twitcasting_streams.json" download="twitcasting_streams.json">
+					<span class="btn-text">Download</span>
+				</a>
+			</div>
+
+			<!-- Twitch配信ダウンロード -->
+			<div class="action-card">
+				<div class="action-info">
+					<h3>Download twitch_streams.json</h3>
+					<p>D1の twitch_streams テーブル内容をそのままJSONでダウンロードします</p>
+				</div>
+				<a class="btn-trigger" href="/admin/twitch_streams.json" download="twitch_streams.json">
 					<span class="btn-text">Download</span>
 				</a>
 			</div>

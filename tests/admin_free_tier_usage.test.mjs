@@ -73,6 +73,47 @@ test("マスター件数を取得できなくても管理コンソールを表�
 	assert.match(html, /試算を表示できません/);
 });
 
+test("管理コンソールから3つの配信テーブルをJSONでダウンロードできる", async () => {
+	const html = AdminService.getHtml();
+
+	for (const tableName of [ "youtube_schedules", "twitcasting_streams", "twitch_streams" ]) {
+		assert.match(html, new RegExp(`href="/admin/${tableName}\\.json"`));
+		assert.match(html, new RegExp(`download="${tableName}\\.json"`));
+	}
+});
+
+test("配信テーブルの内容を変換せずJSONとしてダウンロードする", async () => {
+	const rows = [ { id: "stream-1", title: "配信タイトル", nullable_value: null } ];
+	let preparedSql = null;
+	const response = await AdminService.downloadTableJsonAsync({
+		DB: {
+			prepare(sql) {
+				preparedSql = sql;
+				return { all: async () => ({ results: rows }) };
+			}
+		}
+	}, "twitch_streams");
+
+	assert.equal(preparedSql, "SELECT * FROM twitch_streams");
+	assert.equal(response.status, 200);
+	assert.equal(response.headers.get("Content-Disposition"), 'attachment; filename="twitch_streams.json"');
+	assert.deepEqual(await response.json(), rows);
+});
+
+test("未許可のテーブルはダウンロードしない", async () => {
+	const response = await AdminService.downloadTableJsonAsync({}, "sqlite_master");
+
+	assert.equal(response.status, 404);
+});
+
+test("配信テーブルのJSONダウンロード用エンドポイントを提供する", async () => {
+	const entrySource = await readFile(new URL("../src/entry.js", import.meta.url), "utf8");
+
+	for (const tableName of [ "youtube_schedules", "twitcasting_streams", "twitch_streams" ])
+		assert.match(entrySource, new RegExp(`"/${tableName}\\.json": "${tableName}"`));
+	assert.match(entrySource, /AdminService\.downloadTableJsonAsync\(env, tableDownloadName\)/);
+});
+
 test("未登録のYouTube WebSub登録用エンドポイントを提供する", async () => {
 	const entrySource = await readFile(new URL("../src/entry.js", import.meta.url), "utf8");
 	const handler = entrySource.match(
