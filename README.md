@@ -1,5 +1,8 @@
 # live-stream-db
 
+** 公開用に調整したリポジトリなります。直接作業をしているリポジトリではありません **
+
+
 ## プロジェクト説明
 
 YouTube、Twitch、ツイキャスの配信予定と配信状態を収集し、公開用 `lives.json` を生成する Cloudflare Workers アプリケーションです
